@@ -10,6 +10,7 @@ import { GET as listCases } from "@/app/api/v1/public/cases/route";
 import { GET as getCase } from "@/app/api/v1/public/cases/[id]/route";
 import { GET as getStatistics } from "@/app/api/v1/public/statistics/route";
 import { GET as getOpenApi } from "@/app/api/v1/public/openapi.json/route";
+import { GET as getGeoJson } from "@/app/api/v1/public/cases.geojson/route";
 import { __resetRateLimit } from "@/public-api/rate-limit";
 import { __resetPublicApiServiceForTests } from "@/public-api/runtime";
 import { demoCases } from "@/public-api/mock-data";
@@ -48,7 +49,9 @@ describe("public API metadata", () => {
     expect(response.status).toBe(200);
     const doc = await readJson(response);
 
-    expect(doc.info.license).toMatchObject({ name: "Uso cívico con atribución" });
+    expect(doc.info.license).toMatchObject({
+      name: "Datos cívicos abiertos con atribución; cada conjunto declara su propia licencia",
+    });
     expect(doc.info.contact).toBeTypeOf("object");
   });
 
@@ -114,10 +117,69 @@ describe("public evidence privacy", () => {
 });
 
 describe("GeoJSON output", () => {
-  it.fails("offers a GeoJSON FeatureCollection for map consumers", async () => {
-    // @ts-expect-error - module intentionally absent; this check is expected to fail.
-    const route = await import("@/app/api/v1/public/geojson/route").catch(() => null);
-    expect(route).not.toBeNull();
+  it("offers a GeoJSON FeatureCollection for map consumers", async () => {
+    const response = await getGeoJson(
+      request("/api/v1/public/cases.geojson?limit=50"),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("application/geo+json");
+
+    const body = await readJson(response);
+    expect(body.type).toBe("FeatureCollection");
+    expect(Array.isArray(body.features)).toBe(true);
+    expect(body.features.length).toBeGreaterThan(0);
+    expect(body.meta.dataset).toBe("demo");
+
+    const located = body.features.find(
+      (feature: { geometry: unknown }) => feature.geometry !== null,
+    );
+    expect(located).toBeTruthy();
+    expect(located.type).toBe("Feature");
+    expect(located.id).toBe(located.properties.case_id);
+    expect(located.geometry.type).toBe("Point");
+    expect(located.geometry.coordinates).toHaveLength(2);
+
+    for (const feature of body.features) {
+      // Safety-sensitive reports may publish no geometry at all; any published
+      // point must already be coarsened to the documented precision.
+      if (feature.geometry) {
+        const decimals = feature.properties.spatial_precision === "coarse" ? 2 : 3;
+        expect(Math.round(feature.geometry.coordinates[0] * 10 ** decimals) / 10 ** decimals)
+          .toBe(feature.geometry.coordinates[0]);
+        expect([110, 1100]).toContain(feature.properties.coordinate_precision_meters);
+      }
+      // The map payload is the public projection: no account identity, no
+      // exact address, and no signed/parameterised source URL.
+      const serialized = JSON.stringify(feature.properties);
+      expect(serialized).not.toMatch(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
+      expect(serialized).not.toContain("created_by_user_id");
+      expect(serialized).not.toContain("reporter_email");
+      expect(serialized).not.toContain("address_hint");
+      if (feature.properties.source_url) {
+        const url = new URL(feature.properties.source_url);
+        expect(url.protocol).toBe("https:");
+        expect(url.search).toBe("");
+        expect(url.hash).toBe("");
+      }
+    }
+  });
+
+  it("keeps an unlicensed government import off the public feed", async () => {
+    const body = await readJson(
+      await listCases(request("/api/v1/public/cases?page_size=50")),
+    );
+    const unlicensed = body.data.find(
+      (item: { display_id: string }) => item.display_id === "VOT-0015",
+    );
+    expect(unlicensed).toBeUndefined();
+    const imported = body.data.filter(
+      (item: { record_origin: string }) => item.record_origin === "government_import",
+    );
+    expect(imported.length).toBeGreaterThan(0);
+    for (const item of imported) {
+      expect(item.provenance.license.redistributable).toBe(true);
+      expect(item.provenance.permission.verified).toBe(true);
+    }
   });
 
   it("keeps every published case inside the Cuauhtémoc bounding box", async () => {

@@ -7,11 +7,6 @@ export default defineConfig({
   resolve: {
     // Specific aliases must precede the generic `@` alias.
     alias: [
-      {
-        find: "@/app/api/v1/public",
-        replacement: path.resolve(root, ".qa/vendor/public-api-routes"),
-      },
-      { find: "@/public-api", replacement: path.resolve(root, ".qa/vendor/public-api") },
       { find: "@votavia-ai", replacement: path.resolve(root, ".qa/vendor/ai") },
       { find: "@votavia-government", replacement: path.resolve(root, ".qa/vendor/government") },
       { find: "next/headers", replacement: path.resolve(root, "tests/support/next-headers-mock.ts") },

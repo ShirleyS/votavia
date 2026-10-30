@@ -6,6 +6,7 @@ import { GET as getCase } from "@/app/api/v1/public/cases/[id]/route";
 import { __resetRateLimit } from "@/public-api/rate-limit";
 import { __resetPublicApiServiceForTests } from "@/public-api/runtime";
 import { demoCases } from "@/public-api/mock-data";
+import { isCasePublishable } from "@/public-api/provenance";
 import type { PublicCase } from "@/public-api/types";
 import {
   freshApp,
@@ -17,14 +18,17 @@ import {
 import { withCookies } from "../support/next-headers-mock";
 
 const ROOT = path.resolve(__dirname, "../..");
-const unpublished = demoCases.filter((item) => !item.is_published);
+const unpublished = demoCases.filter((item) => !isCasePublishable(item));
 
 const PUBLIC_CASE_KEYS = [
   "case_id",
   "category",
+  "community_verification",
+  "community_verification_status",
   "created_at",
   "description",
   "display_id",
+  "external_government_status",
   "has_accessibility_concern",
   "has_safety_concern",
   "is_demo",
@@ -32,11 +36,14 @@ const PUBLIC_CASE_KEYS = [
   "observation_count",
   "permalink",
   "photos",
+  "provenance",
+  "record_origin",
   "resolved_at",
   "status",
   "support_count",
   "title",
   "updated_at",
+  "votavia_operational_status",
 ];
 
 beforeEach(() => {
