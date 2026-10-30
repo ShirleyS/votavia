@@ -29,6 +29,22 @@ export interface OfficialFeedPolicy {
 const FRESH_HOURS = 24;
 const AGING_HOURS = 72;
 
+/**
+ * Demo deployment: no service-role key, or an explicit demo flag. Mirrors the
+ * rule in `server/env.ts` without importing it, so the public API stays
+ * independent of server wiring.
+ */
+function demoDeployment(env: NodeJS.ProcessEnv): boolean {
+  const real = ["VOTAVIA_REAL_BACKEND", "VOTAVIA_PUBLIC_API_MODE"];
+  const wantsReal =
+    (env[real[0]] ?? "").trim().toLowerCase() === "1" ||
+    (env[real[1]] ?? "").trim().toLowerCase() === "live";
+  const forcedDemo = (env.VOTAVIA_DEMO_MODE ?? "").trim().toLowerCase();
+  if (forcedDemo === "1" || forcedDemo === "true") return true;
+  if (wantsReal) return false;
+  return !(env.NEXT_PUBLIC_SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);
+}
+
 export type FreshnessStatus = "fresh" | "aging" | "stale" | "unknown";
 
 export interface ProvenanceFreshness {

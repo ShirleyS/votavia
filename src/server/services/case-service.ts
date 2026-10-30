@@ -760,23 +760,20 @@ export class CaseService implements CivicPlatformService {
     const result = await analyzeDraft(this.repo, request);
     if (!result) return null;
 
-    const byId = new Map(result.candidates.map((candidate) => [candidate.case_id, candidate]));
-    const duplicates = (result.duplicates?.matches ?? [])
-      .filter((match) => match.relationship !== "different_problem")
-      .map((match) => {
-        const candidate = byId.get(match.case_id);
-        return {
-          case_id: match.case_id,
-          display_id: candidate?.case_id ?? match.case_id,
-          title: candidate?.title ?? "Reporte cercano",
-          category: candidate?.category ?? request.category ?? "other",
-          status: candidate?.status ?? "reported",
-          distance_meters: match.distance_meters ?? 0,
-          score: match.confidence ?? 0.5,
-          reason: match.explanation,
-          relationship: match.relationship,
-        };
-      });
+    const duplicates = result.similar_cases.map((suggestion) => ({
+      case_id: suggestion.case_id,
+      display_id: suggestion.display_id,
+      title: suggestion.title,
+      category: suggestion.category,
+      status: suggestion.status,
+      distance_meters: suggestion.distance_meters ?? 0,
+      confidence: suggestion.confidence,
+      score: suggestion.confidence,
+      reason: suggestion.explanation,
+      evidence: suggestion.evidence,
+      relationship: suggestion.relationship,
+      support_count: suggestion.support_count,
+    }));
 
     return {
       suggested_category: result.classification.suggested_category,
@@ -788,6 +785,14 @@ export class CaseService implements CivicPlatformService {
       missing_information: result.classification.missing_information,
       is_fallback: result.classification.fallback,
       duplicates,
+      comparison: result.comparison
+        ? {
+            method: result.comparison.method,
+            model: result.comparison.model,
+            fallback: result.comparison.fallback,
+            evaluated: result.comparison.evaluated,
+          }
+        : null,
     };
   }
 

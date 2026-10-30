@@ -620,9 +620,15 @@ export interface DraftDuplicateCandidate {
   category: CaseCategory;
   status: CaseStatus;
   distance_meters: number;
+  /** Heuristic confidence (0..1) of the semantic comparison. Not a probability. */
+  confidence: number;
+  /** @deprecated Alias of `confidence` kept for older consumers. */
   score: number;
+  /** Model explanation of why both reports may describe the same problem. */
   reason: string;
-  relationship: string;
+  evidence: string[];
+  relationship: "same_problem" | "related_problem" | "uncertain";
+  support_count: number;
 }
 
 export interface DraftAnalysisResponse {
@@ -635,6 +641,13 @@ export interface DraftAnalysisResponse {
   missing_information: string[];
   is_fallback: boolean;
   duplicates: DraftDuplicateCandidate[];
+  /** How the comparison ran: semantic model or deterministic fallback. */
+  comparison?: {
+    method: "model" | "deterministic";
+    model: string;
+    fallback: boolean;
+    evaluated: number;
+  } | null;
 }
 
 export interface OperationalUpdateInput {

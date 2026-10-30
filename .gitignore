@@ -20,3 +20,6 @@ collectors/cdmx-0311/node_modules
 
 # Local Netlify folder
 .netlify
+
+# Collector output published by `npm run sync:0311`. Generated, not source.
+data/official/

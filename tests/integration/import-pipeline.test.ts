@@ -10,7 +10,7 @@
  * demo seed rows in `src/server/repositories/demo`. They are FIXTURES and are
  * labelled as such wherever they are used. No real SUAC extract is present.
  */
-import { promises as fs } from "node:fs";
+import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { CASE_STATUSES, CASE_EVENT_TYPES } from "@/shared/votavia-contract";
@@ -106,14 +106,18 @@ describe("import pipeline contract", () => {
   });
 
   it("ships no import fixtures or sample extract in the repository", async () => {
-    const candidates = [
-      path.join(ROOT, "tests/fixtures/official"),
-      path.join(ROOT, "fixtures/official"),
-      path.join(ROOT, "data/official"),
-    ];
-    for (const candidate of candidates) {
-      const exists = await fs.stat(candidate).then(() => true).catch(() => false);
-      expect(exists).toBe(false);
-    }
+    // Checks tracked files rather than the working tree: `npm run sync:0311`
+    // legitimately creates data/official/ locally, and it is git-ignored. What
+    // must never ship is a committed extract of official data.
+    const tracked = execFileSync("git", ["ls-files"], { cwd: ROOT, encoding: "utf8" });
+    const leaked = tracked
+      .split("\n")
+      .filter(Boolean)
+      .filter((file) =>
+        ["tests/fixtures/official/", "fixtures/official/", "data/official/"].some((prefix) =>
+          file.startsWith(prefix),
+        ),
+      );
+    expect(leaked).toEqual([]);
   });
 });

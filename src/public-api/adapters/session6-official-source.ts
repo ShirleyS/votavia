@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
+import { statSync } from "node:fs";
 import path from "node:path";
 import {
   CASE_CATEGORIES,
@@ -136,12 +137,35 @@ export interface LoadedOfficialRecords {
 const DATASET_SLUG = "cdmx-0311";
 const CATEGORY_SET = new Set<string>(CASE_CATEGORIES);
 
+/**
+ * Where the collector's output lives when it was published into the repo.
+ * `npm run sync:0311` writes here, so a deployment that ships the folder needs
+ * no configuration to serve imported records.
+ */
+const DEFAULT_OFFICIAL_DIR = path.join(process.cwd(), "data", "official");
+
+function resolvePublished(fallbackName: string) {
+  // Tests must be deterministic and must not depend on whether an operator has
+  // run the collector in this checkout; they set the env vars explicitly.
+  if (process.env.NODE_ENV === "test") return "";
+  const candidate = path.join(DEFAULT_OFFICIAL_DIR, fallbackName);
+  try {
+    return statSync(candidate).size > 0 ? candidate : "";
+  } catch {
+    return "";
+  }
+}
+
 export function officialRecordsPath(env: NodeJS.ProcessEnv = process.env): string {
-  return (env[SESSION6_RECORDS_PATH_ENV] ?? "").trim();
+  const configured = (env[SESSION6_RECORDS_PATH_ENV] ?? "").trim();
+  if (configured) return configured;
+  return resolvePublished("records.jsonl");
 }
 
 export function officialManifestPath(env: NodeJS.ProcessEnv = process.env): string {
-  return (env[SESSION6_MANIFEST_PATH_ENV] ?? "").trim();
+  const configured = (env[SESSION6_MANIFEST_PATH_ENV] ?? "").trim();
+  if (configured) return configured;
+  return resolvePublished("manifest.json");
 }
 
 /**

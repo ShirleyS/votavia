@@ -16,19 +16,28 @@ import {
   Mail,
   MapPin,
   ShieldCheck,
+  Sparkles,
   Trash2,
+  ThumbsUp,
   Users,
 } from "lucide-react";
 import { CaseMap, type MapCase } from "@/components/map/case-map";
 import { CategoryIcon } from "@/components/category-icon";
 import { buttonStyles } from "@/components/ui/button";
 import { inputStyles } from "@/components/ui/field";
-import { CATEGORY_META, COLONIA_CENTROIDS, COLONIAS, CUAUHTEMOC_CENTER } from "@/lib/taxonomy";
+import {
+  CATEGORY_META,
+  COLONIA_CENTROIDS,
+  COLONIAS,
+  CUAUHTEMOC_CENTER,
+  STATUS_META,
+} from "@/lib/taxonomy";
 import { cn, distanceMeters, formatDistance } from "@/lib/utils";
 import {
   CASE_CATEGORIES,
   type Case,
   type CaseCategory,
+  type DraftDuplicateCandidate,
   type RelatedReport,
 } from "@/shared/votavia-contract";
 
@@ -60,6 +69,18 @@ function fieldError(message: string) {
   return Object.assign(new Error(message), { status: 422 });
 }
 
+const RELATIONSHIP_META: Record<
+  DraftDuplicateCandidate["relationship"],
+  { label: string; chip: string }
+> = {
+  same_problem: { label: "Mismo problema", chip: "bg-emerald-50 text-emerald-800 ring-1 ring-inset ring-emerald-200" },
+  related_problem: { label: "Problema relacionado", chip: "bg-amber-50 text-amber-900 ring-1 ring-inset ring-amber-200" },
+  uncertain: { label: "Posible coincidencia", chip: "bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200" },
+};
+
+/** Max characters the observations endpoint accepts. */
+const MAX_OBSERVATION_CHARS = 800;
+
 export function ReportWizard({
   initialEmail,
   authenticated,
@@ -81,6 +102,21 @@ export function ReportWizard({
   const [files, setFiles] = useState<File[]>([]);
   const [email, setEmail] = useState(initialEmail);
   const [nearby, setNearby] = useState<RelatedReport[]>([]);
+  const [similar, setSimilar] = useState<DraftDuplicateCandidate[]>([]);
+  const [comparison, setComparison] = useState<{
+    method: "model" | "deterministic";
+    model: string;
+    fallback: boolean;
+    evaluated: number;
+  } | null>(null);
+  const [confirmJoin, setConfirmJoin] = useState<string | null>(null);
+  const [joining, setJoining] = useState<string | null>(null);
+  const [joined, setJoined] = useState<{
+    case_id: string;
+    display_id: string;
+    title: string;
+  } | null>(null);
+  const [joinError, setJoinError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -156,37 +192,18 @@ export function ReportWizard({
         if (!response.ok) throw new Error("analysis");
         const data = (await response.json()) as {
           analysis?: {
-            duplicates?: Array<{
-              case_id: string;
-              title: string;
-              distance_meters: number;
-              reason: string;
-            }>;
+            duplicates?: DraftDuplicateCandidate[];
+            comparison?: {
+              method: "model" | "deterministic";
+              model: string;
+              fallback: boolean;
+              evaluated: number;
+            } | null;
           } | null;
         };
-        const duplicates = data.analysis?.duplicates ?? [];
-        if (controller.signal.aborted || !duplicates.length) return;
-
-        setNearby((current) => {
-          const known = new Set(current.map((entry) => entry.case_id));
-          return current.map((entry) => {
-            const match = duplicates.find((item) => item.case_id === entry.case_id);
-            return match ? { ...entry, ...match } : entry;
-          }).concat(
-            duplicates
-              .filter((item) => !known.has(item.case_id))
-              .map((item) => ({
-                case_id: item.case_id,
-                display_id: item.case_id.slice(0, 8),
-                title: item.title,
-                category,
-                status: "reported" as const,
-                support_count: 0,
-                distance_meters: item.distance_meters,
-                created_at: new Date().toISOString(),
-              })),
-          );
-        });
+        if (controller.signal.aborted) return;
+        setSimilar(data.analysis?.duplicates ?? []);
+        setComparison(data.analysis?.comparison ?? null);
       } catch {
         // Ignore: AI is advisory and must never block reporting.
       } finally {
@@ -275,6 +292,38 @@ export function ReportWizard({
       next.push(file);
     }
     setFiles(next);
+  }
+
+  async function joinCase(item: DraftDuplicateCandidate) {
+    if (joining) return;
+    setJoining(item.case_id);
+    setJoinError(null);
+    try {
+      const support = await fetch(`/api/cases/${encodeURIComponent(item.case_id)}/support`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!support.ok) throw new Error("support");
+
+      // The citizen's own words become context on the existing case, so the
+      // report is not lost when it joins an already-open one.
+      const body = description.trim().slice(0, MAX_OBSERVATION_CHARS);
+      if (body.length >= 10) {
+        await fetch(`/api/cases/${encodeURIComponent(item.case_id)}/observations`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kind: "comment", body }),
+        }).catch(() => null);
+      }
+
+      setJoined({ case_id: item.case_id, display_id: item.display_id, title: item.title });
+      setSimilar([]);
+      setConfirmJoin(null);
+    } catch {
+      setJoinError("No pudimos sumar tu reporte a ese caso. Intenta de nuevo o crea uno nuevo.");
+    } finally {
+      setJoining(null);
+    }
   }
 
   function goNext() {
@@ -710,11 +759,151 @@ export function ReportWizard({
                 </p>
               )}
 
-              <div aria-live="polite" className="mt-4">
-                {checking ? (
+              <div aria-live="polite" className="mt-4 space-y-3">
+                {joined ? (
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                    <p className="flex items-center gap-2 text-sm font-bold text-emerald-900">
+                      <CheckCircle2 className="h-4 w-4" aria-hidden /> Tu reporte quedó sumado al caso{" "}
+                      {joined.display_id}
+                    </p>
+                    <p className="mt-1 text-xs text-emerald-900/80">
+                      Registramos tu apoyo y publicamos tu descripción como observación del caso. Cada
+                      persona que lo confirma le da más fuerza.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Link
+                        href={`/reportes/${joined.case_id}`}
+                        className={buttonStyles({ variant: "primary", size: "sm" })}
+                      >
+                        Ver el caso <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => setJoined(null)}
+                        className={buttonStyles({ variant: "secondary", size: "sm" })}
+                      >
+                        Seguir con un reporte nuevo
+                      </button>
+                    </div>
+                  </div>
+                ) : similar.length ? (
+                  <div className="rounded-2xl border border-royal-200 bg-royal-50/60 p-4">
+                    <p className="flex items-center gap-2 text-sm font-bold text-navy-900">
+                      <Sparkles className="h-4 w-4 text-royal-600" aria-hidden /> Casos similares
+                      encontrados
+                    </p>
+                    <p className="mt-1 text-xs text-navy-600">
+                      {comparison?.method === "model"
+                        ? "Un análisis semántico comparó tu reporte con estos casos."
+                        : "Comparación por cercanía y texto; el análisis semántico no estaba disponible."}{" "}
+                      Sumar tu reporte a uno existente suele dar más fuerza que abrir otro.
+                    </p>
+                    <ul className="mt-3 space-y-3">
+                      {similar.map((item) => {
+                        const relationship = RELATIONSHIP_META[item.relationship];
+                        const confirming = confirmJoin === item.case_id;
+                        const pendingJoin = joining === item.case_id;
+                        return (
+                          <li
+                            key={item.case_id}
+                            className="rounded-xl bg-white p-3 ring-1 ring-royal-100"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-bold text-navy-900">{item.title}</p>
+                                <p className="mt-0.5 text-[11px] text-navy-500">
+                                  {item.display_id} · a {formatDistance(item.distance_meters)} ·{" "}
+                                  {item.support_count} apoyos · {STATUS_META[item.status].label}
+                                </p>
+                              </div>
+                              <span
+                                className={cn(
+                                  "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold",
+                                  relationship.chip,
+                                )}
+                              >
+                                {relationship.label}
+                              </span>
+                            </div>
+
+                            <p className="mt-2 text-xs text-navy-600">{item.reason}</p>
+
+                            {item.evidence.length ? (
+                              <ul className="mt-2 flex flex-wrap gap-1.5">
+                                {item.evidence.map((evidence) => (
+                                  <li
+                                    key={evidence}
+                                    className="rounded-full bg-navy-50 px-2 py-0.5 text-[11px] text-navy-600"
+                                  >
+                                    {evidence}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : null}
+
+                            <p className="mt-2 text-[11px] font-medium text-navy-400">
+                              Confianza {Math.round(item.confidence * 100)}%
+                            </p>
+
+                            {confirming ? (
+                              <div className="mt-3 rounded-lg bg-amber-50 p-3 ring-1 ring-amber-200">
+                                <p className="text-xs text-amber-900">
+                                  ¿Sumar tu reporte a {item.display_id}? Registraremos tu apoyo y
+                                  publicaremos tu descripción como observación del caso.
+                                </p>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => void joinCase(item)}
+                                    disabled={pendingJoin}
+                                    className={buttonStyles({ variant: "primary", size: "sm" })}
+                                  >
+                                    {pendingJoin ? (
+                                      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                                    ) : (
+                                      <ThumbsUp className="h-3.5 w-3.5" aria-hidden />
+                                    )}
+                                    {pendingJoin ? "Sumando…" : "Sí, sumarlo"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmJoin(null)}
+                                    disabled={pendingJoin}
+                                    className={buttonStyles({ variant: "secondary", size: "sm" })}
+                                  >
+                                    Cancelar
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmJoin(item.case_id)}
+                                  className={buttonStyles({ variant: "primary", size: "sm" })}
+                                >
+                                  Sumar mi reporte a este caso
+                                </button>
+                                <Link
+                                  href={`/reportes/${item.case_id}`}
+                                  className={buttonStyles({ variant: "secondary", size: "sm" })}
+                                >
+                                  Ver caso
+                                </Link>
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    {joinError ? (
+                      <p className="mt-2 text-xs font-semibold text-rose-700">{joinError}</p>
+                    ) : null}
+                  </div>
+                ) : checking ? (
                   <p className="inline-flex items-center gap-2 text-xs text-navy-500">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Revisando reportes
-                    cercanos…
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Comparando tu
+                    reporte con casos existentes…
                   </p>
                 ) : nearbyResults.length ? (
                   <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">

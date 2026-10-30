@@ -242,10 +242,114 @@ export interface DraftAnalysisInput {
   colonia?: string | null;
 }
 
+/** One existing report the engine considers comparable to the draft. */
+export interface SimilarCaseSuggestion {
+  case_id: string;
+  display_id: string;
+  title: string;
+  category: Case["category"];
+  status: Case["status"];
+  colonia: string;
+  support_count: number;
+  created_at: string;
+  distance_meters: number | null;
+  relationship: "same_problem" | "related_problem" | "uncertain";
+  confidence: number;
+  explanation: string;
+  evidence: string[];
+}
+
+/** Transparency about the comparison itself, so the UI can label its source. */
+export interface DraftComparisonSummary {
+  method: "model" | "deterministic";
+  model: string;
+  fallback: boolean;
+  evaluated: number;
+  notes: string[];
+}
+
 export interface DraftAnalysisResult {
   classification: ReportClassification;
   duplicates: Awaited<ReturnType<typeof findDuplicateReports>> | null;
   candidates: DuplicateCandidateInput[];
+  /** Ranked, human-readable suggestions ready for the wizard. */
+  similar_cases: SimilarCaseSuggestion[];
+  comparison: DraftComparisonSummary | null;
+}
+
+const RELATIONSHIP_ORDER: Record<SimilarCaseSuggestion["relationship"], number> = {
+  same_problem: 0,
+  related_problem: 1,
+  uncertain: 2,
+};
+
+/** A resolved case is not a useful target for a new report. */
+const OPEN_STATUSES: ReadonlySet<Case["status"]> = new Set([
+  "reported",
+  "under_review",
+  "assigned",
+  "in_progress",
+  "pending_verification",
+]);
+
+const MIN_SUGGESTION_CONFIDENCE = 0.3;
+const MAX_SUGGESTIONS = 3;
+
+export function buildSimilarCases(
+  duplicates: DraftAnalysisResult["duplicates"],
+  aggregates: CaseAggregate[],
+): SimilarCaseSuggestion[] {
+  if (!duplicates) return [];
+  const byId = new Map(aggregates.map((aggregate) => [aggregate.row.id, aggregate]));
+
+  return duplicates.matches
+    .flatMap((match): SimilarCaseSuggestion[] => {
+      const aggregate = byId.get(match.case_id);
+      if (!aggregate) return [];
+      if (match.relationship === "different_problem") return [];
+      if (!OPEN_STATUSES.has(aggregate.row.status)) return [];
+      const confidence = match.confidence ?? 0;
+      if (confidence < MIN_SUGGESTION_CONFIDENCE) return [];
+      return [
+        {
+          case_id: aggregate.row.id,
+          display_id: aggregate.row.display_id,
+          title: aggregate.row.title,
+          category: aggregate.row.category,
+          status: aggregate.row.status,
+          colonia: aggregate.row.colonia,
+          support_count: aggregate.support_count,
+          created_at: aggregate.row.created_at,
+          distance_meters: match.distance_meters,
+          relationship: match.relationship,
+          confidence,
+          explanation: match.explanation,
+          evidence: match.evidence.slice(0, 4),
+        },
+      ];
+    })
+    .sort(
+      (a, b) =>
+        RELATIONSHIP_ORDER[a.relationship] - RELATIONSHIP_ORDER[b.relationship] ||
+        b.confidence - a.confidence ||
+        (a.distance_meters ?? Number.MAX_SAFE_INTEGER) -
+          (b.distance_meters ?? Number.MAX_SAFE_INTEGER),
+    )
+    .slice(0, MAX_SUGGESTIONS);
+}
+
+function comparisonSummary(
+  duplicates: DraftAnalysisResult["duplicates"],
+): DraftComparisonSummary | null {
+  if (!duplicates) return null;
+  return {
+    method:
+      duplicates.comparison_method ?? (duplicates.compared_with_model ? "model" : "deterministic"),
+    model: duplicates.model,
+    fallback: duplicates.fallback,
+    evaluated: duplicates.shortlisted_count,
+    notes: duplicates.notes,
+  };
 }
 
 /**
@@ -285,7 +389,13 @@ export async function analyzeDraft(
         duplicates = null;
       }
     }
-    return { classification, duplicates, candidates };
+    return {
+      classification,
+      duplicates,
+      candidates,
+      similar_cases: buildSimilarCases(duplicates, all),
+      comparison: comparisonSummary(duplicates),
+    };
   } catch (error) {
     console.error("[votavia] draft analysis failed (non-blocking)", error);
     return null;
