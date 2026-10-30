@@ -313,6 +313,7 @@ async function createConfirmedCase(
       location_precision: draft.location_precision,
       used_voice: draft.used_voice,
       transcript: draft.transcript,
+      ...(deps.extraSubmissionMetadata ?? {}),
     },
   };
 

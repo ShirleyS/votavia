@@ -135,6 +135,8 @@ export interface WhatsAppConversationDeps {
   extractReport: ExtractReport;
   createCase: (input: CreateCaseInput, participant: ParticipantContext) => Promise<Case>;
   appUrl: string;
+  /** Extra provenance added to `submission_metadata` (e.g. simulator/bridge). */
+  extraSubmissionMetadata?: Record<string, unknown>;
   now?: () => Date;
   /** Injectable hasher so tests keep raw phone numbers out of assertions. */
   hashParticipant?: (waId: string) => string;
