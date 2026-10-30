@@ -1,8 +1,8 @@
 # VotaVía · Consola de Gobierno
 
-Documento de entrega de la consola operativa de gobierno. La experiencia corre con
-datos de muestra y está pensada para sustituir el servicio simulado por adaptadores
-reales sin rehacer la interfaz ni los flujos.
+Documento de entrega de la consola operativa de gobierno. El camino de producción
+habla con las APIs autenticadas del núcleo de Session 1; existe además un modo de
+muestra explícito, rotulado en pantalla, para revisar la interfaz sin núcleo.
 
 Este documento describe la **Sesión 2**: espacio de trabajo gubernamental, revisión
 de casos, priorización comunitaria, evidencia de gobierno, cierre operativo y
@@ -24,12 +24,17 @@ respuesta a disputas ciudadanas.
 - La inteligencia preventiva contiene **observaciones**, no predicciones.
 - Todo dato de demostración se etiqueta como muestra.
 
-## Autorización de demostración
+## Autorización en modo de muestra
+
+> Aplica únicamente con `NEXT_PUBLIC_VOTAVIA_API_MODE=demo`. En el camino de
+> producción la identidad, los permisos y el alcance provienen de
+> `/api/organizations/me` (ver *Autenticación y pertenencia a organización*).
 
 `src/lib/government/mock-data.ts` define cuatro cuentas ficticias. El proveedor
 (`GovernmentProvider`) aplica los permisos y el alcance por área en cada acción; el
-servicio (`mock-service`) es la única fuente de datos. **No hay una segunda base de
-datos, un segundo sistema de autenticación ni una API pública paralela.**
+servicio de muestra (`mock-service`) es la única fuente de datos en este modo. **No
+hay una segunda base de datos, un segundo sistema de autenticación ni una API
+pública paralela.**
 
 | Cuenta | Rol | Alcance | Permisos |
 | --- | --- | --- | --- |
@@ -232,7 +237,11 @@ apuntar esa importación al nuevo servicio (o inyectarlo por contexto).
 Toda integración real debe conservar autorización humana, trazabilidad, manejo de
 errores y estados de carga explícitos.
 
-## Persistencia local de muestra
+## Persistencia local de muestra (sólo modo `demo`)
+
+> **Alcance.** Esta sección describe el modo de muestra explícito
+> (`NEXT_PUBLIC_VOTAVIA_API_MODE=demo`). Con el valor por omisión (`core`) este
+> código no se instancia y `localStorage` no se toca.
 
 `MockGovernmentService` guarda casos, órdenes, evidencia, avisos y actividad en
 `localStorage` bajo:
@@ -400,6 +409,160 @@ superior muestra la etiqueta `Demo`/`Núcleo` (`gov-source-chip`) y el banner de
 servicio indica el origen. Ninguna cuenta de demostración se presenta como
 funcionario real, y la consola nunca afirma una adopción oficial de CDMX.
 
+## Trazabilidad de datos (auditoría de I-16)
+
+Esta sección responde punto por punto a la observación de Session 5: qué está
+conectado de verdad, contra qué almacén, y qué sigue simulado y por qué.
+
+### 1. Pantallas y acciones conectadas a servicios reales
+
+| Pantalla | Acción | Servicio | Endpoint del núcleo |
+| --- | --- | --- | --- |
+| `/gobierno` (panel) | Cargar bandeja, métricas y prioridad | `listCases` + `getDashboard` | `GET /issues` (+ `GET /issues/[id]` por lote) |
+| `/gobierno/reportes` | Listar, filtrar por colonia/categoría, buscar, exportar CSV | `listCases` | `GET /issues?q=&colonia=&category=` |
+| `/gobierno/reportes/[id]` | Abrir expediente y bitácora | `listCases`/detalle | `GET /issues/[id]` |
+| Detalle · carril oficial | Leer folio, fuente, estado reportado, frescura | adaptador | `GET /issues/[id]` → `official_records` |
+| Detalle · gestión | Marcar en revisión / registrar avance | `updateCaseStatus` | `POST /issues/[id]/operational` |
+| Detalle · gestión | Publicar resultado (cierre operativo) | `publishOutcome` | `POST /issues/[id]/operational` (`completed`) |
+| Detalle · intervención | Registrar cierre con resumen | `recordCompletion` | `POST /issues/[id]/operational` (`completed`) |
+| Detalle · evidencia | Subir antes/después con foto y nota | `uploadEvidence` | `POST /issues/[id]/evidence` (multipart) |
+| Detalle · disputa | Responder y adjuntar evidencia de seguimiento | `respondDispute` | evidencia → `POST /issues/[id]/evidence` |
+| Todas | Sesión y permisos | `loadSession` | `GET /organizations/me` |
+| Puerta de sesión | Entrar / salir | `signInDemo` / `signOut` | `POST` / `DELETE /auth/demo` |
+
+Verificación de que no hay rutas inventadas: el inventario de endpoints de esta
+consola es exactamente `GET /issues`, `GET /issues/[id]`,
+`POST /issues/[id]/operational`, `GET|POST /issues/[id]/evidence`,
+`GET /official-records/[id]/history`, `GET /organizations/me` y
+`POST|DELETE /auth/demo`. Todo lo demás está en `PENDING_CONTRACTS`.
+
+### 2. Repositorio y configuración que usan esos servicios
+
+La consola no tiene base de datos propia. El núcleo de Session 1 elige el almacén en
+`src/server/services/container.ts` según el entorno:
+
+| Configuración del núcleo | Repositorio | Persistencia |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` presentes | `SupabaseCaseRepository` | **Base persistente** (Postgres/Supabase) |
+| Sin esas variables (por omisión en local) | `DemoCaseRepository` | **Archivo en disco**: `.data/db.json` (caché en memoria + escritura atómica a archivo). No es memoria volátil: sobrevive al reinicio del proceso |
+
+Consecuencia práctica: aunque el repositorio se llame "demo", **sí persiste**. Lo
+que se pierde al recargar el navegador no son los expedientes, sino los *overrides*
+de la consola (ver punto 3).
+
+Variables que necesita esta consola (`.env.example`):
+
+```
+VOTAVIA_CORE_ORIGIN=http://localhost:3000   # origen del núcleo; sin esto no hay backend
+NEXT_PUBLIC_VOTAVIA_API_MODE=core           # por omisión; `demo` es excepción explícita
+NEXT_PUBLIC_VOTAVIA_CORE_BASE_PATH=/core-api
+```
+
+### 3. Uso restante de mocks y `localStorage`
+
+Búsqueda exhaustiva (`rg -n "localStorage|sessionStorage" src`): devuelve tres
+archivos, pero uno (`src/lib/government/core/service.ts`) sólo lo menciona en un
+comentario. Quedan exactamente **dos** accesos reales, ambos inalcanzables con el
+modo por omisión:
+
+| Archivo | Uso | Cuándo se ejecuta |
+| --- | --- | --- |
+| `src/lib/government/mock-service.ts` | Persiste el `MockStore` en la clave `votavia-government-mock-v2` | Sólo si `NEXT_PUBLIC_VOTAVIA_API_MODE=demo`; el servicio se instancia de forma diferida |
+| `src/components/government/GovernmentProvider.tsx` | Recuerda la cuenta ficticia activa (`votavia-government-demo-user-v1`) | `initialDemoUser()` sólo se llama si `!coreMode`; `switchDemoUser()` retorna antes si `coreMode` |
+
+Además, en modo núcleo hay estado **en memoria de la pestaña** (no `localStorage`):
+el mapa `overrides` de `CoreGovernmentService`, que guarda asignación de área,
+operador, prioridad manual, respuesta a disputa y claim de cierre. Se pierde al
+recargar la página y se anuncia en pantalla como "local/etiquetado". No se escribió
+a `localStorage` a propósito: un override de gobierno no debe sobrevivir como si
+fuera dato canónico.
+
+**Respuesta a Session 5:** si revisó la versión anterior a `30ef694`, sí veía el modo
+de muestra por omisión — ese era el defecto I-16 y está corregido. Contra el commit
+actual no queda ninguna lectura de datos ficticios en el camino de producción.
+
+### 4. Los cinco contratos faltantes
+
+Fuente única: `PENDING_CONTRACTS` en `src/lib/government/core/adapter.ts`.
+
+| # | Contrato faltante | Propietario | Comportamiento bloqueado |
+| --- | --- | --- | --- |
+| 1 | Asignación de responsable distinto de `organization_id` | Session 1 | No se puede persistir el área/departamento responsable. La UI guarda un override local etiquetado; al recargar vuelve al valor del núcleo. `POST /issues/[id]/operational` sólo acepta `organization_id`. |
+| 2 | Respuesta oficial a disputas | Session 1 | El texto de respuesta no se guarda en el núcleo. La evidencia de seguimiento **sí** se sube; el texto queda en memoria y se etiqueta. Tampoco existe forma de cerrar la disputa: sólo la ciudadanía cambia la verificación. |
+| 3 | Publicación de resultado | Session 1 | El cierre operativo se registra como `operational_status: completed`. El texto de resultado y la fecha de publicación quedan como override local; no hay endpoint de publicación ni de "resultado ciudadano". |
+| 4 | Feed de actividad | Session 1 | No hay bitácora dedicada. La línea de tiempo se reconstruye con `created_at`, evidencia y registro oficial; los eventos de overrides no aparecen porque no existen en el servidor. |
+| 5 | Despacho de especialistas | Ismael | Sin backend HTTP no hay asignación real de especialistas (ver punto 5). |
+
+Ninguno se resolvió inventando una ruta. Cada uno se declara en la interfaz, en
+`SettingsView` (hoja técnica) y en el banner de servicio.
+
+### 5. Sustituto de despacho e interfaz pendiente de Ismael
+
+- **Contrato:** `DispatchGateway` en `src/lib/government/core/contract.ts`
+  (`requestDispatch`, `assign`, `getAssignments`, `updateAssignment`).
+- **Sustituto:** `FixtureDispatchGateway` en `src/lib/government/core/adapter.ts`.
+  Implementa el contrato tipado en memoria, con especialistas de
+  `mock-data.ts`. **No es un segundo backend**: no abre puertos, no persiste y no
+  crea tablas.
+- **Rotulado:** el panel de especialistas muestra un aviso permanente cuando
+  `dataSource === "core"`: las órdenes son simuladas y no representan asignaciones
+  reales. Los eventos de la orden dicen "Fuente: fixture del contrato de Ismael".
+- **Qué falta exactamente:** la implementación HTTP del gateway (base URL + auth de
+  servicio) y la confirmación de los campos `status`, `specialist_display_name` y
+  `updated_at`. Cuando Ismael publique esas rutas, se sustituye sólo la clase del
+  gateway; ni la UI ni el adaptador cambian.
+
+## Autenticación y pertenencia a organización
+
+La consola **no** tiene sistema de autenticación propio: no hay contraseñas, ni
+usuarios, ni cookies, ni tabla de sesiones. Todo se delega al núcleo.
+
+### Cómo se abre la sesión
+
+1. `SessionGate` detecta que no hay sesión y ofrece el acceso de demostración del
+   núcleo: `POST /api/auth/demo` con el correo.
+2. El núcleo responde con una cookie `httpOnly` (`DEMO_USER_COOKIE`) que este
+   código nunca lee ni escribe.
+3. `DELETE /api/auth/demo` cierra la sesión.
+4. Si el núcleo tiene Supabase Auth configurado, el endpoint de demostración
+   devuelve `400` a propósito: en ese caso se entra por el enlace de correo de la
+   aplicación principal. La consola no ofrece un camino alterno.
+
+### Cómo se verifica la pertenencia
+
+`GET /api/organizations/me` devuelve `{ authenticated, memberships }`. El servidor
+resuelve las membresías con `resolveActor()` →
+`repository.membershipsFor(user_id)`, que filtra por:
+
+- `user_id` de la sesión,
+- `revoked_at === null`,
+- `verified_at !== null`.
+
+Es decir: **un correo con dominio gubernamental no otorga nada**. Sin una fila de
+membresía verificada, `memberships` llega vacío y la consola muestra el muro "sin
+organización verificada" en lugar de listar expedientes. Esto es intencional y es
+el estado actual del sembrado.
+
+Después, el rol de esa membresía (`responder < supervisor < admin`) se traduce a
+permisos de interfaz, y el alcance se aplica por `organization_id`: un caso de otra
+organización queda deshabilitado con mensaje. Aun así, la autorización real ocurre
+en el servidor: `POST /issues/[id]/operational` y `POST /issues/[id]/evidence`
+validan la membresía y responden `401`/`403` sin importar lo que haga el cliente.
+
+### Dependencia abierta (bloqueante para E2E)
+
+El sembrado crea organizaciones pero deja `organizationMembers: []`. Contrato
+faltante exacto, para Session 1:
+
+> Una fila en `organizationMembers` con `organization_id = "org-demo-cuauhtemoc"`,
+> `user_id` igual al que produce `POST /api/auth/demo` para el correo de gobierno de
+> demostración, `role` en `responder | supervisor | admin`, `scope` opcional,
+> `verified_at` no nulo y `revoked_at` nulo. Alternativa: un endpoint administrativo
+> que cree esa membresía.
+
+La consola no simula esa fila: hacerlo sería una segunda autorización, justo lo que
+el encargo prohíbe.
+
 ## Cierre de I-16 (camino de producción sin mocks)
 
 Session 5 reportó que la consola seguía usando mocks y `localStorage`. El cambio:
@@ -466,9 +629,73 @@ de ejecutar en un equipo con `npm run dev`.
 - Los scripts usan `--webpack` porque Turbopack no resuelve `node_modules` enlazado
   fuera de la carpeta del proyecto en este entorno.
 
+## Entrega a Session 5
+
+### Commits
+
+| Commit | Contenido | Estado |
+| --- | --- | --- |
+| `28ce97c` | Checkpoint `checkpoint(feature/government-ux): preserve session work` — consola completa (panel, reportes, detalle, gobernanza, evidencia, disputas) con adaptador de núcleo **detrás** de `NEXT_PUBLIC_VOTAVIA_API_MODE=core`; por omisión caía a `demo` | Conservado en la rama, es ancestro del actual |
+| `30ef694` | `fix(government-ux): make the core API the production data path (I-16)` — modo núcleo por omisión, instanciación diferida del mock, `SessionGate`, sesión por `/auth/demo` | Encima de `28ce97c` |
+| `ce281ec` | `docs(government-ux): session 5 handoff for the I-16 core wiring` — `SESSION5_HANDOFF.md` | Encima de `30ef694` |
+
+Rama: `feature/government-ux` · Worktree:
+`/Users/shirley/Documents/code/votavia-government-ux` · Etiqueta local:
+`checkpoint/feature-government-ux-2026-10-30`.
+
+`28ce97c` se conserva intacto y sin reescribir, como se pidió. **Para revisar I-16
+hay que mirar `30ef694` o posterior**: en `28ce97c` el defecto todavía existe por
+diseño (el modo de muestra era el valor por omisión). Revisar sólo `28ce97c`
+reproduce exactamente el hallazgo de Session 5.
+
+### Cómo revisar y ejecutar
+
+```bash
+cd /Users/shirley/Documents/code/votavia-government-ux
+git log --oneline -3                    # 28ce97c → 30ef694 → ce281ec
+npm ci
+npm run typecheck                       # tsc --noEmit
+npm run build                           # next build, 11 rutas
+
+# Con el núcleo de Session 1 levantado:
+cp .env.example .env.local              # ajusta VOTAVIA_CORE_ORIGIN
+npm run dev                             # http://localhost:3001/gobierno
+```
+
+Comprobaciones puntuales de I-16:
+
+```bash
+# 1) No queda localStorage en el camino de producción
+rg -n "localStorage" src
+#    esperado: mock-service.ts + GovernmentProvider.tsx (sólo modo demo)
+#    y un comentario en core/service.ts (sin acceso real)
+
+# 2) El modo por omisión es el núcleo
+rg -n "NEXT_PUBLIC_VOTAVIA_API_MODE" src/lib/government/core/service.ts
+#    esperado: ?? "core"
+
+# 3) Ninguna vista importa el servicio de muestra
+rg -n "mock-service" src/components src/app
+#    esperado: sin resultados
+```
+
+En pantalla, con el sembrado actual, lo esperado es ver el muro **"Tu cuenta no
+tiene una organización verificada"**: es la prueba de que no hay datos ficticios de
+respaldo y de que la autorización depende de una membresía real del núcleo.
+
+### Sobre el parche
+
+Si Session 5 no puede leer este worktree (equipos o entornos distintos) y el push
+sigue fallando, el canal alterno es un parche `git format-patch` generado desde
+`28ce97c..HEAD` y guardado en una ruta compartida. Ese parche se anuncia con su ruta
+y tamaño **sólo después** de comprobar que es legible y aplicable con
+`git apply --check`. Si no se puede verificar, se reporta como *no entregado*.
+
 ## Estado del trabajo
 
-Los cambios **no se han confirmado** (sin commit) y permanecen sin seguimiento en la
-rama `feature/government-ux`. Este slice **no se fusiona ni se despliega**: la
-coordinación y las pruebas E2E (Session 5) deciden la integración. La rama no se
-rebasea ni se mezcla desde aquí.
+Los cambios están **confirmados en local** sobre `feature/government-ux`
+(`28ce97c` → `30ef694` → `ce281ec`). El push al remoto falla en este entorno porque
+no hay salida DNS/red, así que los commits y la etiqueta existen únicamente en esta
+copia. Este slice **no se fusiona ni se despliega**: la coordinación y las pruebas
+E2E (Session 5) deciden la integración. La rama no se rebasea ni se mezcla desde
+aquí.
