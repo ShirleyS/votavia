@@ -55,3 +55,75 @@ export function createTranscriber(options: TranscriptionOptions = {}): Transcrib
     }
   };
 }
+
+export interface ElevenLabsTranscriptionOptions {
+  apiKey?: string;
+  baseUrl?: string;
+  modelId?: string;
+  fetchImpl?: typeof fetch;
+}
+
+export function isElevenLabsConfigured(apiKey = (process.env.ELEVENLABS_API_KEY ?? "").trim()): boolean {
+  return apiKey.length > 0;
+}
+
+/**
+ * ElevenLabs speech-to-text. A different shape from the OpenAI-compatible
+ * transcriber above:
+ *   POST {base}/v1/speech-to-text
+ *   header: xi-api-key
+ *   multipart: file, model_id
+ *   response: { text, language_code, ... }
+ *
+ * Used for the demo so no Meta/WhatsApp integration is required to exercise
+ * the voice path.
+ */
+export function createElevenLabsTranscriber(
+  options: ElevenLabsTranscriptionOptions = {},
+): TranscribeAudio {
+  const apiKey = (
+    options.apiKey ?? (process.env.ELEVENLABS_API_KEY ?? "")
+  ).trim();
+  const baseUrl = (
+    options.baseUrl ?? (process.env.ELEVENLABS_BASE_URL ?? "https://api.elevenlabs.io")
+  ).replace(/\/+$/, "");
+  const modelId = options.modelId ?? (process.env.ELEVENLABS_STT_MODEL ?? "scribe_v1");
+  const fetchImpl = options.fetchImpl ?? globalThis.fetch;
+
+  return async ({ bytes, mimeType, filename }): Promise<TranscriptionResult> => {
+    if (!apiKey) return { ok: false, text: null, reason: "not_configured" };
+    if (bytes.byteLength === 0) return { ok: false, text: null, reason: "empty" };
+    if (bytes.byteLength > MAX_AUDIO_BYTES) return { ok: false, text: null, reason: "too_large" };
+
+    const form = new FormData();
+    form.append("file", new Blob([Buffer.from(bytes)], { type: mimeType }), filename);
+    form.append("model_id", modelId);
+    form.append("language_code", "spa");
+
+    try {
+      const response = await fetchImpl(`${baseUrl}/v1/speech-to-text`, {
+        method: "POST",
+        headers: { "xi-api-key": apiKey },
+        body: form,
+        signal: AbortSignal.timeout(TRANSCRIBE_TIMEOUT_MS),
+      });
+      if (!response.ok) return { ok: false, text: null, reason: "provider_error" };
+      const body = (await response.json().catch(() => null)) as { text?: string } | null;
+      const text = typeof body?.text === "string" ? body.text.trim() : "";
+      if (!text) return { ok: false, text: null, reason: "empty" };
+      return { ok: true, text: text.slice(0, 8000), reason: "ok" };
+    } catch {
+      return { ok: false, text: null, reason: "provider_error" };
+    }
+  };
+}
+
+/**
+ * Picks the best available transcriber: ElevenLabs for the demo, then an
+ * OpenAI-compatible endpoint, then an unconfigured no-op that reports
+ * `not_configured` instead of throwing.
+ */
+export function createPreferredTranscriber(): TranscribeAudio {
+  if (isElevenLabsConfigured()) return createElevenLabsTranscriber();
+  return createTranscriber();
+}

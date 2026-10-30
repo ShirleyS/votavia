@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ChevronDown, LogOut, Menu, Search, UserRound, X } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { DemoSeedButton } from "@/components/demo-seed-button";
 import { buttonStyles } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +18,15 @@ const NAV = [
   { href: "/gobierno", label: "Para gobierno" },
 ];
 
-export function SiteHeader({ email, isDemo }: { email: string | null; isDemo: boolean }) {
+export function SiteHeader({
+  email,
+  isDemo,
+  demoEnabled,
+}: {
+  email: string | null;
+  isDemo: boolean;
+  demoEnabled: boolean;
+}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -70,6 +79,8 @@ export function SiteHeader({ email, isDemo }: { email: string | null; isDemo: bo
           <Link href="/reportar" className={cn(buttonStyles({ size: "md" }), "hidden sm:inline-flex")}>
             Participa
           </Link>
+
+          {demoEnabled ? <DemoSeedButton /> : null}
 
           {email ? (
             <div className="relative">

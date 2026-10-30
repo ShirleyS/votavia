@@ -43,7 +43,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           Saltar al contenido
         </a>
         <DemoBanner mode={backend} />
-        <SiteHeader email={user?.email ?? null} isDemo={Boolean(user?.is_demo)} />
+        <SiteHeader
+          email={user?.email ?? null}
+          isDemo={Boolean(user?.is_demo)}
+          demoEnabled={backend === "demo"}
+        />
         <main id="contenido" className="flex-1">
           {children}
         </main>

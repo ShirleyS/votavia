@@ -121,6 +121,23 @@ export function SessionGate({ children }: { children: React.ReactNode }) {
               cuenta de <strong>demostración</strong>, no un funcionario real, y sólo
               verá lo que su membresía permita.
             </p>
+            <button
+              type="button"
+              className="button button--secondary button--small"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  const response = await fetch("/api/demo/seed", { method: "POST" });
+                  if (!response.ok) throw new Error("No se pudo cargar la demo");
+                  window.location.reload();
+                } catch {
+                  setBusy(false);
+                }
+              }}
+            >
+              Cargar demo completa (datos + membresía)
+            </button>
           </form>
         )}
 

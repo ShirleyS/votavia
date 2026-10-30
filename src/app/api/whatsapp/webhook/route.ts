@@ -10,7 +10,7 @@ import { WhatsAppGraphClient } from "@/server/whatsapp/graph-client";
 import { parseInboundMessages } from "@/server/whatsapp/payload";
 import { verifyWebhookToken, verifyWhatsAppSignature } from "@/server/whatsapp/signature";
 import { createWhatsAppStore } from "@/server/whatsapp/store";
-import { createTranscriber } from "@/server/whatsapp/transcription";
+import { createPreferredTranscriber } from "@/server/whatsapp/transcription";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
 
   const graph = new WhatsAppGraphClient({ config });
   const store = createWhatsAppStore();
-  const transcribe = createTranscriber();
+  const transcribe = createPreferredTranscriber();
   const extractReport = createReportExtractor();
   const caseService = getCaseService();
   const baseUrl = appUrl();

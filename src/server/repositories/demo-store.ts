@@ -1408,5 +1408,211 @@ export class DemoCaseRepository implements CaseRepository {
   }
 }
 
+export interface DemoSeedSummary {
+  cases: number;
+  issues: number;
+  supports: number;
+  verifications: number;
+  evidence: number;
+  events: number;
+  organization: string;
+}
+
+/**
+ * Rebuilds the local demo dataset and personalizes it for the demo account.
+ *
+ * Only ever runs against the file-backed demo store. Every row keeps
+ * `is_demo: true`; the previous database is copied to `db.demo-backup.json`
+ * so a seeded demo is never a one-way door.
+ */
+export async function seedDemoEnvironment(user: {
+  id: string;
+  email: string;
+}): Promise<DemoSeedSummary> {
+  await ensureDir();
+  try {
+    await fs.copyFile(DB_FILE, `${DB_FILE}.demo-backup.json`);
+  } catch {
+    // No previous database: nothing to back up.
+  }
+
+  const db = buildDatabase();
+  const now = Date.now();
+  const hoursAgo = (hours: number) => new Date(now - hours * 3600000).toISOString();
+
+  // Reports the demo citizen "filed", so Mis reportes is never empty.
+  const owned = db.cases.slice(0, 3);
+  owned.forEach((row, index) => {
+    row.created_by_user_id = user.id;
+    row.reporter_email = user.email;
+    row.submission_channel = "web";
+    if (index === 0) {
+      row.created_at = hoursAgo(6);
+      row.updated_at = hoursAgo(2);
+    }
+  });
+
+  // Fresh neighbour activity on the newest report.
+  const freshest = db.cases[0];
+  if (freshest) {
+    db.observations.push(
+      {
+        id: randomUUID(),
+        case_id: freshest.id,
+        kind: "still_happening",
+        body: "Hoy volví a pasar y el problema sigue igual. Ya van varios días.",
+        author_type: "community",
+        author_label: "Vecina de Roma Norte",
+        participant_key: "demo-neighbor-1",
+        user_id: null,
+        is_published: true,
+        created_at: hoursAgo(4),
+      },
+      {
+        id: randomUUID(),
+        case_id: freshest.id,
+        kind: "comment",
+        body: "Confirmado, es un riesgo para quienes van en bici. Gracias por reportarlo.",
+        author_type: "community",
+        author_label: "Vecino de la Condesa",
+        participant_key: "demo-neighbor-2",
+        user_id: null,
+        is_published: true,
+        created_at: hoursAgo(3),
+      },
+    );
+
+    for (let i = 0; i < 7; i += 1) {
+      db.supports.push({
+        id: randomUUID(),
+        case_id: freshest.id,
+        participant_key: `demo-support-${i}`,
+        user_id: null,
+        created_at: hoursAgo(1 + i * 0.5),
+      });
+    }
+
+    db.events.push(
+      {
+        id: randomUUID(),
+        case_id: freshest.id,
+        type: "observation",
+        actor_type: "community",
+        title: "Nueva observación de la comunidad",
+        description: "Una vecina confirmó que el problema continúa esta semana.",
+        is_public: true,
+        metadata: null,
+        created_at: hoursAgo(4),
+      },
+      {
+        id: randomUUID(),
+        case_id: freshest.id,
+        type: "community_support",
+        actor_type: "community",
+        title: "7 vecinas y vecinos se sumaron hoy",
+        description: null,
+        is_public: true,
+        metadata: null,
+        created_at: hoursAgo(2),
+      },
+    );
+  }
+
+  // A completed issue with evidence and community verification, so the
+  // government console shows the full arc instead of an empty state.
+  const resolved = db.issues.find((issue) => issue.operational_status === "completed");
+  if (resolved) {
+    resolved.community_verification_status = "verified_resolved";
+    db.evidence.push(
+      {
+        id: randomUUID(),
+        issue_id: resolved.id,
+        case_id: null,
+        kind: "government_intervention",
+        url: "/demo/bache-2.svg",
+        caption: "Reparación terminada por la cuadrilla de Obras",
+        uploaded_by_user_id: null,
+        uploader_role: "government",
+        organization_id: DEMO_ORGANIZATION_ID,
+        is_public: true,
+        created_at: hoursAgo(20),
+      },
+      {
+        id: randomUUID(),
+        issue_id: resolved.id,
+        case_id: null,
+        kind: "resolution_proof",
+        url: "/demo/bache-1.svg",
+        caption: "Superficie nivelada y señalizada",
+        uploaded_by_user_id: null,
+        uploader_role: "government",
+        organization_id: DEMO_ORGANIZATION_ID,
+        is_public: true,
+        created_at: hoursAgo(18),
+      },
+    );
+
+    const verdicts: Array<VerificationRow["verdict"]> = [
+      "verified_resolved",
+      "verified_resolved",
+      "verified_resolved",
+      "confirmed",
+      "disputed",
+    ];
+    verdicts.forEach((verdict, index) => {
+      db.verifications.push({
+        id: randomUUID(),
+        issue_id: resolved.id,
+        user_id: index === 0 ? user.id : `demo-verifier-${index}`,
+        verdict,
+        note:
+          verdict === "disputed"
+            ? "La banqueta quedó con escombro; el bache sí quedó tapado."
+            : null,
+        created_at: hoursAgo(12 - index),
+        superseded_at: null,
+      });
+    });
+
+    for (let i = 0; i < 9; i += 1) {
+      db.issueSupports.push({
+        id: randomUUID(),
+        issue_id: resolved.id,
+        user_id: null,
+        participant_key: `demo-issue-support-${i}`,
+        created_at: hoursAgo(30 + i),
+        removed_at: null,
+      });
+    }
+  }
+
+  // Verified membership for the demo account: the only supported route into
+  // the government console.
+  db.organizationMembers.push({
+    id: randomUUID(),
+    organization_id: DEMO_ORGANIZATION_ID,
+    user_id: user.id,
+    role: "supervisor",
+    scope: [],
+    verified_at: new Date().toISOString(),
+    verified_by: "demo-seed",
+    revoked_at: null,
+    created_at: new Date().toISOString(),
+  });
+
+  await persist(db);
+  cache = db;
+
+  return {
+    cases: db.cases.length,
+    issues: db.issues.length,
+    supports: db.supports.length + db.issueSupports.length,
+    verifications: db.verifications.length,
+    evidence: db.evidence.length,
+    events: db.events.length,
+    organization: db.organizations.find((org) => org.id === DEMO_ORGANIZATION_ID)?.name ?? "Demo",
+  };
+}
+
 export const demoDataFile = DB_FILE;
 export const demoSeedFlag = SEED_FLAG;
