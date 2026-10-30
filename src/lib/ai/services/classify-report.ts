@@ -171,6 +171,28 @@ function buildDeterministicClassification(input: {
 }
 
 /**
+ * Deterministic classification for callers that already know the model cannot
+ * be used (deadline exceeded, provider failure, explicit low-cost mode). Same
+ * contract as `classifyReport`, always marked `fallback: true`.
+ */
+export function fallbackClassification(
+  input: ReportInput,
+  options: AIDeps & { reason?: string | null } = {},
+): ReportClassification {
+  const analyzedAt = (options.now?.() ?? new Date()).toISOString();
+  const client = options.client ?? getAIClient();
+  return buildDeterministicClassification({
+    intake: normalizeReportIntake(input),
+    report: input,
+    analyzedAt,
+    model: client.model,
+    reason:
+      options.reason ??
+      "Clasificación determinista solicitada por el flujo de procesamiento.",
+  });
+}
+
+/**
  * Classifies a report from any intake source (citizen form, government record,
  * messaging or voice transcription) in Mexican Spanish.
  *

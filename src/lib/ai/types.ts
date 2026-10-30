@@ -346,6 +346,117 @@ export interface AIDeps {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Report-processing interface                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Version of the report-processing response envelope. Bump it only when the
+ * shape returned by `processReport` changes incompatibly; `analysis_version`
+ * tracks prompt/heuristic changes independently.
+ */
+export const REPORT_PROCESSING_API_VERSION = "v1" as const;
+
+/** Conservative default budget for one report through the whole pipeline. */
+export const REPORT_PROCESSING_TIMEOUT_MS = 25_000;
+
+export interface ReportProcessingClassification {
+  suggested_category: CaseCategory;
+  /** How the category was obtained (explicit source label, alias, keywords…). */
+  category_method: CategoryNormalizationMethod;
+  category_note: string | null;
+  title: string;
+  summary: string;
+  /** Advisory severity. Never presented as a verified fact. */
+  severity: Severity;
+  severity_rationale: string | null;
+  /** Heuristic confidence in [0,1]; not a calibrated probability. */
+  confidence: number;
+  /** Short explanation of the suggestion, safe to show to a person. */
+  explanation: string;
+  needs_more_information: boolean;
+  missing_information: string[];
+  safety_concerns: string[];
+  accessibility_considerations: string[];
+}
+
+/**
+ * Responsible-area recommendation. Informational only: the AI never assigns a
+ * department and never submits anything to SUAC.
+ */
+export interface ResponsibleAreaSuggestion {
+  suggested_department: string | null;
+  required_specialist_skill: string | null;
+  advisory: true;
+  assigned: false;
+  note: string;
+}
+
+/** One candidate shared issue the new report could be linked to. */
+export interface ReportProcessingSuggestion {
+  /** Existing issue id, or the representative case id when no issue exists. */
+  candidate_issue_id: string;
+  candidate_case_ids: string[];
+  relationship: DuplicateRelationship;
+  confidence: number;
+  explanation: string;
+  evidence: string[];
+  distance_meters: number | null;
+  /** Always false: grouping is confirmed by a person, never automatically. */
+  auto_merge: false;
+}
+
+export interface ProcessReportOptions extends AIDeps {
+  /** Existing reports/issues to compare against. Reports sharing an `issue_id`
+   * are grouped and compared as one unit. */
+  candidates?: readonly IssueLinkCandidate[];
+  /** Overall budget for classification + duplicate matching, in milliseconds. */
+  timeout_ms?: number;
+  max_candidate_groups?: number;
+  min_composite?: number;
+}
+
+/**
+ * One validated answer for "what is this report, and does it belong to a
+ * problem we already know about?". It never merges or deletes reports and it
+ * is always safe to store the report even when every AI provider call fails.
+ */
+export interface ReportProcessingResult {
+  api_version: typeof REPORT_PROCESSING_API_VERSION;
+  /** Session 1 identity for the report. Null only before the row is created. */
+  case_id: string | null;
+  source: ReportSource;
+  /** Verbatim text as received, preserved for audit. Never model instructions. */
+  original_text: string;
+  /** Source dataset category, preserved verbatim for imported records. */
+  original_category: string | null;
+  classification: ReportProcessingClassification;
+  /** Advisory, explainable priority. Votes alone never set urgency. */
+  priority: PrioritySuggestion;
+  responsible_area: ResponsibleAreaSuggestion;
+  duplicate_suggestions: ReportProcessingSuggestion[];
+  /** Distinct existing issues that could receive this report. */
+  candidate_issue_ids: string[];
+  /** Distinct existing reports that could join the same issue. */
+  candidate_case_ids: string[];
+  issue_link_summary: {
+    evaluated_candidates: number;
+    shortlisted_count: number;
+    comparison_method: "model" | "deterministic";
+  };
+  auto_merge: false;
+  requires_human_review: true;
+  /** The report can always be submitted, even with no AI provider available. */
+  submission_allowed: true;
+  ai_available: boolean;
+  fallback: boolean;
+  /** Safe, machine-readable reasons when the result is degraded. */
+  degraded_reasons: string[];
+  model: string;
+  analysis_version: string;
+  analyzed_at: string;
+}
+
+/* -------------------------------------------------------------------------- */
 /* Intake normalization                                                       */
 /* -------------------------------------------------------------------------- */
 

@@ -23,6 +23,8 @@ database, a government dashboard, a public API or an official-data collector.
 ```ts
 import {
   classifyReport,
+  fallbackClassification,
+  processReport,
   findDuplicateReports,
   linkReportToIssues,
   findIssueLinks,
@@ -37,9 +39,11 @@ import {
   caseToReportInput,
   caseToDuplicateCandidate,
   caseToIssueLinkCandidate,
+  issueToReportLinkCandidate,
   governmentRecordToReportInput,
   toAIAnalysisResult,
   toAIAnalysisResultV2,
+  toReportProcessingSharedView,
   normalizeHistoricalRecords,
   historicalCoverage,
   historicalToPreventiveRecord,
@@ -48,7 +52,9 @@ import {
 
 | Function | Purpose | Model call |
 | --- | --- | --- |
+| `processReport(report, options)` | **Report-processing interface v1.** Intake → classification → duplicate/issue suggestions → priority → advisory department, in one validated envelope. Always resolves, always allows submission. | Yes; one classification request plus one issue-link request when candidates exist. |
 | `classifyReport(report)` | Suggested category, title, summary, risk/accessibility notes, department and skill. | Yes, with deterministic fallback. |
+| `fallbackClassification(report)` | Deterministic classification only, for callers that already know the model is unavailable or out of budget. | No. |
 | `findDuplicateReports(report, candidates)` | Geographic shortlist + one semantic comparison request. | Yes, unless no candidates or AI is unavailable. |
 | `linkReportToIssues(report, candidates)` | Groups candidates by issue, scores every group and returns link suggestions (never merges). | Yes, one request for the shortlist; deterministic fallback. |
 | `matchReportToIssue(report, candidates)` | Convenience wrapper returning the single best `same_problem` / `related_problem` suggestion. | Same as above. |
@@ -343,6 +349,7 @@ DEEPSEEK_API_KEY=            # required for model calls
 DEEPSEEK_MODEL=deepseek-flash
 DEEPSEEK_BASE_URL=           # optional, defaults to https://api.deepseek.com
 AI_REQUEST_TIMEOUT_MS=       # optional per-attempt timeout, defaults to 20000
+AI_PROCESS_TIMEOUT_MS=       # optional whole-pipeline budget, defaults to 25000
 ```
 
 `DEEPSEEK_MODEL` exists because providers rotate model ids. If the account does
@@ -350,6 +357,10 @@ not expose `deepseek-flash`, try `deepseek-chat` without changing code.
 
 Configuration is lazy. `isDeepSeekConfigured()` lets a UI or health check show
 "analysis unavailable" without making a request.
+
+`AI_PROCESS_TIMEOUT_MS` bounds **classification and duplicate matching
+together** (250 ms to 60 s, clamped). It can also be passed per call as
+`timeout_ms`, which wins over the environment variable.
 
 ---
 
@@ -464,6 +475,109 @@ const forDashboard = toAIAnalysisResultV2({
 Government routing stays a **suggestion**: `classification.suggested_department`
 is never written to a case, never submitted to SUAC, and never assigns a
 specialist. Ismael owns dispatch execution.
+
+### Report-processing interface (`processReport`, v1)
+
+Use this single call when a report is created. It replaces the sequence above
+with one schema-validated answer and is the interface Session 1 persists.
+
+```ts
+import { processReport, caseToIssueLinkCandidate } from "@/lib/ai";
+
+const result = await processReport(report, {
+  // Existing reports/issues near this one, each tagged with its issue_id.
+  candidates: nearbyCases.map((item) =>
+    caseToIssueLinkCandidate(item, { issue_id: item.issue_id }),
+  ),
+  timeout_ms: 20_000, // optional; defaults to AI_PROCESS_TIMEOUT_MS or 25 s
+});
+```
+
+Shape (abridged; `reportProcessingResultSchema` is the authority):
+
+```json
+{
+  "api_version": "v1",
+  "case_id": "0f0b6a10-1c2d-4f30-9a55-6d4b7e2a1f11",
+  "source": "citizen_web",
+  "original_text": "Hay un bache enorme en la esquina de Colima y Orizaba…",
+  "original_category": null,
+  "classification": {
+    "suggested_category": "road_damage",
+    "category_method": "explicit",
+    "title": "Bache profundo en Colima y Orizaba",
+    "summary": "Bache profundo que daña llantas y obliga a esquivarlo.",
+    "severity": "high",
+    "confidence": 0.86,
+    "explanation": "Categoría sugerida: road_damage (confianza 86%). …",
+    "needs_more_information": false
+  },
+  "priority": { "level": "high", "score": 61, "is_verified": false },
+  "responsible_area": {
+    "suggested_department": "Secretaría de Obras y Servicios",
+    "required_specialist_skill": "bacheo",
+    "advisory": true,
+    "assigned": false
+  },
+  "duplicate_suggestions": [
+    {
+      "candidate_issue_id": "issue-pothole-1",
+      "candidate_case_ids": ["case-a", "case-b"],
+      "relationship": "same_problem",
+      "confidence": 0.91,
+      "explanation": "Ambos describen el mismo bache en la misma esquina…",
+      "evidence": ["mismo bache", "misma esquina"],
+      "distance_meters": 14,
+      "auto_merge": false
+    }
+  ],
+  "candidate_issue_ids": ["issue-pothole-1"],
+  "candidate_case_ids": ["case-a", "case-b"],
+  "auto_merge": false,
+  "requires_human_review": true,
+  "submission_allowed": true,
+  "ai_available": true,
+  "fallback": false,
+  "degraded_reasons": [],
+  "model": "deepseek-flash",
+  "analyzed_at": "2026-10-30T15:04:05.000Z"
+}
+```
+
+Guarantees:
+
+- **No automatic grouping.** `auto_merge` is `false` at the envelope and at
+  every suggestion. A person assigns `cases.issue_id`.
+- **Reports are never deleted or rewritten.** `original_text` and
+  `original_category` are preserved verbatim; imported SUAC categories are
+  never replaced by the normalized suggestion.
+- **Department is advisory.** `responsible_area.assigned` is `false`; nothing
+  is submitted to SUAC. Ismael owns dispatch and specialist assignment.
+- **Submission never depends on AI.** Timeouts, provider errors and a missing
+  key produce `submission_allowed: true`, `fallback: true` and a
+  `degraded_reasons` code list (`ai_not_configured`, `classification_timeout`,
+  `issue_link_error`, `issue_link_fallback`, `schema_sanitized`, …).
+- **Untrusted input.** Only the redacted, length-bounded copy is sent to the
+  model; the key stays server-side; prompt-injection text is treated as data.
+
+Persist the shared projection after the row exists:
+
+```ts
+const shared = toReportProcessingSharedView(result); // AIAnalysisResult
+```
+
+Grouping by issue is what makes duplicate suggestions meaningful: pass every
+candidate with its current `issue_id`, or adapt a grouped issue with
+`issueToReportLinkCandidate(issue, { representative_case_id })`.
+
+### Handoff
+
+| Area | Owner | Contract |
+| --- | --- | --- |
+| Assign `cases.issue_id` from `candidate_issue_ids` | Session 1 | Human-confirmed only; the AI never writes grouping. |
+| Dispatch, specialist assignment, SUAC submission | Ismael | Consumes `responsible_area.suggested_department` as a hint only. |
+| Intake adapters (WhatsApp, voice) | Not this session | Must call `processReport` with the shared `ReportInput`. |
+| Official-data collection | Not this session | Provide records through `governmentRecordToReportInput`. |
 
 ### Ordering and cost
 
@@ -625,6 +739,11 @@ The standard suite is fully mocked and makes no network calls. Coverage:
   linked to a citizen report, colonia-only coordinates, ambiguous language,
   unsupported model output, unknown ids, injection, oversized input, missing
   key and deterministic fallback.
+- Report processing (`process-report.test.ts`): schema validity of every
+  envelope, Spanish pothole report, duplicate candidate grouping by issue,
+  same text far apart, two hazards at one intersection, imported SUAC record,
+  colonia-only location, ambiguous voice transcription, missing key, provider
+  failure and a hard deadline against a hung provider (submission stays open).
 - Intake: voice transcription artifacts (timestamps, `[inaudible]`, stutters,
   Mexican fillers), original category preservation for imports, PII redaction,
   source inference and missing field detection.
