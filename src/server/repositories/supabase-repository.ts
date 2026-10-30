@@ -9,6 +9,7 @@ import type {
 } from "@/shared/votavia-contract";
 import type {
   CaseAggregate,
+  CaseAnalysisRow,
   CaseRow,
   ClaimRow,
   EventRow,
@@ -415,6 +416,74 @@ export class SupabaseCaseRepository implements CaseRepository {
       created_by_user_id: (data as { created_by_user_id: string | null }).created_by_user_id,
       reporter_email: (data as { reporter_email: string | null }).reporter_email,
     };
+  }
+
+  async updateCase(
+    caseId: string,
+    patch: {
+      title?: string;
+      description?: string;
+      category?: CaseRow["category"];
+      address_hint?: string | null;
+    },
+  ) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
+    const idColumn = isUuid ? "id" : "display_id";
+    const { data, error } = await this.client
+      .from("cases")
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq(idColumn, caseId)
+      .select("*")
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
+    const [aggregate] = await this.hydrate([mapCaseRow(data as CaseDbRow)]);
+    return aggregate ?? null;
+  }
+
+  async setStatus(caseId: string, status: CaseRow["status"], resolvedAt?: string | null) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
+    const patch: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
+    if (resolvedAt !== undefined) patch.resolved_at = resolvedAt;
+    const { error } = await this.client
+      .from("cases")
+      .update(patch)
+      .eq(isUuid ? "id" : "display_id", caseId);
+    if (error) throw error;
+  }
+
+  async saveAnalysis(row: CaseAnalysisRow) {
+    const { error } = await this.client
+      .from("case_analyses")
+      .upsert(
+        {
+          ...row,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "case_id" },
+      );
+    if (error) throw error;
+  }
+
+  async analysisForCase(caseId: string) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
+    let resolved = caseId;
+    if (!isUuid) {
+      const { data: report } = await this.client
+        .from("cases")
+        .select("id")
+        .eq("display_id", caseId)
+        .maybeSingle();
+      if (!report) return null;
+      resolved = report.id as string;
+    }
+    const { data, error } = await this.client
+      .from("case_analyses")
+      .select("*")
+      .eq("case_id", resolved)
+      .maybeSingle();
+    if (error) throw error;
+    return (data as CaseAnalysisRow | null) ?? null;
   }
 
   async setReporterEmail(caseId: string, email: string) {

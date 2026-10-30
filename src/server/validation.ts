@@ -30,6 +30,31 @@ export const createCaseSchema = z.object({
   submission_channel: z.enum(["web", "messaging", "voice", "import", "api"]).optional(),
 });
 
+export const updateCaseSchema = z
+  .object({
+    title: z.string().trim().min(6, "Escribe un título de al menos 6 caracteres").max(140).optional(),
+    description: z
+      .string()
+      .trim()
+      .min(15, "Cuéntanos un poco más: al menos 15 caracteres")
+      .max(2000, "Máximo 2000 caracteres")
+      .optional(),
+    category: z.enum(CASE_CATEGORIES).optional(),
+    address_hint: z.string().trim().max(160).nullable().optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "No hay cambios que guardar.",
+  });
+
+export const draftAnalysisSchema = z.object({
+  description: z.string().trim().min(10).max(2000),
+  title: z.string().trim().max(140).optional().nullable(),
+  category: z.enum(CASE_CATEGORIES).optional().nullable(),
+  latitude: z.coerce.number().min(19.2).max(19.6),
+  longitude: z.coerce.number().min(-99.35).max(-98.95),
+  colonia: z.string().trim().max(80).optional().nullable(),
+});
+
 export const observationSchema = z.object({
   kind: z.enum(OBSERVATION_KINDS),
   body: z.string().trim().min(3, "Escribe al menos 3 caracteres").max(800),

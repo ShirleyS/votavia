@@ -133,6 +133,8 @@ export const CASE_EVENT_TYPES = [
   "official_record_linked",
   "support_removed",
   "evidence_uploaded",
+  "report_updated",
+  "report_withdrawn",
 ] as const;
 
 export type CaseEventType = (typeof CASE_EVENT_TYPES)[number];
@@ -556,10 +558,83 @@ export interface CivicPlatformService extends CitizenCaseService {
     officialRecordId: string,
   ): Promise<OfficialRecordStatusHistoryEntry[]>;
   addEvidence(input: AddEvidenceInput): Promise<EvidenceItem>;
+  /** Reporter-owned edit; throws 403 for anyone else (admins excepted). */
+  updateCase(caseId: string, input: UpdateCaseInput): Promise<Case>;
+  /** Reporter withdraws their own report; keeps the record and audit trail. */
+  withdrawCase(caseId: string, participant: ParticipantContext): Promise<Case>;
+  /** Runs the advisory AI pass and stores it. Never throws. */
+  analyzeCase(caseId: string, participant?: ParticipantContext): Promise<CaseAnalysis | null>;
+  /** Stored advisory analysis, if any. */
+  getCaseAnalysis(caseId: string): Promise<CaseAnalysis | null>;
+  /** Draft-time suggestions for the reporting wizard. Never throws. */
+  analyzeDraft(request: DraftAnalysisRequest): Promise<DraftAnalysisResponse | null>;
   recordOperationalUpdate(
     issueId: string,
     input: OperationalUpdateInput,
   ): Promise<IssueDetail>;
+}
+
+/** Reporter-owned edits, allowed only while the case is still early in review. */
+export interface UpdateCaseInput {
+  title?: string;
+  description?: string;
+  category?: CaseCategory;
+  address_hint?: string | null;
+  participant: ParticipantContext;
+}
+
+export interface CaseAnalysisExtras {
+  priority: unknown;
+  severity_rationale: string | null;
+  needs_more_information: boolean;
+  missing_information: string[];
+  uncertainty_notes: string | null;
+  suggested_title: string;
+  safety_concerns: string[];
+  accessibility_considerations: string[];
+  suggested_department: string | null;
+  category_normalization: unknown;
+  report_source: string;
+  is_fallback: boolean;
+}
+
+/** Advisory AI output for one report. Never a status change or verification. */
+export interface CaseAnalysis {
+  analysis: AIAnalysisResult;
+  extras: CaseAnalysisExtras;
+}
+
+export interface DraftAnalysisRequest {
+  description: string;
+  title?: string | null;
+  category?: CaseCategory | null;
+  latitude: number;
+  longitude: number;
+  colonia?: string | null;
+}
+
+export interface DraftDuplicateCandidate {
+  case_id: string;
+  display_id: string;
+  title: string;
+  category: CaseCategory;
+  status: CaseStatus;
+  distance_meters: number;
+  score: number;
+  reason: string;
+  relationship: string;
+}
+
+export interface DraftAnalysisResponse {
+  suggested_category: CaseCategory;
+  suggested_title: string;
+  summary: string;
+  severity: "low" | "medium" | "high" | "critical";
+  confidence: number;
+  needs_more_information: boolean;
+  missing_information: string[];
+  is_fallback: boolean;
+  duplicates: DraftDuplicateCandidate[];
 }
 
 export interface OperationalUpdateInput {

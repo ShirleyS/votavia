@@ -6,6 +6,7 @@ import type {
 } from "@/shared/votavia-contract";
 import type {
   CaseAggregate,
+  CaseAnalysisRow,
   CaseRow,
   ClaimRow,
   EventRow,
@@ -55,6 +56,20 @@ export interface CaseRepository {
   setReporterEmail(caseId: string, email: string): Promise<void>;
   /** Private ownership fields used only to authorize claims. */
   ownership(caseId: string): Promise<CaseOwnership | null>;
+  /** Owner-managed edits (title, description, category, address hint). */
+  updateCase(
+    caseId: string,
+    patch: {
+      title?: string;
+      description?: string;
+      category?: CaseRow["category"];
+      address_hint?: string | null;
+    },
+  ): Promise<CaseAggregate | null>;
+  setStatus(caseId: string, status: CaseRow["status"], resolvedAt?: string | null): Promise<void>;
+  /** Stores the latest advisory analysis for a report. */
+  saveAnalysis(row: CaseAnalysisRow): Promise<void>;
+  analysisForCase(caseId: string): Promise<CaseAnalysisRow | null>;
 
   /* ---------------- shared civic model ---------------- */
 
