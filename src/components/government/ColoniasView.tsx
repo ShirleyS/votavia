@@ -229,7 +229,9 @@ export function ColoniasView() {
                   className="colonia-score"
                   style={{ background: `conic-gradient(var(--blue) ${selectedSummary.completion}%, #eef2f9 0)` }}
                 >
-                  {selectedSummary.completion}%<small>cierre</small>
+                  <span className="colonia-score__value">
+                    {selectedSummary.completion}%<small>cierre</small>
+                  </span>
                 </span>
               </div>
               <div className="colonia-detail__stats">

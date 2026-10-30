@@ -1,3 +1,4 @@
+import "./government.css";
 import { AppShell } from "@/components/government/AppShell";
 import { GovernmentProvider } from "@/components/government/GovernmentProvider";
 
