@@ -57,6 +57,14 @@ const DB_VERSION = 4;
 
 const daysAgoIso = (days: number) => new Date(Date.now() - days * 86400000).toISOString();
 
+/**
+ * Demo organization identifier. Must be a real UUID: the operational and
+ * evidence schemas validate `organization_id` as `uuid`, so a slug here made
+ * every operator update fail with 422 instead of reaching the service.
+ */
+export const DEMO_ORGANIZATION_ID = "00000000-0000-0000-0000-000000000311";
+
+
 export const DATA_DIR =
   process.env.VOTAVIA_DATA_DIR ?? path.join(process.cwd(), ".data");
 const DB_FILE = path.join(DATA_DIR, "db.json");
@@ -192,7 +200,7 @@ function buildDatabase(): DemoDatabase {
 
   const organizations: OrganizationRow[] = [
     {
-      id: "org-demo-cuauhtemoc",
+      id: DEMO_ORGANIZATION_ID,
       slug: "alcaldia-cuauhtemoc",
       name: "Alcaldía Cuauhtémoc",
       kind: "alcaldia",
@@ -309,7 +317,7 @@ function buildDatabase(): DemoDatabase {
     latitude: 19.4288,
     longitude: -99.1551,
     colonia: "Doctores",
-    organization_id: "org-demo-cuauhtemoc",
+    organization_id: DEMO_ORGANIZATION_ID,
     created_by_user_id: null,
     is_public: true,
     resolved_at: null,

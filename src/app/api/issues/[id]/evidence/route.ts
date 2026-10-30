@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { getCaseService } from "@/server/services/container";
 import { getParticipant } from "@/server/auth/session";
+import { redactPersonalData } from "@/public-api/privacy";
 import { resolveActor, hasOrganizationRole } from "@/server/auth/organization";
 import { evidenceSchema } from "@/server/validation";
 import { storePhoto } from "@/server/services/photo-storage";
@@ -12,7 +13,25 @@ export const dynamic = "force-dynamic";
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    return jsonOk({ evidence: await getCaseService().listEvidence(id) });
+    const participant = await getParticipant();
+
+    // Visibility is decided by the issue itself: listEvidence returned every
+    // row, including private ones, to anyone who knew the id.
+    const issue = await getCaseService().getIssue(id, participant);
+    if (!issue) return jsonError(404, "not_found", "Reporte no encontrado.");
+
+    const isPrivileged = participant.role === "government" || participant.role === "admin";
+    const evidence = await getCaseService().listEvidence(id);
+
+    return jsonOk({
+      evidence: evidence
+        .filter((item) => isPrivileged || item.is_public)
+        .map((item) => ({
+          ...item,
+          caption:
+            isPrivileged || !item.caption ? item.caption : redactPersonalData(item.caption),
+        })),
+    });
   } catch (error) {
     return handleError(error);
   }
