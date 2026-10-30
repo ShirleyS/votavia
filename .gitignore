@@ -4,9 +4,17 @@
 !.env.example
 .openrouter-key
 node_modules/
+node_modules
 dist/
 build/
 coverage/
 *.log
 __pycache__/
 .venv/
+.data/
+.next/
+next-env.d.ts
+
+test-results/
+playwright-report/
+*.tsbuildinfo
