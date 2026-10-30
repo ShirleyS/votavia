@@ -162,8 +162,8 @@ export function SessionGate({ children }: { children: React.ReactNode }) {
           <p className="session-gate__note">
             Este despliegue está conectado a una base de datos real, así que no puede
             cargar datos de demostración: el sembrado escribiría registros ficticios
-            junto a los ciudadanos. Para mostrarla con datos de muestra, publica el
-            entorno con <code>VOTAVIA_DEMO_MODE=1</code>.
+            junto a los ciudadanos. Para mostrar la demo, publica el entorno sin
+            <code>VOTAVIA_REAL_BACKEND</code>.
           </p>
         )}
 

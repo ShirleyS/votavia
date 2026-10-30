@@ -43,6 +43,7 @@ describe("demo deployment: the government console opens on first load", () => {
     vi.resetModules();
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+    process.env.VOTAVIA_REAL_BACKEND = "1";
     try {
       const route = await import("@/app/api/demo/console/route");
       const store = createCookieStore();
@@ -54,6 +55,7 @@ describe("demo deployment: the government console opens on first load", () => {
     } finally {
       delete process.env.NEXT_PUBLIC_SUPABASE_URL;
       delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+      delete process.env.VOTAVIA_REAL_BACKEND;
     }
   });
 

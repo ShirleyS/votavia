@@ -5,18 +5,21 @@ site.
 
 ## Production (Netlify)
 
-The **Demo** control only appears when the deployment runs in demo mode. If the
-Netlify site has `SUPABASE_SERVICE_ROLE_KEY`, the app uses Supabase and the
-button is hidden on purpose. To make the hackathon build serve the seeded
-demonstration dataset without touching the real database:
+Publishing the repository is enough: **the seeded demo store is the default
+data source**, whatever Supabase credentials a host happens to have. No Netlify
+setting is needed for the hackathon build.
 
-1. Netlify → **Site configuration → Environment variables**.
-2. Add `VOTAVIA_DEMO_MODE=1`.
-3. Redeploy (`netlify deploy --build --prod`).
-
-Now the home page shows **Probar la demo** next to the main call to action, and
-the header shows **Demo**. Both rebuild the curated dataset and sign in
+The home page shows **Probar la demo** next to the main call to action, and the
+header shows **Demo**. Both rebuild the curated dataset and sign in
 `demo@votavia.mx`.
+
+Serving a real database is the explicit choice: set `VOTAVIA_REAL_BACKEND=1`
+together with the Supabase keys. That direction is opt-in because a mistake
+there writes fixture rows next to live citizen reports.
+
+`VOTAVIA_DEMO_SECRET` is optional. On serverless hosts each instance has its own
+`/tmp`, so without a shared signing key the demo session would be lost between
+requests; the app falls back to a key derived from the deployment URL.
 
 The government console at `/gobierno` no longer asks for a session on a demo
 deployment: it calls `/api/demo/console` once on load, which seeds the curated
@@ -27,9 +30,9 @@ You land straight on the case dashboard.
 never writes to Supabase. Remove it to return to the real backend.
 
 Known limit: on serverless hosting the demo store lives in the instance's
-`/tmp`. Reads are rebuilt deterministically, but a report filed on one instance
-may not appear on another. If a screen looks empty or stale, click **Demo**
-again. For a walkthrough where every write must stick, run locally.
+`/tmp`. The curated dataset reads the same everywhere, but a report filed on one
+instance may not appear on another. If a screen looks empty or stale, click
+**Demo** again. For a walkthrough where every write must stick, run locally.
 
 ## Before you present
 

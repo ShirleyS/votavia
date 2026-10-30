@@ -1,13 +1,42 @@
-import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { DATA_DIR } from "@/server/repositories/demo-store";
+import { serverlessHosted } from "@/server/env";
 
 const SECRET_FILE = path.join(DATA_DIR, "auth-secret");
 let cachedSecret: string | null = null;
 
+/**
+ * Signing key for the demo session cookie.
+ *
+ * The file-backed secret is right for a laptop, but on a serverless host every
+ * instance has its own `/tmp`, so two requests could sign and verify with
+ * different keys and the demo would randomly lose its session. There the key
+ * has to come from configuration instead. `VOTAVIA_DEMO_SECRET` is the
+ * preferred value; without it the key is derived from the deployment URL so
+ * that all instances still agree.
+ *
+ * This protects demo data only. Any visitor can enter the demo console on
+ * purpose, so a shared key costs nothing that the demo button does not already
+ * grant.
+ */
+function deploymentSecret(): string | null {
+  const configured = process.env.VOTAVIA_DEMO_SECRET?.trim();
+  if (configured) return configured;
+  if (!serverlessHosted()) return null;
+  return createHash("sha256")
+    .update(`${process.env.NEXT_PUBLIC_APP_URL?.trim() ?? ""}::votavia-demo`)
+    .digest("hex");
+}
+
 async function secret() {
   if (cachedSecret) return cachedSecret;
+  const stable = deploymentSecret();
+  if (stable) {
+    cachedSecret = stable;
+    return cachedSecret;
+  }
   await fs.mkdir(DATA_DIR, { recursive: true });
   try {
     cachedSecret = (await fs.readFile(SECRET_FILE, "utf8")).trim();

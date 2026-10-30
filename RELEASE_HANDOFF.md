@@ -205,6 +205,11 @@ npx supabase db push      # after approval
 netlify deploy --build --prod
 ```
 
+The deployed build serves the seeded demo store by default; it does not read
+Supabase even if those credentials are configured. Serving the real database
+requires `VOTAVIA_REAL_BACKEND=1`, so fixtures cannot reach live records by
+accident.
+
 Set the environment variables in Netlify before the first build —
 `NEXT_PUBLIC_*` values are baked in at build time.
 
