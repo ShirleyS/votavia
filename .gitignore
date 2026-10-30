@@ -21,5 +21,8 @@ collectors/cdmx-0311/node_modules
 # Local Netlify folder
 .netlify
 
-# Collector output published by `npm run sync:0311`. Generated, not source.
-data/official/
+# Collector output. The daily GitHub Actions job publishes the snapshot
+# (records + manifest + last run) so the deployed build serves it; the
+# intermediate run directory stays local and is never committed.
+data/official/.runs/
+data/official/sync.log

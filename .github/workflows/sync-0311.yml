@@ -1,0 +1,75 @@
+name: Sync 311 (daily)
+
+# Runs the real 0311 collector on GitHub's runners, publishes the normalized
+# snapshot, and lets Netlify rebuild with fresh data.
+#
+# Why here and not a Netlify scheduled function: serverless functions get an
+# ephemeral /tmp per instance, so a function would "succeed" while writing
+# nothing the site could serve. A runner has a real filesystem and a commit is
+# durable, so the deployed build always carries the snapshot it was built from.
+
+on:
+  schedule:
+    # 04:15 in Mexico City (UTC-6) = 10:15 UTC.
+    - cron: "15 10 * * *"
+  workflow_dispatch:
+    inputs:
+      live:
+        description: "Fetch from datos.cdmx.gob.mx instead of the bundled fixtures"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-0311
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install collector dependencies
+        working-directory: collectors/cdmx-0311
+        run: npm ci --no-audit --no-fund
+
+      - name: Run the collector and publish the snapshot
+        env:
+          # Live access stays off until the licence and permission review is
+          # complete; flip it from the workflow dispatch input.
+          VOTAVIA_0311_LIVE: ${{ inputs.live && '1' || '0' }}
+        run: npm run sync:0311
+
+      - name: Verify the snapshot is usable
+        run: |
+          test -s data/official/records.jsonl || { echo "::error::No records produced"; exit 1; }
+          node -e '
+            const fs = require("fs");
+            const manifest = JSON.parse(fs.readFileSync("data/official/manifest.json", "utf8"));
+            if (manifest.manifest_version !== "1.0.0") throw new Error("bad manifest version");
+            if (!["verified", "unverified"].includes(manifest.license_status)) {
+              throw new Error("manifest has no license_status");
+            }
+            const lines = fs.readFileSync("data/official/records.jsonl", "utf8").trim().split("\n");
+            console.log(`records=${lines.length} license=${manifest.dataset?.license_id} status=${manifest.license_status}`);
+          '
+
+      - name: Commit the published snapshot
+        run: |
+          git config user.name "votavia-sync[bot]"
+          git config user.email "sync@votavia.mx"
+          git add -f data/official/records.jsonl data/official/manifest.json data/official/last-run.json
+          if git diff --cached --quiet; then
+            echo "No changes in the snapshot"
+            exit 0
+          fi
+          git commit -m "chore(311): publish daily snapshot $(date -u +%Y-%m-%d)"
+          git push

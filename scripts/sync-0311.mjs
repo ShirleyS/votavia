@@ -15,12 +15,15 @@
  */
 import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 const root = process.cwd();
 const collector = path.join(root, "collectors", "cdmx-0311");
 const outDir = path.join(root, "data", "official");
-const workDir = path.join(outDir, ".runs");
+// Scratch space for the collector's run directories. Kept outside the
+// repository so intermediate runs are never bundled or committed.
+const workDir = path.join(os.tmpdir(), "votavia-0311-runs");
 
 const live = process.argv.includes("--live");
 

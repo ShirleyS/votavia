@@ -20,6 +20,7 @@ import {
   defaultSafetyConcerns,
 } from "../utils/fallbacks";
 import { suggestPriority } from "../utils/priority";
+import { escalatePriority } from "../utils/escalation";
 import { normalizeReportIntake } from "./intake";
 import {
   cleanBullets,
@@ -99,7 +100,7 @@ function categoryForIntake(input: ReportInput, intake: NormalizedReportIntake): 
 }
 
 function priorityFor(input: ReportInput, severity: Severity, analyzedAt: string) {
-  return suggestPriority({
+  const base = suggestPriority({
     severity,
     independent_reports: 1,
     unique_supporters: input.supporters ?? 0,
@@ -109,6 +110,11 @@ function priorityFor(input: ReportInput, severity: Severity, analyzedAt: string)
     evidence_count: input.evidence_count ?? 0,
     historical_matches: 0,
     source: intakeSource(input),
+    now: analyzedAt,
+  });
+  return escalatePriority(base, {
+    independent_reports: input.linked_report_count ?? 0,
+    evidence_count: input.evidence_count ?? 0,
     now: analyzedAt,
   });
 }

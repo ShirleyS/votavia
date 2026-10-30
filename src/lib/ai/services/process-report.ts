@@ -12,6 +12,7 @@ import {
   type ReportProcessingSuggestion,
 } from "../types";
 import { suggestPriority } from "../utils/priority";
+import { escalatePriority } from "../utils/escalation";
 import { limitText } from "../utils/validation";
 import { classifyReport, fallbackClassification } from "./classify-report";
 import { linkReportToIssues } from "./link-issues";
@@ -247,7 +248,7 @@ export async function processReport(
       .flatMap((suggestion) => suggestion.candidate_case_ids),
   );
 
-  const priority = suggestPriority({
+  const basePriority = suggestPriority({
     severity: classification.severity,
     independent_reports: 1 + sameProblemCases.length,
     unique_supporters: input.supporters ?? 0,
@@ -257,6 +258,15 @@ export async function processReport(
     evidence_count: input.evidence_count ?? 0,
     historical_matches: input.linked_report_count ?? 0,
     source: intake.source,
+    now: analyzedAt,
+  });
+
+  // Corroboration that arrived with this report escalates the score on its own,
+  // without waiting for a human to re-score the issue.
+  const priority = escalatePriority(basePriority, {
+    independent_reports: 1 + sameProblemCases.length,
+    evidence_count: input.evidence_count ?? 0,
+    preventive_signals: considered.length >= 3 ? ["repeated_reports"] : [],
     now: analyzedAt,
   });
 

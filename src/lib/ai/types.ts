@@ -660,6 +660,67 @@ export interface PrioritySuggestion {
   /** Severity is a suggestion to review, never a verified fact. */
   is_verified: false;
   requires_human_review: true;
+  /**
+   * Automatic escalation applied when enough corroborating signals accumulate.
+   * `null` when the base suggestion was not escalated.
+   */
+  escalation?: PriorityEscalation | null;
+}
+
+/** Signal that, when it accumulates, can raise an issue's priority automatically. */
+export type EscalationSignalCode =
+  | "independent_reports"
+  | "evidence_accumulation"
+  | "repeated_reports"
+  | "emerging_concentration"
+  | "recurring_problem"
+  | "high_severity_reports"
+  | "persistence_after_closure";
+
+export interface EscalationSignal {
+  code: EscalationSignalCode;
+  label: string;
+  /** Points this signal adds to the attention score. */
+  points: number;
+  evidence: string;
+}
+
+/**
+ * Deterministic, explainable escalation. It is applied automatically (no model
+ * call) once thresholds are met, but it still only changes the attention score
+ * and the review level: assignments, dispatch and status remain human decisions.
+ */
+export interface PriorityEscalation {
+  applied: boolean;
+  /** Human-readable summary of why the issue was or was not escalated. */
+  reason: string;
+  signals: EscalationSignal[];
+  /** Points added to the base attention score, capped by policy. */
+  bonus: number;
+  threshold_signals: number;
+  from_level: PriorityLevel;
+  from_score: number;
+  to_level: PriorityLevel;
+  to_score: number;
+  /** True when the escalation raised the review level, not only the score. */
+  level_changed: boolean;
+  /** Escalation is written to the suggestion automatically. */
+  auto_applied: true;
+  evaluated_at: string;
+}
+
+/** Corroborating evidence that may qualify an issue for automatic escalation. */
+export interface EscalationContext {
+  /** Independent citizen reports linked to the same problem. */
+  independent_reports?: number | null;
+  /** Attached evidence items (photos, observations, official records). */
+  evidence_count?: number | null;
+  /** Preventive signals already calculated for the issue's area. */
+  preventive_signals?: PreventiveSignalType[] | null;
+  /** True when newer citizen evidence contradicts an official closure. */
+  persists_after_closure?: boolean | null;
+  /** ISO timestamp used for `evaluated_at`; injectable for tests. */
+  now?: string | null;
 }
 
 /* -------------------------------------------------------------------------- */

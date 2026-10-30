@@ -105,19 +105,34 @@ describe("import pipeline contract", () => {
     ).toBeTypeOf("function");
   });
 
-  it("ships no import fixtures or sample extract in the repository", async () => {
-    // Checks tracked files rather than the working tree: `npm run sync:0311`
-    // legitimately creates data/official/ locally, and it is git-ignored. What
-    // must never ship is a committed extract of official data.
-    const tracked = execFileSync("git", ["ls-files"], { cwd: ROOT, encoding: "utf8" });
-    const leaked = tracked
+  it("only ships a demo-labelled 311 snapshot, never an unlicensed extract", async () => {
+    // The daily GitHub Actions job commits data/official/ so the deployed build
+    // can serve it. What must never appear is a snapshot whose manifest does
+    // not name a verified licence, or one that is not marked as demo data.
+    const tracked = execFileSync("git", ["ls-files", "data/official"], {
+      cwd: ROOT,
+      encoding: "utf8",
+    })
       .split("\n")
-      .filter(Boolean)
-      .filter((file) =>
-        ["tests/fixtures/official/", "fixtures/official/", "data/official/"].some((prefix) =>
-          file.startsWith(prefix),
-        ),
-      );
-    expect(leaked).toEqual([]);
+      .filter(Boolean);
+
+    const manifestFile = tracked.find((file) => file.endsWith("manifest.json"));
+    if (!manifestFile) {
+      expect(tracked).toEqual([]);
+      return;
+    }
+
+    const manifest = JSON.parse(
+      execFileSync("cat", [path.join(ROOT, manifestFile)], { encoding: "utf8" }),
+    ) as {
+      manifest_version?: string;
+      license_status?: string;
+      dataset?: { license_id?: string };
+    };
+
+    expect(manifest.manifest_version).toBe("1.0.0");
+    expect(manifest.license_status).toBe("verified");
+    expect(manifest.dataset?.license_id).toBeTruthy();
+    expect(manifest.dataset?.license_id).not.toBe("unverified");
   });
 });

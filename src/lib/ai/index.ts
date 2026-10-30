@@ -18,6 +18,12 @@ export type { LinkIssuesOptions } from "./services/link-issues";
 export { normalizeReportIntake, inferReportSource } from "./services/intake";
 export { normalizeReportCategory, categoryForReport } from "./utils/category-normalization";
 export { suggestPriority } from "./utils/priority";
+export {
+  escalatePriority,
+  collectEscalationSignals,
+  ESCALATION_POLICY,
+  ESCALATION_SIGNAL_POINTS,
+} from "./utils/escalation";
 export { assessResolution } from "./utils/resolution";
 export { generateCaseBrief } from "./services/generate-case-brief";
 export {
