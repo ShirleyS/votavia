@@ -29,6 +29,7 @@ export function SessionGate({ children }: { children: React.ReactNode }) {
 
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
+  const [seedError, setSeedError] = useState<string | null>(null);
 
   if (!coreMode) return <>{children}</>;
   if (loading && !authenticated) return <SessionSkeleton />;
@@ -127,25 +128,41 @@ export function SessionGate({ children }: { children: React.ReactNode }) {
               disabled={busy}
               onClick={async () => {
                 setBusy(true);
+                setSeedError(null);
                 try {
-                  const response = await fetch("/api/demo/seed", { method: "POST" });
-                  if (!response.ok) throw new Error("No se pudo cargar la demo");
+                  const response = await fetch("/api/demo/console", { method: "POST" });
+                  if (!response.ok) {
+                    const data = (await response.json().catch(() => null)) as
+                      | { error?: { message?: string } }
+                      | null;
+                    throw new Error(
+                      data?.error?.message ??
+                        "Este entorno no permite cargar datos de demostración.",
+                    );
+                  }
                   window.location.reload();
-                } catch {
+                } catch (error) {
+                  setSeedError(
+                    error instanceof Error ? error.message : "No se pudo cargar la demo.",
+                  );
                   setBusy(false);
                 }
               }}
             >
-              Cargar demo completa (datos + membresía)
+              Cargar datos de demostración
             </button>
+            {seedError ? (
+              <p className="session-gate__alert" role="alert">
+                <span>{seedError}</span>
+              </p>
+            ) : null}
           </form>
         )}
 
         <footer className="session-gate__foot">
           <span>
-            Dependencia: Session 1 debe sembrar una membresía verificada
-            (<code>organizationMembers</code>) para la organización de demostración;
-            hoy el sembrado llega vacío y por eso este muro es el estado correcto.
+            El acceso se otorga con una membresía verificada de una organización
+            responsable. Ningún expediente es visible sin ella.
           </span>
           {!unauthenticated ? (
             <button type="button" className="button button--ghost button--small" onClick={() => void signOut()}>

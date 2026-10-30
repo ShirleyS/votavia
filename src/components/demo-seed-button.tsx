@@ -23,7 +23,15 @@ type Status = "idle" | "loading" | "done" | "error";
  * Demo control: seeds the illustrative dataset, signs in the demo account and
  * unlocks the government console in a single click.
  */
-export function DemoSeedButton({ className }: { className?: string }) {
+export function DemoSeedButton({
+  className,
+  label = "Demo",
+  hero = false,
+}: {
+  className?: string;
+  label?: string;
+  hero?: boolean;
+}) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
   const [summary, setSummary] = useState<SeedSummary | null>(null);
@@ -74,7 +82,10 @@ export function DemoSeedButton({ className }: { className?: string }) {
         onClick={seed}
         disabled={status === "loading"}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-full border border-royal-200 bg-royal-50 px-3 py-2 text-sm font-semibold text-royal-700 transition-colors hover:bg-royal-100 disabled:cursor-wait disabled:opacity-70",
+          hero
+            ? cn(buttonStyles({ variant: "secondary", size: "lg" }), "ring-royal-200")
+            : "inline-flex items-center gap-1.5 rounded-full border border-royal-200 bg-royal-50 px-3 py-2 text-sm font-semibold text-royal-700 transition-colors hover:bg-royal-100 disabled:cursor-wait disabled:opacity-70",
+          status === "loading" && "cursor-wait opacity-70",
           className,
         )}
         title="Cargar datos de demostración"
@@ -84,7 +95,11 @@ export function DemoSeedButton({ className }: { className?: string }) {
         ) : (
           <Sparkles className="h-4 w-4" aria-hidden />
         )}
-        <span className="hidden sm:inline">{status === "loading" ? "Preparando…" : "Demo"}</span>
+        {hero ? (
+          <span>{status === "loading" ? "Preparando la demo…" : label}</span>
+        ) : (
+          <span className="hidden sm:inline">{status === "loading" ? "Preparando…" : label}</span>
+        )}
       </button>
 
       {open ? (

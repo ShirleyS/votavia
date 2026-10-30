@@ -16,7 +16,21 @@ export function hasSupabaseAuth() {
   return Boolean(supabaseUrl() && supabaseAnonKey());
 }
 
+/**
+ * Explicit demo deployment switch.
+ *
+ * Set `VOTAVIA_DEMO_MODE=1` on a deployment that should serve the seeded
+ * demonstration dataset even when Supabase credentials are present. The switch
+ * is server-side only and never silences real data implicitly: without it the
+ * production path is chosen whenever a service-role key exists.
+ */
+export function demoModeForced() {
+  const value = process.env.VOTAVIA_DEMO_MODE?.trim().toLowerCase();
+  return value === "1" || value === "true";
+}
+
 export function hasSupabaseDatabase() {
+  if (demoModeForced()) return false;
   return Boolean(supabaseUrl() && supabaseServiceKey());
 }
 
@@ -46,8 +60,16 @@ export function appUrl() {
  */
 export function dataDir(): string {
   const configured = process.env.VOTAVIA_DATA_DIR?.trim();
-  if (configured) return configured;
-  if (process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.AWS_REGION) {
+  const serverless = Boolean(
+    process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.AWS_REGION,
+  );
+  if (configured) {
+    // A relative path inside a serverless bundle is read-only; keep the demo
+    // store writable instead of failing on the first write.
+    if (serverless && !path.isAbsolute(configured)) return path.join("/tmp", "votavia");
+    return configured;
+  }
+  if (serverless) {
     return path.join("/tmp", "votavia");
   }
   return path.join(process.cwd(), ".data");

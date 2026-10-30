@@ -15,10 +15,11 @@ import { CaseCard } from "@/components/case-card";
 import { CaseMap } from "@/components/map/case-map";
 import { StatCard } from "@/components/stat-card";
 import { CategoryIcon } from "@/components/category-icon";
+import { DemoSeedButton } from "@/components/demo-seed-button";
 import { buttonStyles } from "@/components/ui/button";
 import { CATEGORY_META, STATUS_META } from "@/lib/taxonomy";
 import { formatNumber, isUnoptimizedImage } from "@/lib/utils";
-import { getCaseService } from "@/server/services/container";
+import { currentBackend, getCaseService } from "@/server/services/container";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,7 @@ const STEPS = [
 
 export default async function HomePage() {
   const service = getCaseService();
+  const demoAvailable = currentBackend() === "demo";
   const [stats, recent] = await Promise.all([
     service.getPublicStats(),
     service.listCases({ pageSize: 6 }),
@@ -110,6 +112,7 @@ export default async function HomePage() {
             <Link href="/explorar" className={buttonStyles({ size: "lg" })}>
               Explorar reportes <ArrowRight className="h-5 w-5" aria-hidden />
             </Link>
+            {demoAvailable ? <DemoSeedButton hero label="Probar la demo" /> : null}
             <Link
               href="/#como-funciona"
               className={buttonStyles({ variant: "secondary", size: "lg" })}

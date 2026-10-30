@@ -212,7 +212,14 @@ function describeError(cause: unknown): { title: string; detail: string; tone: T
   };
 }
 
-export function GovernmentProvider({ children }: { children: React.ReactNode }) {
+export function GovernmentProvider({
+  children,
+  autoDemo = false,
+}: {
+  children: React.ReactNode;
+  /** Demo deployments enter the console on their own; nobody should hunt for a form. */
+  autoDemo?: boolean;
+}) {
   const [cases, setCases] = useState<GovernmentCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<Toast | null>(null);
@@ -270,8 +277,8 @@ export function GovernmentProvider({ children }: { children: React.ReactNode }) 
     }
   }, [authenticated, showError]);
 
-  const loadCoreSession = useCallback(async () => {
-    if (!coreMode) return;
+  const loadCoreSession = useCallback(async (): Promise<boolean> => {
+    if (!coreMode) return true;
     setAvailability("connecting");
     try {
       const session = await coreService.loadSession();
@@ -288,7 +295,7 @@ export function GovernmentProvider({ children }: { children: React.ReactNode }) 
         );
         setAvailability("degraded");
         setLoading(false);
-        return;
+        return false;
       }
       const organizationName =
         session.organizations[0]?.name ?? primary.organization_id;
@@ -322,12 +329,14 @@ export function GovernmentProvider({ children }: { children: React.ReactNode }) 
       });
       setError(null);
       setAvailability("core");
+      return true;
     } catch (cause) {
       setAuthenticated(false);
       setCurrentUser(CORE_PLACEHOLDER);
       setAvailability("degraded");
       setError(describeError(cause).detail);
       setLoading(false);
+      return false;
     }
   }, []);
 
@@ -381,16 +390,34 @@ export function GovernmentProvider({ children }: { children: React.ReactNode }) 
   );
 
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
       if (coreMode) {
-        await loadCoreSession();
+        const ready = await loadCoreSession();
+        if (autoDemo && !ready && !cancelled) {
+          // One automatic attempt per tab: provisions the seeded dataset and
+          // the demo membership, then reloads into the real console.
+          const key = "votavia-gov-auto-demo";
+          if (!window.sessionStorage.getItem(key)) {
+            window.sessionStorage.setItem(key, "1");
+            const response = await fetch("/api/demo/console", { method: "POST" });
+            if (response.ok) {
+              window.location.reload();
+              return;
+            }
+          }
+        }
       }
       await refresh();
     })();
-    return governmentService.subscribe?.(() => {
+    const unsubscribe = governmentService.subscribe?.(() => {
       void refresh();
     });
-  }, [loadCoreSession, refresh]);
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, [autoDemo, loadCoreSession, refresh]);
 
   useEffect(() => {
     return () => {

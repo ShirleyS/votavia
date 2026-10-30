@@ -1,8 +1,35 @@
 # VotaVía demo runbook
 
-Everything below runs against the **local** app. The Netlify build is a snapshot
-and its database lives in `/tmp`, so data written there is not reliable for a
-live walkthrough. Demo from localhost.
+The demo works on localhost and, with one environment variable, on the deployed
+site.
+
+## Production (Netlify)
+
+The **Demo** control only appears when the deployment runs in demo mode. If the
+Netlify site has `SUPABASE_SERVICE_ROLE_KEY`, the app uses Supabase and the
+button is hidden on purpose. To make the hackathon build serve the seeded
+demonstration dataset without touching the real database:
+
+1. Netlify → **Site configuration → Environment variables**.
+2. Add `VOTAVIA_DEMO_MODE=1`.
+3. Redeploy (`netlify deploy --build --prod`).
+
+Now the home page shows **Probar la demo** next to the main call to action, and
+the header shows **Demo**. Both rebuild the curated dataset and sign in
+`demo@votavia.mx`.
+
+The government console at `/gobierno` no longer asks for a session on a demo
+deployment: it calls `/api/demo/console` once on load, which seeds the curated
+dataset, signs in the shared demo account and grants its verified membership.
+You land straight on the case dashboard.
+
+`VOTAVIA_DEMO_MODE` is a deployment-wide switch: that build serves demo data and
+never writes to Supabase. Remove it to return to the real backend.
+
+Known limit: on serverless hosting the demo store lives in the instance's
+`/tmp`. Reads are rebuilt deterministically, but a report filed on one instance
+may not appear on another. If a screen looks empty or stale, click **Demo**
+again. For a walkthrough where every write must stick, run locally.
 
 ## Before you present
 

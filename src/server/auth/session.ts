@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { ParticipantContext, UserRole } from "@/shared/votavia-contract";
 import { decodeDemoUser } from "@/server/auth/demo-auth";
 import { createSupabaseServerClient } from "@/server/auth/supabase-server";
@@ -7,6 +7,18 @@ import { hasSupabaseDatabase } from "@/server/env";
 
 export const PARTICIPANT_COOKIE = "vv_pid";
 export const DEMO_USER_COOKIE = "vv_demo_user";
+
+/**
+ * Identity used by a deployment that runs with `VOTAVIA_DEMO_MODE=1`.
+ * Every visitor of a demo build shares it, which is what makes the public
+ * walkthrough work without a sign-in step.
+ */
+export const DEMO_SESSION_EMAIL = "demo@votavia.mx";
+/** Same derivation `/api/demo/seed` uses, so both land on one account. */
+export const DEMO_SESSION_USER_ID = `demo-${createHash("sha256")
+  .update(DEMO_SESSION_EMAIL)
+  .digest("hex")
+  .slice(0, 24)}`;
 
 export interface SessionUser {
   user_id: string;
