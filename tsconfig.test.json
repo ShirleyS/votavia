@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false,
+    "plugins": [],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/app/api/v1/public/*": ["./.qa/vendor/public-api-routes/*"],
+      "@/public-api/*": ["./.qa/vendor/public-api/*"],
+      "@votavia-ai": ["./.qa/vendor/ai/index.ts"],
+      "@votavia-ai/*": ["./.qa/vendor/ai/*"],
+      "@votavia-government/*": ["./.qa/vendor/government/*"]
+    }
+  },
+  "include": ["tests/**/*.ts", ".qa/**/*.ts"],
+  "exclude": ["node_modules", ".next", "src/app/explorar/**"]
+}

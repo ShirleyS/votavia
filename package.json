@@ -9,7 +9,9 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "grant:org": "node scripts/grant-organization.mjs"
+    "grant:org": "node scripts/grant-organization.mjs",
+    "test:qa": "vitest run --config vitest.qa.config.ts",
+    "typecheck:qa": "tsc -p tsconfig.test.json --noEmit"
   },
   "dependencies": {
     "@supabase/ssr": "0.9.0",

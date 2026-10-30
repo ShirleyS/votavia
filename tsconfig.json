@@ -37,6 +37,15 @@
   ],
   "exclude": [
     "node_modules",
-    "collectors"
+    "collectors",
+    "tests/integration",
+    "tests/e2e",
+    "tests/security",
+    "tests/contracts",
+    "tests/support",
+    "tests/setup",
+    "tests/fixtures",
+    "tests/unit",
+    ".qa"
   ]
 }
