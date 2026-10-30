@@ -42,6 +42,7 @@ import type {
 } from "@/lib/government/types";
 import { useGovernment } from "./GovernmentProvider";
 import { SampleBadge, StatusBadge } from "./ui";
+import { stockPhoto } from "@/lib/stock-photos";
 
 const KIND_LABELS: Record<GovernmentEvidenceRecord["kind"], string> = {
   before: "Antes",
@@ -240,7 +241,7 @@ export function GovernmentInterventionPanel({ item }: { item: GovernmentCase }) 
   const canClaim = can("case:manage", item);
   const sampleImages = useMemo(() => {
     const fallback = item.photos.map((photo) => photo.url);
-    return [...new Set([...fallback, "/report-photos/acta.svg"])].slice(0, 4);
+    return [...new Set([...fallback, stockPhoto("acta")])].slice(0, 4);
   }, [item.photos]);
 
   const resetEvidenceForm = () => {
@@ -551,7 +552,7 @@ export function ResolutionDisputePanel({ item }: { item: GovernmentCase }) {
   const claim = (item.completionClaims ?? []).find((entry) => entry.id === dispute.claimId);
   const claimEvidence = (item.governmentEvidence ?? []).filter((entry) => claim?.evidenceIds.includes(entry.id));
   const canRespond = can("dispute:respond", item);
-  const sampleImage = item.photos[0]?.url ?? "/report-photos/acta.svg";
+  const sampleImage = item.photos[0]?.url ?? stockPhoto("acta");
 
   const chooseFile = async (file: File | undefined) => {
     if (!file) return;
@@ -691,7 +692,7 @@ export function ResolutionDisputePanel({ item }: { item: GovernmentCase }) {
           {dataSource === "core" ? (
             <p className="permission-note">
               En modo núcleo, la evidencia de seguimiento se envía a la API. El texto de respuesta
-              se conserva de forma local y etiquetada: el núcleo aún no expone un endpoint de respuesta a disputas.
+              se registra en el núcleo y queda visible para la ciudadanía.
             </p>
           ) : null}
           {error ? <p className="form-error">{error}</p> : null}
@@ -800,7 +801,7 @@ export function OperatorAssignmentPanel({ item }: { item: GovernmentCase }) {
           <LockKeyhole size={14} />
           <span>
             Roster simulado: el núcleo no expone operadores. Esta lista son cuentas de
-            demostración y la asignación de operador se guarda local y etiquetada.
+            demostración y la asignación de operador queda registrada en el núcleo.
           </span>
         </div>
       ) : null}

@@ -11,6 +11,7 @@ import {
   MapPinned,
   Settings,
   Sparkles,
+  Truck,
   Users,
   X,
 } from "lucide-react";
@@ -20,6 +21,7 @@ import { Logo } from "./ui";
 const primaryNav = [
   { href: "/gobierno", label: "Resumen", icon: LayoutDashboard },
   { href: "/gobierno/reportes", label: "Reportes", icon: Inbox },
+  { href: "/gobierno/despacho", label: "Despacho", icon: Truck },
   { href: "/gobierno/inteligencia", label: "Inteligencia", icon: Sparkles },
   { href: "/gobierno/resultados", label: "Resultados", icon: BarChart3 },
 ];

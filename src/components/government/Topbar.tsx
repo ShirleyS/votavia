@@ -17,9 +17,19 @@ import { DEMO_ROLE_LABELS, getDepartment } from "@/lib/government/display";
 import { useGovernment } from "./GovernmentProvider";
 import { PriorityBadge, StatusBadge } from "./ui";
 
+const MODULE_TABS = [
+  { href: "/gobierno/reportes", label: "Reportes" },
+  { href: "/gobierno/despacho", label: "Despacho" },
+  { href: "/gobierno/mapa", label: "Mapa" },
+  { href: "/gobierno/resultados", label: "Estadísticas" },
+  { href: "/gobierno/inteligencia", label: "Inteligencia" },
+  { href: "/gobierno/equipo", label: "Gestión" },
+];
+
 const routeLabels: Record<string, string> = {
   "/gobierno": "Resumen operativo",
   "/gobierno/reportes": "Reportes",
+  "/gobierno/despacho": "Despacho de especialistas",
   "/gobierno/inteligencia": "Inteligencia preventiva",
   "/gobierno/resultados": "Resultados",
   "/gobierno/mapa": "Mapa operativo",
@@ -89,6 +99,19 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
           </span>
         </div>
       </div>
+
+      <nav className="gov-topbar__tabs" aria-label="Módulos de gobierno">
+        {MODULE_TABS.map((tab) => (
+          <Link
+            key={tab.href}
+            href={tab.href}
+            aria-current={pathname.startsWith(tab.href) ? "page" : undefined}
+            className={pathname.startsWith(tab.href) ? "is-active" : undefined}
+          >
+            {tab.label}
+          </Link>
+        ))}
+      </nav>
 
       <div className="gov-topbar__right">
         <button type="button" className="gov-search-trigger" onClick={() => setSearchOpen(true)}>

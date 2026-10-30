@@ -114,7 +114,7 @@ export function SettingsView() {
         {dataSource === "core" ? (
           <div>
             <strong>{authenticated ? "Conectada a la API del núcleo (Session 1)" : "Sin sesión válida del núcleo"}</strong>
-            <p>Los estados operativos y la evidencia se envían a la API de Session 1. La asignación de área/operador, la respuesta a disputas y la publicación de resultados siguen pendientes de contrato y se guardan de forma local y etiquetada. Esta consola no representa una adopción oficial de CDMX.</p>
+            <p>Los estados operativos, la evidencia, la asignación de área/operador, la respuesta a disputas, la publicación de resultados, la bitácora y el despacho de especialistas se envían a la API de Session 1. Esta consola no representa una adopción oficial de CDMX.</p>
           </div>
         ) : (
           <div>
@@ -198,7 +198,7 @@ export function SettingsView() {
             />
             <div className="settings-factgrid">
               <div><span><Database size={17} /></span><div><strong>{cases.length} expedientes</strong><p>{dataSource === "core" ? "Cargados desde la API del núcleo." : "Copias ficticias cargadas al abrir la consola."}</p></div></div>
-              <div><span><HardDrive size={17} /></span><div><strong>{dataSource === "core" ? "Núcleo + overrides locales" : "Guardado en este navegador"}</strong><p>{dataSource === "core" ? "Estado y evidencia van al núcleo; la asignación se conserva local y etiquetada." : "Los cambios sobreviven a una recarga en este equipo."}</p></div></div>
+              <div><span><HardDrive size={17} /></span><div><strong>{dataSource === "core" ? "Núcleo VotaVía" : "Guardado en este navegador"}</strong><p>{dataSource === "core" ? "Estado, evidencia, asignación, disputas, publicación y despacho van al núcleo." : "Los cambios sobreviven a una recarga en este equipo."}</p></div></div>
               <div><span><LockKeyhole size={17} /></span><div><strong>{dataSource === "core" ? "Escritura autorizada" : "Sin escritura remota"}</strong><p>{dataSource === "core" ? "Sólo acciones con permiso de tu rol y organización." : "No hay llamadas de modificación a bases de datos."}</p></div></div>
               <div><span><RefreshCw size={17} /></span><div><strong>Restablecimiento manual</strong><p>Puedes volver al estado inicial de la muestra.</p></div></div>
             </div>

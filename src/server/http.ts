@@ -16,7 +16,10 @@ export function handleError(error: unknown) {
   const status = (error as { status?: number })?.status;
   const message =
     error instanceof Error ? error.message : "Ocurrió un error inesperado. Intenta de nuevo.";
+  if (status === 401) return jsonError(401, "auth_required", message);
+  if (status === 403) return jsonError(403, "forbidden", message);
   if (status === 404) return jsonError(404, "not_found", message);
+  if (status === 422) return jsonError(422, "validation_error", message);
   if (status === 429) return jsonError(429, "rate_limited", message);
   console.error("[votavia] api error", error);
   return jsonError(500, "internal_error", message);

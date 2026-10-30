@@ -26,6 +26,7 @@ import type {
   CompletionClaimInput,
   DemoUser,
   DisputeResponseInput,
+  DispatchBoardItem,
   DispatchOrder,
   DispatchState,
   GovernmentCase,
@@ -149,6 +150,7 @@ interface GovernmentContextValue {
   getDashboard: () => Promise<GovernmentDashboard>;
   getPreventiveSignals: () => Promise<RiskSignal[]>;
   getDispatchOrder: (caseId: string) => Promise<DispatchOrder | null>;
+  listDispatchBoard: () => Promise<DispatchBoardItem[]>;
   getDispatchRecommendations: (caseId: string) => Promise<SpecialistRecommendation[]>;
   getCaseAnalysis: (caseId: string) => Promise<CaseAnalysis>;
   resetMockData: () => void;
@@ -443,7 +445,7 @@ export function GovernmentProvider({ children }: { children: React.ReactNode }) 
         showToast({
           title: "Responsabilidad asignada",
           detail: coreMode
-            ? "Asignación local etiquetada: el núcleo aún no expone el contrato de responsable."
+            ? "El núcleo registró el área responsable en el expediente."
             : "El área responsable quedó actualizada en la operación.",
           tone: "success",
         });
@@ -467,7 +469,7 @@ export function GovernmentProvider({ children }: { children: React.ReactNode }) 
         showToast({
           title: "Operador asignado",
           detail: coreMode
-            ? "Asignación local etiquetada; el roster de operadores aún no tiene contrato del núcleo."
+            ? "El núcleo registró el operador responsable en el expediente."
             : "El operador quedó vinculado al expediente.",
           tone: "success",
         });
@@ -487,7 +489,7 @@ export function GovernmentProvider({ children }: { children: React.ReactNode }) 
         showToast({
           title: "Despacho autorizado",
           detail: coreMode
-            ? "Registrado en el fixture del contrato de despacho de Ismael."
+            ? "El núcleo registró la orden de despacho."
             : "Se notificó al especialista seleccionado.",
           tone: "success",
         });
@@ -507,7 +509,7 @@ export function GovernmentProvider({ children }: { children: React.ReactNode }) 
         showToast({
           title: "Avance del despacho registrado",
           detail: coreMode
-            ? "Actualizado en el fixture local del contrato de Ismael."
+            ? "El núcleo actualizó el estado del despacho."
             : "La bitácora del despacho registró el avance.",
           tone: "info",
         });
@@ -548,7 +550,7 @@ export function GovernmentProvider({ children }: { children: React.ReactNode }) 
         showToast({
           title: "Resultado publicado",
           detail: coreMode
-            ? "Publicación local etiquetada; no altera el registro oficial importado."
+            ? "Resultado publicado en el núcleo; el registro oficial importado no se reescribe."
             : "El cierre ya es visible en la experiencia ciudadana de muestra.",
           tone: "success",
         });
@@ -607,7 +609,7 @@ export function GovernmentProvider({ children }: { children: React.ReactNode }) 
         showToast({
           title: "Respuesta enviada a la ciudadanía",
           detail: coreMode
-            ? "Respuesta local etiquetada; el estado de verificación ciudadana no cambia."
+            ? "Respuesta registrada en el núcleo; el estado de verificación ciudadana no cambia."
             : "La disputa sigue abierta hasta que la comunidad actualice su verificación.",
           tone: "info",
         });
@@ -702,6 +704,7 @@ export function GovernmentProvider({ children }: { children: React.ReactNode }) 
     (caseId: string) => governmentService.getDispatchOrder(caseId),
     [],
   );
+  const listDispatchBoard = useCallback(() => governmentService.listDispatchBoard(), []);
   const getDispatchRecommendations = useCallback(
     (caseId: string) => governmentService.getDispatchRecommendations(caseId),
     [],
@@ -741,6 +744,7 @@ export function GovernmentProvider({ children }: { children: React.ReactNode }) 
       getDashboard,
       getPreventiveSignals,
       getDispatchOrder,
+      listDispatchBoard,
       getDispatchRecommendations,
       getCaseAnalysis,
       resetMockData,
@@ -781,6 +785,7 @@ export function GovernmentProvider({ children }: { children: React.ReactNode }) 
       getDashboard,
       getPreventiveSignals,
       getDispatchOrder,
+      listDispatchBoard,
       getDispatchRecommendations,
       getCaseAnalysis,
       resetMockData,

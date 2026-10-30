@@ -112,6 +112,40 @@ export const evidenceSchema = z.object({
  * never by a VotaVía operator. `z.object` strips unknown keys, so a submitted
  * `external_status` is dropped rather than silently written.
  */
+export const assignmentSchema = z.object({
+  department_id: z.string().trim().min(2).max(80),
+  operator_name: z.string().trim().min(2).max(120),
+  organization_id: z.string().uuid(),
+  note: z.string().trim().max(500).optional().nullable(),
+});
+
+export const disputeResponseSchema = z.object({
+  body: z.string().trim().min(10, "Escribe una respuesta de al menos 10 caracteres").max(2000),
+  department_id: z.string().trim().max(80).optional().nullable(),
+  author_name: z.string().trim().min(2).max(120),
+  follow_up_evidence_ids: z.array(z.string()).max(10).optional(),
+  organization_id: z.string().uuid(),
+});
+
+export const publicationSchema = z.object({
+  outcome: z.string().trim().min(4).max(240),
+  summary: z.string().trim().max(2000).optional().nullable(),
+  organization_id: z.string().uuid(),
+});
+
+export const dispatchRequestSchema = z.object({
+  category: z.enum(CASE_CATEGORIES),
+  colonia: z.string().trim().max(80).optional().nullable(),
+  note: z.string().trim().max(500).optional().nullable(),
+  specialist_id: z.string().min(1),
+  organization_id: z.string().uuid(),
+});
+
+export const dispatchTransitionSchema = z.object({
+  status: z.enum(["accepted", "declined", "in_progress", "submitted_for_review", "verified", "returned", "cancelled"]),
+  organization_id: z.string().uuid(),
+});
+
 export const operationalUpdateSchema = z.object({
   operational_status: z.enum(ISSUE_OPERATIONAL_STATUSES),
   organization_id: z.string().uuid(),

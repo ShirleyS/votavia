@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight, Inbox, type LucideIcon } from "lucide-react";
+import { BrandMark } from "@/components/brand-mark";
 import { useGovernment } from "./GovernmentProvider";
 import {
   CATEGORY_COLORS,
@@ -19,11 +20,7 @@ import type {
 export function Logo({ compact = false }: { compact?: boolean }) {
   return (
     <span className={`gov-logo ${compact ? "gov-logo--compact" : ""}`}>
-      <span className="gov-logo__mark" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </span>
+      <BrandMark size={30} className="gov-logo__mark" />
       {!compact ? (
         <span className="gov-logo__word">
           Vota<span>Vía</span>

@@ -5,21 +5,19 @@
  * `/api/issues/[id]/operational`, `/api/official-records/[id]/history` y
  * `/api/organizations/me` (ver `contract.ts`).
  *
- * Contratos que Session 1 todavía NO expone y que este adaptador resuelve con
- * fixtures LOCALES claramente etiquetados (ver `PENDING_CONTRACTS`):
- *  - asignación de área/operador distinta de `organization_id`
- *  - respuesta oficial a disputas
- *  - publicación de resultado/cierre
- *  - feed de actividad dedicado
- *  - despacho de especialistas (Ismael): sólo se usa un `DispatchGateway` de prueba
+ * Las cinco superficies que antes vivían como fixtures ahora se persisten en el
+ * servidor y se leen por HTTP:
+ *  - `POST/GET /api/issues/[id]/assignment` (área y operador)
+ *  - `POST/GET /api/issues/[id]/dispute-responses` (respuesta oficial)
+ *  - `POST/GET /api/issues/[id]/publication` (resultado/cierre)
+ *  - `GET /api/issues/[id]/activity` (bitácora)
+ *  - `GET/POST /api/dispatch`, `PATCH /api/dispatch/[assignmentId]` (despacho)
  *
  * Nada de esto crea una segunda base de datos, autenticación ni API pública.
  */
 import type {
   Case,
   DispatchAssignment,
-  DispatchGateway,
-  DispatchRequest,
   EvidenceItem,
   Issue,
   IssueDetail,
@@ -29,11 +27,17 @@ import type {
   PaginatedIssues,
 } from "./contract";
 import { CoreApiError, coreRequest } from "./http";
+import type {
+  AssignmentRecord,
+  DispatchAssignmentRecord,
+  DisputeResponseRecord,
+  PublicationRecord,
+  SpecialistRecord,
+} from "@/shared/government-operations";
 import {
   computePriorityBreakdown,
   priorityFromBreakdown,
 } from "../priority";
-import { mockSpecialists } from "../mock-data";
 import type {
   ActivityItem,
   CaseAnalysis,
@@ -48,6 +52,7 @@ import type {
   DataFreshness,
   DisputeResponse,
   DisputeResponseInput,
+  DispatchBoardItem,
   DispatchOrder,
   DispatchState,
   GovernmentCase,
@@ -63,38 +68,12 @@ import type {
   SpecialistRecommendation,
 } from "../types";
 
-export const PENDING_CONTRACTS: { id: string; label: string; detail: string }[] = [
-  {
-    id: "assignment",
-    label: "Asignación de área y operador",
-    detail:
-      "El núcleo sólo acepta `organization_id` en el cambio operativo. Falta un endpoint de responsable/operador; la consola guarda la asignación de forma local y etiquetada.",
-  },
-  {
-    id: "dispute-response",
-    label: "Respuesta oficial a disputas",
-    detail:
-      "No existe endpoint para responder disputas. La respuesta se conserva en el adaptador local y no altera la verificación ciudadana.",
-  },
-  {
-    id: "publish-outcome",
-    label: "Publicación de resultado",
-    detail:
-      "Falta el contrato de publicación. El cierre se registra localmente sobre el estado operativo del núcleo.",
-  },
-  {
-    id: "activity",
-    label: "Feed de actividad",
-    detail:
-      "No hay endpoint de actividad. La bitácora se reconstruye con los eventos del expediente (`created_at`, evidencia, registro oficial).",
-  },
-  {
-    id: "dispatch",
-    label: "Despacho de especialistas (Ismael)",
-    detail:
-      "El contrato `DispatchGateway` no tiene implementación HTTP. Se usa un fixture de prueba rotulado; no se inventan endpoints.",
-  },
-];
+/**
+ * Contratos pendientes del núcleo. Todas las superficies de la consola
+ * (asignación, disputas, publicación, actividad y despacho) tienen endpoint y
+ * se persisten en el servidor; la lista queda vacía a propósito.
+ */
+export const PENDING_CONTRACTS: { id: string; label: string; detail: string }[] = [];
 
 const CATEGORY_TO_CORE: Record<CaseCategory, Issue["category"]> = {
   baches: "road_damage",
@@ -314,17 +293,53 @@ function coordinatesFor(latitude: number, longitude: number): { x: number; y: nu
 interface Overrides {
   priority?: CasePriority;
   status?: CaseStatus;
-  departmentId?: string;
-  operator?: { id: string; name: string };
-  outcome?: string;
-  publishedAt?: string;
   claims: CompletionClaim[];
-  disputeResponses: DisputeResponse[];
 }
 
 function emptyOverrides(): Overrides {
-  return { claims: [], disputeResponses: [] };
+  return { claims: [] };
 }
+
+/** Server-persisted government operations for one case. */
+interface CaseOperations {
+  assignment: AssignmentRecord | null;
+  publication: PublicationRecord | null;
+  disputeResponses: DisputeResponseRecord[];
+}
+
+
+function mapDisputeResponses(records: DisputeResponseRecord[]): DisputeResponse[] {
+  return records.map((record) => ({
+    id: record.response_id,
+    text: record.body,
+    respondedAt: record.created_at,
+    respondedBy: record.author_name,
+    departmentId: record.department_id ?? "",
+    followUpEvidenceIds: record.follow_up_evidence_ids ?? [],
+  }));
+}
+
+const DISPATCH_STATE_TO_STATUS: Record<DispatchState, DispatchAssignment["status"]> = {
+  recommended: "pending",
+  authorized: "accepted",
+  accepted: "accepted",
+  scheduled: "in_progress",
+  in_progress: "in_progress",
+  completed: "submitted_for_review",
+  verified: "verified",
+  returned: "returned",
+};
+
+const STATUS_TO_DISPATCH_STATE: Record<DispatchAssignment["status"], DispatchState> = {
+  pending: "recommended",
+  accepted: "accepted",
+  declined: "returned",
+  in_progress: "in_progress",
+  submitted_for_review: "completed",
+  verified: "verified",
+  returned: "returned",
+  cancelled: "returned",
+};
 
 function mapEvidence(evidence: EvidenceItem): GovernmentEvidenceRecord {
   return {
@@ -410,7 +425,7 @@ function mapEvents(issue: IssueDetail): CaseEvent[] {
 
 function buildDispute(
   issue: Issue,
-  overrides: Overrides,
+  responses: DisputeResponse[],
 ): ResolutionDispute | undefined {
   if (issue.community_verification_status !== "disputed") return undefined;
   return {
@@ -421,27 +436,12 @@ function buildDispute(
     reason: "La comunidad disputa el cierre declarado por gobierno.",
     detail:
       "La verificación ciudadana reporta que el problema continúa. La evidencia de gobierno permanece visible para revisión.",
-    status: overrides.disputeResponses.length > 0 ? "responded" : "open",
-    responses: overrides.disputeResponses,
+    status: responses.length > 0 ? "responded" : "open",
+    responses,
   };
 }
 
-/** Extensión local del fixture; el contrato de Ismael sólo publica las dos primeras. */
-export interface ConsoleDispatchGateway extends DispatchGateway {
-  assign(
-    dispatchRequestId: string,
-    specialistId: string,
-    assignee: string,
-  ): Promise<DispatchAssignment>;
-  updateAssignment(
-    assignmentId: string,
-    status: DispatchAssignment["status"],
-    actor: string,
-  ): Promise<DispatchAssignment>;
-}
-
 export interface CoreAdapterOptions {
-  dispatchGateway?: ConsoleDispatchGateway;
   organisationNames?: Record<string, string>;
 }
 
@@ -455,11 +455,9 @@ export class CoreGovernmentService implements GovernmentService {
   };
   private overrides = new Map<string, Overrides>();
   private listeners = new Set<() => void>();
-  private dispatchGateway: ConsoleDispatchGateway;
   private orgNames: Record<string, string>;
 
   constructor(options: CoreAdapterOptions = {}) {
-    this.dispatchGateway = options.dispatchGateway ?? new FixtureDispatchGateway();
     this.orgNames = { ...ORG_NAMES, ...options.organisationNames };
   }
 
@@ -563,7 +561,7 @@ export class CoreGovernmentService implements GovernmentService {
     return response.items ?? [];
   }
 
-  private toCase(detail: IssueDetail, related: string[]): GovernmentCase {
+  private toCase(detail: IssueDetail, related: string[], operations?: CaseOperations): GovernmentCase {
     const issue = detail;
     const baseCategory = CORE_TO_CATEGORY[issue.category];
     const safetyConcern = detail.reports.some((report) => report.has_safety_concern);
@@ -582,8 +580,15 @@ export class CoreGovernmentService implements GovernmentService {
     });
     const derivedPriority = priorityFromBreakdown(breakdown, safetyConcern);
     const overrides = this.overridesFor(issue.issue_id);
-    const status = overrides.status ?? OPERATIONAL_TO_STATUS[issue.operational_status](issue);
-    const departmentId = overrides.departmentId ?? CATEGORY_DEPARTMENT[baseCategory];
+    const publication = operations?.publication ?? null;
+    const assignment = operations?.assignment ?? null;
+    const publishedAt = publication?.published_at;
+    const status =
+      publication != null
+        ? "closed"
+        : overrides.status ?? OPERATIONAL_TO_STATUS[issue.operational_status](issue);
+    const departmentId =
+      assignment?.department_id ?? CATEGORY_DEPARTMENT[baseCategory];
     const governmentEvidence = issue.evidence
       .filter((entry) => entry.kind !== "citizen_followup")
       .map(mapEvidence)
@@ -613,11 +618,11 @@ export class CoreGovernmentService implements GovernmentService {
       reportedAt: issue.created_at,
       updatedAt: issue.updated_at,
       departmentId,
-      assignedOperatorId: overrides.operator?.id,
-      assignedOperatorName: overrides.operator?.name,
+      assignedOperatorId: assignment?.operator_user_id ?? assignment?.assignment_id,
+      assignedOperatorName: assignment?.operator_name,
       relatedCaseIds: related,
-      publicOutcome: overrides.outcome,
-      publishedAt: overrides.publishedAt,
+      publicOutcome: publication?.outcome,
+      publishedAt,
       progress: progressFor(status),
       events: mapEvents(detail),
       officialRecord: mapOfficialRecord(detail.official_records[0]),
@@ -626,7 +631,7 @@ export class CoreGovernmentService implements GovernmentService {
       independentReportCount: independentReports,
       governmentEvidence,
       completionClaims: [...overrides.claims],
-      dispute: buildDispute(issue, overrides),
+      dispute: buildDispute(issue, mapDisputeResponses(operations?.disputeResponses ?? [])),
       source: "core",
       issueId: issue.issue_id,
       origin: issue.origin,
@@ -680,8 +685,11 @@ export class CoreGovernmentService implements GovernmentService {
 
   async getCase(id: string): Promise<GovernmentCase | null> {
     try {
-      const detail = await this.fetchDetail(id);
-      return this.toCase(detail, []);
+      const [detail, operations] = await Promise.all([
+        this.fetchDetail(id),
+        this.fetchOperations(id),
+      ]);
+      return this.toCase(detail, [], operations);
     } catch (error) {
       if (error instanceof CoreApiError && error.kind === "not_found") return null;
       throw error;
@@ -780,14 +788,50 @@ export class CoreGovernmentService implements GovernmentService {
   }
 
   async getDispatchRecommendations(id: string): Promise<SpecialistRecommendation[]> {
-    const category = (await this.getCase(id))?.category ?? "otros";
-    return mockSpecialists.map((specialist) => ({
-      specialist,
-      matchReason:
-        "Sugerencia del fixture de contrato de despacho (Ismael). No proviene de un servicio productivo.",
-      qualificationMatch: specialist.qualification,
-      coverageNote: `Cobertura declarada del fixture · categoría ${category}.`,
-    }));
+    const [facility, response] = await Promise.all([
+      this.getCase(id),
+      coreRequest<{ specialists: SpecialistRecord[] }>("/dispatch").catch(() => ({
+        specialists: [] as SpecialistRecord[],
+      })),
+    ]);
+    const category = facility?.category ?? "otros";
+    const colonia = facility?.colonia ?? null;
+    return (response.specialists ?? [])
+      .filter((specialist) => specialist.approved && specialist.available)
+      .filter((specialist) => specialist.skills.includes(category))
+      .filter(
+        (specialist) =>
+          !colonia ||
+          specialist.coverage_colonias.length === 0 ||
+          specialist.coverage_colonias.includes(colonia),
+      )
+      .map((specialist) => ({
+        specialist: {
+          id: specialist.specialist_id,
+          name: specialist.name,
+          initials: specialist.name
+            .split(" ")
+            .map((word) => word[0])
+            .join("")
+            .slice(0, 2)
+            .toUpperCase(),
+          specialty: specialist.skills.join(" · "),
+          organization: specialist.organization_id ?? "Banco de especialistas VotaVía",
+          qualification: "Especialista aprobado",
+          coverage: specialist.coverage_colonias,
+          availability: specialist.available ? "Disponible" : "No disponible",
+          availabilityTone: specialist.available ? "available" : "limited",
+          approved: specialist.approved,
+          dispatchCount: 0,
+          responseTime: "Sin registro histórico",
+          yearsExperience: 0,
+        },
+        matchReason: `Cubre la categoría ${category} y la colonia ${colonia ?? "del caso"}.`,
+        qualificationMatch: "Aprobado en el padrón de especialistas del núcleo.",
+        coverageNote: specialist.coverage_colonias.length
+          ? `Cobertura declarada: ${specialist.coverage_colonias.join(", ")}.`
+          : "Cobertura abierta a toda la alcaldía.",
+      }));
   }
 
   async updateCasePriority(id: string, priority: CasePriority): Promise<void> {
@@ -829,119 +873,176 @@ export class CoreGovernmentService implements GovernmentService {
   }
 
   async assignDepartment(id: string, departmentId: string): Promise<void> {
-    // Contrato pendiente: no existe endpoint de responsable distinto de organization_id.
-    this.overridesFor(id).departmentId = departmentId;
-    this.emit();
+    await this.recordAssignment(id, { departmentId });
   }
 
   async assignOperator(id: string, operatorId: string, operatorName: string): Promise<void> {
-    // Contrato pendiente: roster de operadores no expuesto por el núcleo.
-    this.overridesFor(id).operator = { id: operatorId, name: operatorName };
+    await this.recordAssignment(id, { operatorName, operatorId });
+  }
+
+  /**
+   * El contrato del núcleo registra área y operador en la misma asignación, así
+   * que la consola conserva el último valor conocido del otro campo y envía el
+   * par completo. Nunca inventa una asignación sólo local.
+   */
+  private async recordAssignment(
+    id: string,
+    patch: { departmentId?: string; operatorName?: string; operatorId?: string },
+  ): Promise<void> {
+    const facility = await this.getCase(id);
+    const departmentId = patch.departmentId ?? facility?.departmentId ?? "servicios_urbanos";
+    const operatorName = patch.operatorName ?? facility?.assignedOperatorName ?? this.actor.name;
+    await this.postGovernment(`/issues/${encodeURIComponent(id)}/assignment`, {
+      department_id: departmentId,
+      operator_name: operatorName,
+      note: "Asignación registrada desde la consola de gobierno.",
+    });
     this.emit();
   }
 
+  /** POST autenticado contra las rutas de gobierno; adjunta la organización. */
+  private async postGovernment<T>(path: string, json: Record<string, unknown>): Promise<T> {
+    const organizationId = this.actor.organizationId;
+    if (!organizationId) {
+      throw new CoreApiError(
+        "forbidden",
+        "Tu cuenta no tiene una organización responsable asignada en VotaVía.",
+        { code: "missing_organization" },
+      );
+    }
+    return coreRequest<T>(path, {
+      method: "POST",
+      json: { ...json, organization_id: organizationId },
+    });
+  }
+
+  /** Lee las tres superficies persistidas que enriquecen un expediente. */
+  private async fetchOperations(caseId: string): Promise<CaseOperations> {
+    const encoded = encodeURIComponent(caseId);
+    const [assignment, publication, disputeResponses] = await Promise.all([
+      coreRequest<{ assignments: AssignmentRecord[] }>(`/issues/${encoded}/assignment`)
+        .then((response) => response.assignments?.[0] ?? null)
+        .catch(() => null),
+      coreRequest<{ publication: PublicationRecord | null }>(`/issues/${encoded}/publication`)
+        .then((response) => response.publication ?? null)
+        .catch(() => null),
+      coreRequest<{ responses: DisputeResponseRecord[] }>(`/issues/${encoded}/dispute-responses`)
+        .then((response) => response.responses ?? [])
+        .catch(() => [] as DisputeResponseRecord[]),
+    ]);
+    return { assignment, publication, disputeResponses };
+  }
+
   async getDispatchOrder(caseId: string): Promise<DispatchOrder | null> {
-    const assignments = await this.dispatchGateway.getAssignments(caseId);
-    const assignment = assignments[0];
+    const response = await coreRequest<{ assignments: DispatchAssignmentRecord[] }>(
+      `/dispatch?issue_id=${encodeURIComponent(caseId)}`,
+    ).catch(() => ({ assignments: [] as DispatchAssignmentRecord[] }));
+    const assignment = response.assignments?.[0];
     if (!assignment) return null;
     return this.mapOrder(assignment);
   }
 
-  private mapOrder(assignment: DispatchAssignment): DispatchOrder {
-    const stateMap: Record<DispatchAssignment["status"], DispatchState> = {
-      pending: "authorized",
-      accepted: "accepted",
-      declined: "returned",
-      in_progress: "in_progress",
-      submitted_for_review: "completed",
-      verified: "verified",
-      returned: "returned",
-      cancelled: "returned",
-    };
-    const state = stateMap[assignment.status];
+  private mapOrder(assignment: DispatchAssignmentRecord): DispatchOrder {
     return {
       id: assignment.assignment_id,
-      caseId: assignment.case_id,
+      caseId: assignment.issue_id,
       specialistId: assignment.specialist_id,
-      state,
+      state: STATUS_TO_DISPATCH_STATE[assignment.status],
       createdAt: assignment.updated_at,
       timeline: [
         {
           id: `${assignment.assignment_id}-status`,
           at: assignment.updated_at,
-          label: "Estado del despacho (fixture)",
-          detail: `Asignación ${assignment.status}. Fuente: fixture del contrato de Ismael.`,
+          label: "Estado del despacho",
+          detail: `Asignación ${assignment.status}, registrada en el núcleo.`,
         },
       ],
       evidence: [],
     };
   }
 
+  async listDispatchBoard(): Promise<DispatchBoardItem[]> {
+    const response = await coreRequest<{
+      assignments: DispatchAssignmentRecord[];
+      specialists: SpecialistRecord[];
+    }>("/dispatch");
+    const names = new Map(
+      (response.specialists ?? []).map((item) => [item.specialist_id, item.name]),
+    );
+    return (response.assignments ?? []).map((assignment) => ({
+      assignmentId: assignment.assignment_id,
+      caseId: assignment.issue_id,
+      specialistId: assignment.specialist_id,
+      specialistName:
+        names.get(assignment.specialist_id) ?? assignment.specialist_id.slice(0, 8),
+      state: STATUS_TO_DISPATCH_STATE[assignment.status],
+      createdAt: assignment.created_at,
+      updatedAt: assignment.updated_at,
+    }));
+  }
+
   async authorizeDispatch(caseId: string, specialistId: string): Promise<DispatchOrder> {
     const detail = await this.fetchDetail(caseId);
-    const request: DispatchRequest = {
-      dispatch_request_id: `disp-${caseId}-${Date.now()}`,
-      case_id: caseId,
-      display_id: detail.display_id,
-      category: detail.category,
-      priority:
-        detail.category === "road_damage" || detail.reports.some((r) => r.has_safety_concern)
-          ? "urgent"
-          : "medium",
-      location: detail.reports[0]?.location ?? {
-        latitude: detail.latitude,
-        longitude: detail.longitude,
+    const record = await this.postGovernment<{ assignment: DispatchAssignmentRecord }>(
+      `/dispatch?issue_id=${encodeURIComponent(caseId)}`,
+      {
+        category: detail.category,
         colonia: detail.colonia,
-        alcaldia: "CDMX",
+        note: "Despacho autorizado desde la consola de gobierno.",
+        specialist_id: specialistId,
       },
-      requested_by: this.actor.userId,
-      requested_at: new Date().toISOString(),
-      notes: "Solicitud creada desde la consola de gobierno con fixture local.",
-    };
-    const created = await this.dispatchGateway.requestDispatch(request);
-    const assignment = await this.dispatchGateway.assign(
-      created.dispatch_request_id,
-      specialistId,
-      this.actor.userId,
     );
     this.emit();
-    return this.mapOrder(assignment);
+    return this.mapOrder(record.assignment);
   }
 
   async advanceDispatch(caseId: string, state: DispatchState): Promise<void> {
-    const assignment = (await this.dispatchGateway.getAssignments(caseId))[0];
+    const response = await coreRequest<{ assignments: DispatchAssignmentRecord[] }>(
+      `/dispatch?issue_id=${encodeURIComponent(caseId)}`,
+    );
+    const assignment = response.assignments?.[0];
     if (!assignment) {
       throw new CoreApiError("pending_contract", "No hay una asignación de despacho para avanzar.", {
         code: "dispatch_missing",
       });
     }
-    const next = {
-      recommended: "pending",
-      authorized: "pending",
-      accepted: "accepted",
-      scheduled: "accepted",
-      in_progress: "in_progress",
-      completed: "submitted_for_review",
-      verified: "verified",
-      returned: "returned",
-    }[state] as DispatchAssignment["status"];
-    await this.dispatchGateway.updateAssignment(assignment.assignment_id, next, this.actor.userId);
+    await this.transitionDispatch(assignment.assignment_id, DISPATCH_STATE_TO_STATUS[state]);
     this.emit();
   }
 
   async verifyIntervention(caseId: string, decision: "verified" | "returned"): Promise<void> {
-    const assignment = (await this.dispatchGateway.getAssignments(caseId))[0];
+    const response = await coreRequest<{ assignments: DispatchAssignmentRecord[] }>(
+      `/dispatch?issue_id=${encodeURIComponent(caseId)}`,
+    );
+    const assignment = response.assignments?.[0];
     if (!assignment) {
       throw new CoreApiError("pending_contract", "No hay una asignación de despacho por verificar.", {
         code: "dispatch_missing",
       });
     }
-    await this.dispatchGateway.updateAssignment(
+    await this.transitionDispatch(
       assignment.assignment_id,
       decision === "verified" ? "verified" : "returned",
-      this.actor.userId,
     );
     this.emit();
+  }
+
+  private async transitionDispatch(
+    assignmentId: string,
+    status: DispatchAssignment["status"],
+  ): Promise<void> {
+    const organizationId = this.actor.organizationId;
+    if (!organizationId) {
+      throw new CoreApiError(
+        "forbidden",
+        "Tu cuenta no tiene una organización responsable asignada en VotaVía.",
+        { code: "missing_organization" },
+      );
+    }
+    await coreRequest(`/dispatch/${encodeURIComponent(assignmentId)}`, {
+      method: "PATCH",
+      json: { status, organization_id: organizationId },
+    });
   }
 
   async publishOutcome(caseId: string, outcome: string): Promise<void> {
@@ -950,10 +1051,10 @@ export class CoreGovernmentService implements GovernmentService {
       "completed",
       "Publicación de resultado registrada desde la consola de gobierno.",
     );
-    const overrides = this.overridesFor(caseId);
-    overrides.outcome = outcome.trim();
-    overrides.publishedAt = new Date().toISOString();
-    overrides.status = "closed";
+    await this.postGovernment(`/issues/${encodeURIComponent(caseId)}/publication`, {
+      outcome: outcome.trim(),
+      summary: null,
+    });
     this.emit();
   }
 
@@ -1050,14 +1151,11 @@ export class CoreGovernmentService implements GovernmentService {
       const evidence = await this.uploadFile(caseId, input.followUpEvidence);
       followUpId = evidence.evidence_id;
     }
-    const overrides = this.overridesFor(caseId);
-    overrides.disputeResponses.push({
-      id: `dresp-${Date.now()}`,
-      text: input.text.trim(),
-      respondedAt: new Date().toISOString(),
-      respondedBy: input.authorName,
-      departmentId: input.departmentId,
-      followUpEvidenceIds: followUpId ? [followUpId] : [],
+    await this.postGovernment(`/issues/${encodeURIComponent(caseId)}/dispute-responses`, {
+      body: input.text.trim(),
+      department_id: input.departmentId,
+      author_name: input.authorName,
+      follow_up_evidence_ids: followUpId ? [followUpId] : [],
     });
     this.emit();
   }
@@ -1085,53 +1183,4 @@ function dataUrlToBlob(url: string): Blob | null {
   }
 }
 
-/**
- * Fixture local del `DispatchGateway` de Ismael.
- * Implementa el contrato tipado, no un segundo backend. Se etiqueta como fixture
- * en todas las respuestas que consume la UI.
- */
-export class FixtureDispatchGateway implements ConsoleDispatchGateway {
-  private requests = new Map<string, DispatchRequest>();
-  private assignments = new Map<string, DispatchAssignment>();
 
-  async requestDispatch(input: DispatchRequest): Promise<DispatchRequest> {
-    this.requests.set(input.dispatch_request_id, input);
-    return input;
-  }
-
-  async assign(
-    dispatchRequestId: string,
-    specialistId: string,
-  ): Promise<DispatchAssignment> {
-    const request = this.requests.get(dispatchRequestId);
-    if (!request) throw new Error("Solicitud de despacho inexistente");
-    const specialist =
-      mockSpecialists.find((item) => item.id === specialistId) ?? mockSpecialists[0];
-    const assignment: DispatchAssignment = {
-      assignment_id: `asg-${dispatchRequestId}`,
-      dispatch_request_id: dispatchRequestId,
-      case_id: request.case_id,
-      specialist_id: specialist.id,
-      specialist_display_name: specialist.name,
-      status: "pending",
-      updated_at: new Date().toISOString(),
-    };
-    this.assignments.set(assignment.assignment_id, assignment);
-    return assignment;
-  }
-
-  async getAssignments(caseId: string): Promise<DispatchAssignment[]> {
-    return [...this.assignments.values()].filter((item) => item.case_id === caseId);
-  }
-
-  async updateAssignment(
-    assignmentId: string,
-    status: DispatchAssignment["status"],
-  ): Promise<DispatchAssignment> {
-    const assignment = this.assignments.get(assignmentId);
-    if (!assignment) throw new Error("Asignación de despacho inexistente");
-    const next = { ...assignment, status, updated_at: new Date().toISOString() };
-    this.assignments.set(assignmentId, next);
-    return next;
-  }
-}

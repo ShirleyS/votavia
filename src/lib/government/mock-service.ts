@@ -16,6 +16,7 @@ import type {
   CompletionClaim,
   CompletionClaimInput,
   DisputeResponseInput,
+  DispatchBoardItem,
   DispatchOrder,
   DispatchState,
   GovernmentCase,
@@ -377,6 +378,20 @@ export class MockGovernmentService implements GovernmentService {
   async getDispatchOrder(caseId: string): Promise<DispatchOrder | null> {
     const order = this.store.orders.find((item) => item.caseId === caseId);
     return order ? clone(order) : null;
+  }
+
+  async listDispatchBoard(): Promise<DispatchBoardItem[]> {
+    return this.store.orders.map((order) => ({
+      assignmentId: order.id,
+      caseId: order.caseId,
+      specialistId: order.specialistId,
+      specialistName:
+        mockSpecialists.find((spec) => spec.id === order.specialistId)?.name ??
+        order.specialistId,
+      state: order.state,
+      createdAt: order.createdAt,
+      updatedAt: order.timeline.at(-1)?.at ?? order.createdAt,
+    }));
   }
 
   async authorizeDispatch(

@@ -373,6 +373,16 @@ export interface DispatchTimelineEvent {
   detail: string;
 }
 
+export interface DispatchBoardItem {
+  assignmentId: string;
+  caseId: string;
+  specialistId: string;
+  specialistName: string;
+  state: DispatchState;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DispatchOrder {
   id: string;
   caseId: string;
@@ -460,6 +470,8 @@ export interface GovernmentService {
   ): Promise<void>;
   getDispatchRecommendations(id: string): Promise<SpecialistRecommendation[]>;
   getDispatchOrder(caseId: string): Promise<DispatchOrder | null>;
+  /** Tablero de despacho: todas las asignaciones con su especialista. */
+  listDispatchBoard(): Promise<DispatchBoardItem[]>;
   authorizeDispatch(caseId: string, specialistId: string): Promise<DispatchOrder>;
   advanceDispatch(caseId: string, state: DispatchState): Promise<void>;
   verifyIntervention(

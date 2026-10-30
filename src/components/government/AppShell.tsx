@@ -111,10 +111,10 @@ function ServiceBanner({
       <span>
         Estado operativo: {availability === "core" ? "conectado" : availability}.
         {pendingContracts.length > 0
-          ? ` ${pendingContracts.length} contratos pendientes se resuelven con fixtures etiquetados: ${pendingContracts
+          ? ` ${pendingContracts.length} contratos pendientes: ${pendingContracts
               .map((item) => item.label)
               .join(", ")}.`
-          : ""}
+          : " Asignación, disputas, publicación, bitácora y despacho operan contra el núcleo."}
       </span>
     </div>
   );

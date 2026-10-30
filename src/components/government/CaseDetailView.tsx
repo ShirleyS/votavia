@@ -617,8 +617,8 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
               </button>
               {dataSource === "core" ? (
                 <p className="management-hint">
-                  Asignación local etiquetada: el núcleo sólo acepta <code>organization_id</code> en
-                  el cambio operativo, no un departamento distinto.
+                  Asignación registrada contra el núcleo: el área y el operador quedan
+                  guardados en el expediente y se muestran a la ciudadanía.
                 </p>
               ) : null}
             </div>
@@ -642,7 +642,7 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
             <div className="management-footnote">
               <SampleBadge />
               <p>{dataSource === "core"
-                ? "Los cambios de estado y la evidencia se envían al núcleo de Session 1. La asignación de área y operador aún no tiene endpoint y se guarda de forma local y etiquetada."
+                ? "Los cambios de estado, la evidencia, la asignación de área y operador y el despacho se envían al núcleo de Session 1."
                 : "Los cambios viven solo en este navegador. No modifican la base de datos real."}</p>
             </div>
           </section>
@@ -656,7 +656,7 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
             {dataSource === "core" ? (
               <div className="dispatch-source-note" role="note">
                 <ShieldAlert size={14} />
-                <span>Fixture del contrato de despacho (Ismael): todavía no existe un backend HTTP. Las órdenes son simuladas y no representan asignaciones reales.</span>
+                <span>Despacho persistido en el núcleo: la orden se guarda con el especialista asignado y su historial de estados.</span>
               </div>
             ) : null}
             {!canDispatch ? <p className="permission-note">{permissionReason("dispatch:authorize", currentCase)}</p> : null}
