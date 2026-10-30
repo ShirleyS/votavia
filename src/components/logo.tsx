@@ -9,11 +9,11 @@ export function Logo({
   showWordmark?: boolean;
 }) {
   return (
-    <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <BrandMark size={34} />
+    <span className={cn("inline-flex items-center gap-2", className)}>
+      <BrandMark size={36} />
       {showWordmark ? (
-        <span className="text-[22px] font-extrabold leading-none tracking-[-0.025em] text-navy-900">
-          Vota<span className="text-royal-600">Vía</span>
+        <span className="text-[26px] font-extrabold leading-none tracking-[-0.035em] text-[#1D4FD8]">
+          Vota<span className="text-[#2F6BE8]">Vía</span>
         </span>
       ) : null}
     </span>

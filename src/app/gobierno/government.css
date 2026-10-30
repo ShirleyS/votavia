@@ -9823,17 +9823,23 @@ body:has(.gov-shell) {
 }
 
 .gov-shell .gov-logo__mark {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  border-radius: 9px;
-  background: #fff;
-  box-shadow: inset 0 0 0 1px rgba(36, 84, 224, 0.14);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  filter: none;
 }
 
 .gov-shell .gov-logo__word {
-  font-size: 20px;
-  letter-spacing: -0.025em;
+  font-size: 21px;
+  letter-spacing: -0.035em;
+  color: #1d4fd8;
+}
+
+.gov-shell .gov-logo__word span {
+  color: #2f6be8;
 }
 
 .gov-shell .gov-nav__item em {

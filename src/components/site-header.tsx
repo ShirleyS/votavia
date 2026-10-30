@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { ChevronDown, LogOut, Menu, Search, UserRound, X } from "lucide-react";
+import { ArrowRight, ChevronDown, LogOut, Menu, Search, UserRound, X } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { DemoSeedButton } from "@/components/demo-seed-button";
 import { buttonStyles } from "@/components/ui/button";
@@ -47,29 +47,31 @@ export function SiteHeader({
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-white/90 backdrop-blur-md">
-      <div className="container-page flex h-[72px] items-center justify-between gap-4">
-        <Link href="/" aria-label="VotaVía, ir al inicio" className="shrink-0">
-          <Logo />
-        </Link>
+      <div className="container-page flex h-[76px] items-center justify-between gap-6">
+        <div className="flex min-w-0 items-center gap-4 xl:gap-6">
+          <Link href="/" aria-label="VotaVía, ir al inicio" className="shrink-0">
+            <Logo />
+          </Link>
 
-        <nav aria-label="Navegación principal" className="hidden items-center gap-1 lg:flex">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={isActive(item.href) ? "page" : undefined}
-              className={cn(
-                "rounded-lg px-2.5 py-2 text-[13px] font-semibold transition-colors xl:px-3 xl:text-[13.5px]",
-                item.wideOnly && "hidden xl:inline-flex",
-                isActive(item.href)
-                  ? "text-royal-700 underline decoration-[2.5px] underline-offset-[10px]"
-                  : "text-navy-700 hover:bg-navy-50 hover:text-navy-900",
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+          <nav aria-label="Navegación principal" className="hidden items-center gap-1 lg:flex">
+            {NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={isActive(item.href) ? "page" : undefined}
+                className={cn(
+                  "rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors xl:px-3.5 xl:text-[14px]",
+                  item.wideOnly && "hidden xl:inline-flex",
+                  isActive(item.href)
+                    ? "text-[#1D4FD8]"
+                    : "text-navy-700 hover:bg-navy-50 hover:text-navy-900",
+                )}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
 
         <div className="flex items-center gap-2">
           <Link
@@ -80,8 +82,14 @@ export function SiteHeader({
             <Search className="h-5 w-5" aria-hidden />
           </Link>
 
-          <Link href="/reportar" className={cn(buttonStyles({ size: "md" }), "hidden rounded-full shadow-[0_10px_22px_-16px_rgba(36,84,224,.9)] sm:inline-flex")}>
-            Participa
+          <Link
+            href="/reportar"
+            className={cn(
+              buttonStyles({ size: "md" }),
+              "hidden rounded-full bg-[#1D4FD8] px-5 shadow-[0_10px_22px_-14px_rgba(29,79,216,.75)] hover:bg-[#1740b8] sm:inline-flex",
+            )}
+          >
+            Participa <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
 
           {demoEnabled ? <DemoSeedButton /> : null}
