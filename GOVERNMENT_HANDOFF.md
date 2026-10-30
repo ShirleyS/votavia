@@ -264,6 +264,105 @@ Detalles:
 | `case-0821` | Caso crítico con dato oficial obsoleto |
 | `case-0825`, `case-0812` | Cierres con verificación comunitaria exitosa |
 
+## Modo núcleo: integración con Session 1
+
+La consola funciona en dos modos, elegidos al arrancar:
+
+| Modo | Activación | Fuente de datos | Sesión |
+| --- | --- | --- | --- |
+| Demostración (predeterminado) | `NEXT_PUBLIC_VOTAVIA_API_MODE=demo` | `MockGovernmentService` (`localStorage`) | Cuentas ficticias locales |
+| Núcleo | `NEXT_PUBLIC_VOTAVIA_API_MODE=core` | `CoreGovernmentService` → API `/api` de Session 1 | `/api/organizations/me` |
+
+En modo núcleo el `next.config.ts` reescribe `/core-api/:path*` hacia
+`${VOTAVIA_CORE_ORIGIN}/api/:path*`. Variables:
+
+```
+NEXT_PUBLIC_VOTAVIA_API_MODE=core
+VOTAVIA_CORE_ORIGIN=http://localhost:3000          # origen del núcleo (Session 1)
+NEXT_PUBLIC_VOTAVIA_CORE_BASE_PATH=/core-api        # opcional; prefijo del navegador
+```
+
+El navegador nunca llama al núcleo directamente por otro host: la base por defecto
+es `/core-api` (mismo origen) para conservar cookies de sesión.
+
+### Mapa de responsabilidades
+
+- **Session 1 (canónico).** Base de datos, autenticación, expedientes, evidencia,
+  registros oficiales y permisos. La consola **no** crea una segunda base ni un
+  segundo sistema de autenticación.
+- **Session 2 (este worktree).** Interfaz de gobierno: bandeja, filtros, detalle,
+  gobernanza, evidencia, disputas y asignación etiquetada.
+- **Ismael.** Lógica de despacho e ingesta. La consola consume `DispatchGateway`;
+  **no** implementa un despacho paralelo.
+- **Session 3.** Sugerencias de IA (`getCaseAnalysis`). En modo núcleo devuelve
+  `state: "unavailable"` hasta que exista el contrato.
+- **Session 5.** Pruebas E2E.
+
+### Adaptador y archivos
+
+- `src/lib/government/core/contract.ts` — espejo tipado del contrato de Session 1
+  (categorías, estados, `IssueDetail`, `OrganizationRole`, `DispatchGateway`).
+- `src/lib/government/core/http.ts` — `coreRequest` con timeout, mismo origen y
+  normalización del sobre de error `{error:{code,message,details}}`.
+- `src/lib/government/core/adapter.ts` — `CoreGovernmentService`:
+  mapea `IssueDetail` → `GovernmentCase`, calcula prioridad, lee frescura del
+  registro oficial, envía estado/evidencia y etiqueta los contratos pendientes.
+- `src/lib/government/core/service.ts` — selector `demo | core` y `PENDING_CONTRACTS`.
+- `src/lib/government/priority.ts` — `computePriorityBreakdown` compartido (seguridad
+  pesa más que popularidad).
+- `next.config.ts` — reescritura `/core-api` → API del núcleo.
+
+Endpoints consumidos (sin inventar rutas): `GET /issues`, `GET /issues/[id]`,
+`POST /issues/[id]/operational`, `GET|POST /issues/[id]/evidence`,
+`GET /official-records/[id]/history`, `GET /organizations/me`, `POST|DELETE /auth/demo`.
+
+### Matriz de roles (derivada de `/organizations/me`)
+
+| Rol de organización | Permisos en la consola |
+| --- | --- |
+| `responder` | `case:manage`, `evidence:upload`, `dispute:respond` |
+| `supervisor` | lo anterior + `case:assign` |
+| `admin` | lo anterior + `dispatch:authorize`, `outcome:publish` |
+
+El alcance por `organization_id` se aplica a los casos importados; un usuario fuera
+de alcance recibe un aviso y la acción no se ejecuta. Las vistas deshabilitan los
+controles sin permiso y muestran el motivo.
+
+### Contratos pendientes (documentados, no inventados)
+
+Cada faltante se resuelve con un *fixture* o *override* local **claramente
+etiquetado**; nunca se simula un endpoint inexistente. Fuente de verdad:
+`PENDING_CONTRACTS` en `src/lib/government/core/adapter.ts`.
+
+1. **Asignación de área y operador.** El núcleo sólo acepta `organization_id` en el
+   cambio operativo. No hay endpoint de responsable/operador → se guarda local y
+   etiquetado. Falta: `PATCH /issues/[id]/assignment` (o equivalente) + roster de
+   operadores.
+2. **Respuesta oficial a disputas.** No hay endpoint. El texto se conserva local y
+   etiquetado; la evidencia de seguimiento sí se envía por `/evidence`. Falta:
+   `POST /issues/[id]/disputes/[disputeId]/responses`.
+3. **Publicación de resultado.** Falta el contrato de publicación. El cierre se
+   registra como estado operativo. Falta: `POST /issues/[id]/outcome`.
+4. **Feed de actividad.** No hay endpoint; la bitácora se reconstruye con eventos
+   del expediente. Falta: `GET /issues/[id]/activity`.
+5. **Despacho de especialistas (Ismael).** El contrato `DispatchGateway` no tiene
+   implementación HTTP; se usa `FixtureDispatchGateway` rotulado en la UI. Falta:
+   implementación HTTP + autenticación del gateway.
+6. **Prioridad y alerta de seguridad.** El núcleo no expone un campo de prioridad
+   ni bandera de riesgo; se calculan en el cliente. Falta: campos canónicos si el
+   núcleo los adopta.
+7. **Pertenencia demo.** `organizationMembers` del seed está vacío; en modo demo
+   `/organizations/me` puede devolver cero organizaciones y la consola avisa "sin
+   organización". Se requiere sembrar la pertenencia a `org-demo-cuauhtemoc`
+   (`scripts/grant-organization.mjs`, que necesita Supabase).
+
+### Identificación de cuentas demo
+
+En modo núcleo, una organización marcada como demo produce `isDemo: true`. La barra
+superior muestra la etiqueta `Demo`/`Núcleo` (`gov-source-chip`) y el banner de
+servicio indica el origen. Ninguna cuenta de demostración se presenta como
+funcionario real, y la consola nunca afirma una adopción oficial de CDMX.
+
 ## Validación realizada
 
 - `npm run typecheck` — TypeScript sin errores.
@@ -280,6 +379,9 @@ Detalles:
   folios de disputa/aviso y archivos de evidencia existentes).
 - Revisión de clases CSS usadas contra `globals.css` y puntos de quiebre responsive
   (1360, 1180, 1024, 860, 640, 420 px) con `prefers-reduced-motion`.
+- Modo núcleo revisado estáticamente: carga de sesión, `401/403/404/422/429`,
+  timeout/reintento, estados vacíos y acciones deshabilitadas por rol. La
+  verificación de clics E2E queda para Session 5.
 
 No fue posible levantar el servidor local en este entorno (la política del sandbox
 bloquea abrir puertos), por lo que las pruebas de clic en navegador quedan pendientes
@@ -302,4 +404,6 @@ de ejecutar en un equipo con `npm run dev`.
 ## Estado del trabajo
 
 Los cambios **no se han confirmado** (sin commit) y permanecen sin seguimiento en la
-rama `feature/government-ux`.
+rama `feature/government-ux`. Este slice **no se fusiona ni se despliega**: la
+coordinación y las pruebas E2E (Session 5) deciden la integración. La rama no se
+rebasea ni se mezcla desde aquí.

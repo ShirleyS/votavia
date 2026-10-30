@@ -6,7 +6,18 @@ export type CaseCategory =
   | "movilidad"
   | "parques"
   | "seguridad"
-  | "drenaje";
+  | "drenaje"
+  | "otros";
+
+/** De dónde salieron los datos que pinta la consola. */
+export type GovernmentDataSource = "demo" | "core";
+
+export type ServiceAvailability =
+  | "connecting"
+  | "core"
+  | "demo"
+  | "degraded"
+  | "error";
 
 export type CasePriority = "low" | "medium" | "high" | "critical";
 
@@ -85,6 +96,12 @@ export interface ImportedGovernmentRecord {
   freshness: DataFreshness;
   freshnessLabel: string;
   note: string;
+  /** Procedencia adicional cuando el registro viene del núcleo. */
+  sourceSystem?: string;
+  sourceUrl?: string;
+  sourceUpdatedAt?: string;
+  redistribution?: "allowed" | "restricted" | "unknown";
+  officialRecordId?: string;
 }
 
 export type CommunityVerificationStatus =
@@ -128,6 +145,11 @@ export interface GovernmentEvidenceRecord {
   departmentId: string;
   operatorName: string;
   authorId: string;
+  /** `core` = registro del núcleo; `demo` = dato ficticio local. */
+  source?: GovernmentDataSource;
+  coreKind?: string;
+  organizationId?: string | null;
+  isPublic?: boolean;
 }
 
 export interface CompletionClaim {
@@ -208,8 +230,14 @@ export interface DemoUser {
   role: DemoRole;
   departmentId?: string;
   organizationName: string;
-  isDemo: true;
+  /** `false` sólo cuando la cuenta viene del núcleo (Session 1). */
+  isDemo: boolean;
   permissions: GovernmentPermission[];
+  /** Organización activa cuando la sesión proviene del núcleo. */
+  organizationId?: string | null;
+  /** Todas las organizaciones a las que pertenece la cuenta del núcleo. */
+  organizationIds?: string[];
+  source?: GovernmentDataSource;
 }
 
 export interface GovernmentCase {
@@ -245,6 +273,21 @@ export interface GovernmentCase {
   governmentEvidence?: GovernmentEvidenceRecord[];
   completionClaims?: CompletionClaim[];
   dispute?: ResolutionDispute;
+  /** Procedencia del expediente en esta consola. */
+  source?: GovernmentDataSource;
+  /** Identidad compartida de Session 1. */
+  issueId?: string;
+  origin?: "citizen" | "official" | "mixed";
+  externalStatus?: string | null;
+  organizationId?: string | null;
+  organizationName?: string;
+}
+
+export interface GovernmentOrganization {
+  id: string;
+  name: string;
+  role: "responder" | "supervisor" | "admin";
+  scope: string[];
 }
 
 export interface GovernmentCaseFilters {

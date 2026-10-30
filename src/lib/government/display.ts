@@ -59,6 +59,7 @@ export const CATEGORY_LABELS: Record<CaseCategory, string> = {
   parques: "Parques y jardines",
   seguridad: "Seguridad urbana",
   drenaje: "Drenaje",
+  otros: "Otros / sin clasificar",
 };
 
 export const CATEGORY_SHORT_LABELS: Record<CaseCategory, string> = {
@@ -70,6 +71,7 @@ export const CATEGORY_SHORT_LABELS: Record<CaseCategory, string> = {
   parques: "Parques",
   seguridad: "Seguridad",
   drenaje: "Drenaje",
+  otros: "Otros",
 };
 
 export const CATEGORY_COLORS: Record<CaseCategory, string> = {
@@ -81,6 +83,7 @@ export const CATEGORY_COLORS: Record<CaseCategory, string> = {
   parques: "#059669",
   seguridad: "#DC2626",
   drenaje: "#4F46E5",
+  otros: "#64748B",
 };
 
 export const DISPATCH_LABELS: Record<DispatchState, string> = {

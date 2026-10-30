@@ -50,7 +50,6 @@ import type {
   InterventionEvidence,
   SpecialistRecommendation,
 } from "@/lib/government/types";
-import { governmentService } from "@/lib/government/mock-service";
 import { useGovernment } from "./GovernmentProvider";
 import { CaseAnalysisPanel } from "./CaseAnalysis";
 import {
@@ -83,6 +82,12 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
     advanceDispatch,
     verifyIntervention,
     publishOutcome,
+    getCaseAnalysis,
+    getDispatchOrder,
+    getDispatchRecommendations,
+    dataSource,
+    can,
+    permissionReason,
   } = useGovernment();
   const currentCase = cases.find((item) => item.id === caseId);
   const [analysis, setAnalysis] = useState<CaseAnalysis | null>(null);
@@ -101,9 +106,9 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
   useEffect(() => {
     let active = true;
     void Promise.all([
-      governmentService.getCaseAnalysis(caseId),
-      governmentService.getDispatchOrder(caseId),
-      governmentService.getDispatchRecommendations(caseId),
+      getCaseAnalysis(caseId),
+      getDispatchOrder(caseId),
+      getDispatchRecommendations(caseId),
     ]).then(([nextAnalysis, nextOrder, nextRecommendations]) => {
       if (!active) return;
       setAnalysis(nextAnalysis);
@@ -117,7 +122,7 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
 
   useEffect(() => {
     let active = true;
-    void governmentService.getDispatchOrder(caseId).then((next) => {
+    void getDispatchOrder(caseId).then((next) => {
       if (active) setOrder(next);
     });
     return () => {
@@ -157,7 +162,9 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
       <div className="page-stack">
         <div className="empty-state empty-state--page">
           <strong>No encontramos este caso</strong>
-          <p>Puede haber sido eliminado del conjunto de muestra.</p>
+          <p>{dataSource === "core"
+            ? "El núcleo no devolvió este expediente o tu organización no tiene acceso a él."
+            : "Puede haber sido eliminado del conjunto de muestra."}</p>
           <Link href="/gobierno/reportes" className="button button--primary">Volver a la bandeja</Link>
         </div>
       </div>
@@ -168,10 +175,17 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
     setActionBusy(key);
     try {
       await task();
+    } catch {
+      // El proveedor ya muestra el aviso de error correspondiente.
     } finally {
       setActionBusy(null);
     }
   };
+
+  const canManage = can("case:manage", currentCase);
+  const canAssign = can("case:assign", currentCase);
+  const canDispatch = can("dispatch:authorize", currentCase);
+  const canPublish = can("outcome:publish", currentCase);
 
   const handleAuthorize = async () => {
     if (!specialist) return;
@@ -179,7 +193,7 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
       await authorizeDispatch(currentCase.id, specialist.name, specialist.id);
       setDispatchConfirm(false);
       setSelectedSpecialist(null);
-      const nextOrder = await governmentService.getDispatchOrder(currentCase.id);
+      const nextOrder = await getDispatchOrder(currentCase.id);
       setOrder(nextOrder);
     });
   };
@@ -187,7 +201,7 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
   const handleAdvance = async (state: DispatchState) => {
     await run(`advance-${state}`, async () => {
       await advanceDispatch(currentCase.id, state);
-      setOrder(await governmentService.getDispatchOrder(currentCase.id));
+      setOrder(await getDispatchOrder(currentCase.id));
     });
   };
 
@@ -195,7 +209,7 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
     await run(`verify-${decision}`, async () => {
       await verifyIntervention(currentCase.id, decision);
       setVerifyPanel(false);
-      setOrder(await governmentService.getDispatchOrder(currentCase.id));
+      setOrder(await getDispatchOrder(currentCase.id));
     });
   };
 
@@ -252,7 +266,7 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
             type="button"
             className="button button--primary"
             onClick={() => void run("review", () => updateStatus(currentCase.id, "under_review"))}
-            disabled={currentCase.status !== "reported" || actionBusy === "review"}
+            disabled={!canManage || currentCase.status !== "reported" || actionBusy === "review"}
           >
             {actionBusy === "review" ? <span className="button-spinner" /> : <ClipboardCheck size={16} />}
             {currentCase.status === "reported" ? "Revisar caso" : "Caso revisado"}
@@ -468,7 +482,7 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
                     </div>
                   </div>
                   {!verifyPanel ? (
-                    <button type="button" className="button button--primary button--small" onClick={() => setVerifyPanel(true)}>
+                    <button type="button" className="button button--primary button--small" onClick={() => setVerifyPanel(true)} disabled={!canDispatch}>
                       Verificar intervención
                     </button>
                   ) : (
@@ -478,10 +492,10 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
                         <span>Revisé las fotografías, el alcance del trabajo y las observaciones vecinales. Esta aprobación es operativa y no sustituye la verificación ciudadana.</span>
                       </label>
                       <div>
-                        <button type="button" className="button button--success button--small" onClick={() => void handleVerify("verified")} disabled={Boolean(actionBusy)}>
+                        <button type="button" className="button button--success button--small" onClick={() => void handleVerify("verified")} disabled={!canDispatch || Boolean(actionBusy)}>
                           {actionBusy === "verify-verified" ? <span className="button-spinner" /> : <CheckCircle2 size={15} />} Aprobar cierre operativo
                         </button>
-                        <button type="button" className="button button--danger-ghost button--small" onClick={() => void handleVerify("returned")} disabled={Boolean(actionBusy)}>
+                        <button type="button" className="button button--danger-ghost button--small" onClick={() => void handleVerify("returned")} disabled={!canDispatch || Boolean(actionBusy)}>
                           Devolver para corrección
                         </button>
                         <button type="button" className="button button--ghost button--small" onClick={() => setVerifyPanel(false)}>Cancelar</button>
@@ -518,7 +532,7 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
               ) : !publishPanel ? (
                 <div className="outcome-cta">
                   <p>La evidencia ya fue verificada. Publica un resumen claro del trabajo y su resultado.</p>
-                  <button type="button" className="button button--primary button--small" onClick={() => setPublishPanel(true)}>Publicar resultado</button>
+                  <button type="button" className="button button--primary button--small" onClick={() => setPublishPanel(true)} disabled={!canPublish}>Publicar resultado</button>
                 </div>
               ) : (
                 <div className="outcome-editor">
@@ -528,7 +542,7 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
                     <small>Este texto será visible para la ciudadanía en el modo conectado.</small>
                   </label>
                   <div>
-                    <button type="button" className="button button--primary button--small" onClick={() => void handlePublish()} disabled={!outcomeText.trim() || actionBusy === "publish"}>
+                    <button type="button" className="button button--primary button--small" onClick={() => void handlePublish()} disabled={!canPublish || !outcomeText.trim() || actionBusy === "publish"}>
                       {actionBusy === "publish" ? <span className="button-spinner" /> : <CheckCircle2 size={15} />} Publicar y cerrar caso
                     </button>
                     <button type="button" className="button button--ghost button--small" onClick={() => setPublishPanel(false)}>Cancelar</button>
@@ -575,7 +589,7 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
                 id="case-priority"
                 value={currentCase.priority}
                 onChange={(event) => void run("priority", () => updatePriority(currentCase.id, event.target.value as CasePriority))}
-                disabled={actionBusy === "priority"}
+                disabled={!canManage || actionBusy === "priority"}
               >
                 {Object.entries(PRIORITY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
@@ -583,14 +597,14 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
 
             <div className="management-field">
               <label htmlFor="case-department">Departamento responsable</label>
-              <select id="case-department" value={selectedDepartment} onChange={(event) => setSelectedDepartment(event.target.value)}>
+              <select id="case-department" value={selectedDepartment} onChange={(event) => setSelectedDepartment(event.target.value)} disabled={!canAssign}>
                 <option value="">Seleccionar área</option>
                 {DEPARTMENTS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
               </select>
               <button
                 type="button"
                 className="button button--secondary button--full button--small"
-                disabled={!selectedDepartment || selectedDepartment === currentCase.departmentId || actionBusy === "department"}
+                disabled={!canAssign || !selectedDepartment || selectedDepartment === currentCase.departmentId || actionBusy === "department"}
                 onClick={() => void run("department", () => assignDepartment(currentCase.id, selectedDepartment))}
               >
                 {actionBusy === "department" ? <span className="button-spinner button-spinner--dark" /> : <Building2 size={15} />}
@@ -600,10 +614,10 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
 
             <div className="management-actions">
               <div className="management-actions__head"><span>Acciones rápidas</span></div>
-              <button type="button" onClick={() => void run("review", () => updateStatus(currentCase.id, "under_review"))} disabled={["resolved", "closed"].includes(currentCase.status)}>
+              <button type="button" onClick={() => void run("review", () => updateStatus(currentCase.id, "under_review"))} disabled={!canManage || ["resolved", "closed"].includes(currentCase.status)}>
                 <ClipboardCheck size={16} /> <span>Marcar en revisión</span>
               </button>
-              <button type="button" onClick={() => void run("progress", () => updateStatus(currentCase.id, "in_progress"))} disabled={!order || ["resolved", "closed", "pending_verification"].includes(currentCase.status)}>
+              <button type="button" onClick={() => void run("progress", () => updateStatus(currentCase.id, "in_progress"))} disabled={!canManage || !order || ["resolved", "closed", "pending_verification"].includes(currentCase.status)}>
                 <HardHat size={16} /> <span>Registrar avance</span>
               </button>
               <button type="button" onClick={() => setShowRecommendations(true)}>
@@ -611,9 +625,14 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
               </button>
             </div>
 
+            {!canManage ? <p className="permission-note">{permissionReason("case:manage", currentCase)}</p> : null}
+            {!canAssign ? <p className="permission-note">{permissionReason("case:assign", currentCase)}</p> : null}
+
             <div className="management-footnote">
               <SampleBadge />
-              <p>Los cambios viven solo en este navegador. No modifican la base de datos real.</p>
+              <p>{dataSource === "core"
+                ? "Los cambios de estado y la evidencia se envían al núcleo de Session 1. La asignación de área y operador aún no tiene endpoint y se guarda de forma local y etiquetada."
+                : "Los cambios viven solo en este navegador. No modifican la base de datos real."}</p>
             </div>
           </section>
 
@@ -622,6 +641,14 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
               <div><span className="eyebrow">Especialistas</span><h2>Despacho recomendado</h2></div>
               <span className="approved-count"><BadgeCheck size={14} /> Solo aprobados</span>
             </div>
+
+            {dataSource === "core" ? (
+              <div className="dispatch-source-note" role="note">
+                <ShieldAlert size={14} />
+                <span>Fixture del contrato de despacho (Ismael): todavía no existe un backend HTTP. Las órdenes son simuladas y no representan asignaciones reales.</span>
+              </div>
+            ) : null}
+            {!canDispatch ? <p className="permission-note">{permissionReason("dispatch:authorize", currentCase)}</p> : null}
 
             {order ? (
               <div className="current-dispatch">
@@ -688,7 +715,7 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
                     <strong>Autorizar a {specialist.name}</strong>
                     <p>Se creará una orden de trabajo simulada. La asignación no resuelve el caso; deberás verificar la evidencia al terminar.</p>
                     <div>
-                      <button type="button" className="button button--primary button--small" onClick={() => void handleAuthorize()} disabled={actionBusy === "authorize"}>
+                      <button type="button" className="button button--primary button--small" onClick={() => void handleAuthorize()} disabled={!canDispatch || actionBusy === "authorize"}>
                         {actionBusy === "authorize" ? <span className="button-spinner" /> : <Check size={15} />} Autorizar asignación
                       </button>
                       <button type="button" className="button button--ghost button--small" onClick={() => setDispatchConfirm(false)}>Cancelar</button>
@@ -698,7 +725,7 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
                   <button
                     type="button"
                     className="button button--primary button--full"
-                    disabled={!selectedSpecialist}
+                    disabled={!canDispatch || !selectedSpecialist}
                     onClick={() => setDispatchConfirm(true)}
                   >
                     <UserCheck size={16} /> Revisar y autorizar asignación

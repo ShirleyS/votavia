@@ -66,7 +66,17 @@ const integrations = [
 ];
 
 export function SettingsView() {
-  const { resetMockData, cases, currentUser, demoUsers, switchDemoUser } = useGovernment();
+  const {
+    resetMockData,
+    cases,
+    currentUser,
+    demoUsers,
+    switchDemoUser,
+    dataSource,
+    organizations,
+    authenticated,
+    pendingContracts,
+  } = useGovernment();
   const [confirmReset, setConfirmReset] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -96,23 +106,32 @@ export function SettingsView() {
           <h1>Configuración</h1>
           <p>Entiende dónde vive la información, qué está conectado y cómo restablecer la muestra.</p>
         </div>
-        <span className="settings-mode-pill"><span /> Modo muestra activo</span>
+        <span className="settings-mode-pill"><span /> {dataSource === "core" ? "Modo núcleo (Session 1)" : "Modo muestra activo"}</span>
       </div>
 
       <div className="settings-status" role="status">
         <span className="settings-status__icon"><ShieldCheck size={21} /></span>
-        <div>
-          <strong>Esta consola no está conectada a servicios de producción</strong>
-          <p>Todos los cambios que hagas aquí se guardan únicamente en el almacenamiento local de este navegador. No crean órdenes, no notifican a ciudadanía y no alteran la base de datos real.</p>
-        </div>
-        <span className="settings-status__count">{cases.length} casos locales</span>
+        {dataSource === "core" ? (
+          <div>
+            <strong>{authenticated ? "Conectada a la API del núcleo (Session 1)" : "Sin sesión válida del núcleo"}</strong>
+            <p>Los estados operativos y la evidencia se envían a la API de Session 1. La asignación de área/operador, la respuesta a disputas y la publicación de resultados siguen pendientes de contrato y se guardan de forma local y etiquetada. Esta consola no representa una adopción oficial de CDMX.</p>
+          </div>
+        ) : (
+          <div>
+            <strong>Esta consola no está conectada a servicios de producción</strong>
+            <p>Todos los cambios que hagas aquí se guardan únicamente en el almacenamiento local de este navegador. No crean órdenes, no notifican a ciudadanía y no alteran la base de datos real.</p>
+          </div>
+        )}
+        <span className="settings-status__count">{cases.length} casos · {dataSource === "core" ? "núcleo" : "locales"}</span>
       </div>
 
       <section className="panel settings-demo-accounts">
         <SectionTitle
           eyebrow="Autorización de demostración"
-          title="Cuentas ficticias y alcance por área"
-          subtitle="Los permisos y el alcance organizacional se aplican a toda la consola. Ninguna cuenta representa a un funcionario real."
+          title={dataSource === "core" ? "Sesión y alcance por organización" : "Cuentas ficticias y alcance por área"}
+          subtitle={dataSource === "core"
+            ? "La sesión proviene de /api/organizations/me. Los permisos se derivan del rol (responder, supervisor, admin) y del alcance de cada organización."
+            : "Los permisos y el alcance organizacional se aplican a toda la consola. Ninguna cuenta representa a un funcionario real."}
         />
         <div className="demo-account-list">
           {demoUsers.map((user) => (
@@ -143,10 +162,28 @@ export function SettingsView() {
             </article>
           ))}
         </div>
-        <div className="settings-demo-note">
-          <Users size={16} />
-          <p>Las cuentas de operación sólo ven y modifican casos de su propia área. La coordinación puede asignar responsables, autorizar despachos y publicar resultados. La cuenta de análisis no puede modificar nada.</p>
-        </div>
+        {dataSource === "core" ? (
+          <div className="settings-demo-note">
+            <Users size={16} />
+            {organizations.length === 0 ? (
+              <p>
+                No hay ninguna organización asociada a esta sesión. Sin organización no se pueden
+                enviar cambios operativos ni evidencia. Pide a Session 1 que siembre la pertenencia
+                del usuario demo a <code>org-demo-cuauhtemoc</code>.
+              </p>
+            ) : (
+              <p>
+                Organizaciones: {organizations.map((org) => `${org.name} (${org.role})`).join(" · ")}.
+                El cambio de persona está deshabilitado en modo núcleo; la sesión la define la API.
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="settings-demo-note">
+            <Users size={16} />
+            <p>Las cuentas de operación sólo ven y modifican casos de su propia área. La coordinación puede asignar responsables, autorizar despachos y publicar resultados. La cuenta de análisis no puede modificar nada.</p>
+          </div>
+        )}
       </section>
 
       <div className="settings-grid">
@@ -154,13 +191,15 @@ export function SettingsView() {
           <section className="panel settings-card">
             <SectionTitle
               eyebrow="Modo actual"
-              title="Datos de muestra, acciones locales"
-              subtitle="Diseñado para revisar flujos completos sin tocar información real."
+              title={dataSource === "core" ? "Datos del núcleo, acciones autorizadas" : "Datos de muestra, acciones locales"}
+              subtitle={dataSource === "core"
+                ? "La bandeja y el estado operativo provienen de la API de Session 1; los contratos pendientes se etiquetan."
+                : "Diseñado para revisar flujos completos sin tocar información real."}
             />
             <div className="settings-factgrid">
-              <div><span><Database size={17} /></span><div><strong>{cases.length} expedientes</strong><p>Copias ficticias cargadas al abrir la consola.</p></div></div>
-              <div><span><HardDrive size={17} /></span><div><strong>Guardado en este navegador</strong><p>Los cambios sobreviven a una recarga en este equipo.</p></div></div>
-              <div><span><LockKeyhole size={17} /></span><div><strong>Sin escritura remota</strong><p>No hay llamadas de modificación a bases de datos.</p></div></div>
+              <div><span><Database size={17} /></span><div><strong>{cases.length} expedientes</strong><p>{dataSource === "core" ? "Cargados desde la API del núcleo." : "Copias ficticias cargadas al abrir la consola."}</p></div></div>
+              <div><span><HardDrive size={17} /></span><div><strong>{dataSource === "core" ? "Núcleo + overrides locales" : "Guardado en este navegador"}</strong><p>{dataSource === "core" ? "Estado y evidencia van al núcleo; la asignación se conserva local y etiquetada." : "Los cambios sobreviven a una recarga en este equipo."}</p></div></div>
+              <div><span><LockKeyhole size={17} /></span><div><strong>{dataSource === "core" ? "Escritura autorizada" : "Sin escritura remota"}</strong><p>{dataSource === "core" ? "Sólo acciones con permiso de tu rol y organización." : "No hay llamadas de modificación a bases de datos."}</p></div></div>
               <div><span><RefreshCw size={17} /></span><div><strong>Restablecimiento manual</strong><p>Puedes volver al estado inicial de la muestra.</p></div></div>
             </div>
             <div className="settings-key">
@@ -244,12 +283,19 @@ export function SettingsView() {
 
           <section className="panel settings-reset">
             <span className="settings-reset__eyebrow"><CircleAlert size={14} /> Zona de reinicio</span>
-            <h2>Restablecer datos de muestra</h2>
-            <p>Borra los cambios locales de prioridad, despachos, verificaciones y publicaciones. Vuelve a los expedientes originales.</p>
-            <button type="button" className="button button--danger-ghost button--full" onClick={() => setConfirmReset(true)}>
+            <h2>{dataSource === "core" ? "Restablecimiento no disponible" : "Restablecer datos de muestra"}</h2>
+            <p>{dataSource === "core"
+              ? "En modo núcleo los expedientes provienen de la API de Session 1 y no se restablecen desde esta consola."
+              : "Borra los cambios locales de prioridad, despachos, verificaciones y publicaciones. Vuelve a los expedientes originales."}</p>
+            <button
+              type="button"
+              className="button button--danger-ghost button--full"
+              onClick={() => setConfirmReset(true)}
+              disabled={dataSource === "core"}
+            >
               <RefreshCw size={15} /> Restablecer la muestra
             </button>
-            <span className="settings-reset__scope">Afecta solo este navegador</span>
+            <span className="settings-reset__scope">{dataSource === "core" ? "Gestionado por Session 1" : "Afecta solo este navegador"}</span>
           </section>
 
           <section className="panel settings-tech">
@@ -258,10 +304,11 @@ export function SettingsView() {
               <ServerCog size={18} />
             </div>
             <dl>
-              <div><dt>Modo</dt><dd>Demostración local</dd></div>
-              <div><dt>Persistencia</dt><dd>LocalStorage</dd></div>
-              <div><dt>Servicio</dt><dd>MockGovernmentService</dd></div>
-              <div><dt>Conexión externa</dt><dd>Desactivada</dd></div>
+              <div><dt>Modo</dt><dd>{dataSource === "core" ? "Núcleo (Session 1)" : "Demostración local"}</dd></div>
+              <div><dt>Persistencia</dt><dd>{dataSource === "core" ? "Postgres del núcleo + overrides locales" : "LocalStorage"}</dd></div>
+              <div><dt>Servicio</dt><dd>{dataSource === "core" ? "CoreGovernmentService" : "MockGovernmentService"}</dd></div>
+              <div><dt>Conexión externa</dt><dd>{dataSource === "core" ? "API /api (Session 1)" : "Desactivada"}</dd></div>
+              <div><dt>Contratos pendientes</dt><dd>{dataSource === "core" ? pendingContracts.length : 0}</dd></div>
             </dl>
           </section>
         </aside>
@@ -269,7 +316,7 @@ export function SettingsView() {
 
       <div className="sample-data-footer">
         <SampleBadge>Datos de muestra</SampleBadge>
-        <p>La configuración describe el entorno demostrativo actual. No sustituye documentación de seguridad o privacidad de producción.</p>
+        <p>{dataSource === "core" ? "La configuración describe el entorno conectado al núcleo. No sustituye documentación de seguridad o privacidad de producción." : "La configuración describe el entorno demostrativo actual. No sustituye documentación de seguridad o privacidad de producción."}</p>
       </div>
 
       {confirmReset ? (
