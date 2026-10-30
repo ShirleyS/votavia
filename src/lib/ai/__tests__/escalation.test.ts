@@ -57,7 +57,7 @@ describe("collectEscalationSignals", () => {
 });
 
 describe("escalatePriority", () => {
-  it("raises the score and review level when several signals come in", () => {
+  it("raises the score when several signals come in", () => {
     const result = escalatePriority(base(), {
       independent_reports: 4,
       evidence_count: 3,
@@ -69,8 +69,21 @@ describe("escalatePriority", () => {
       ESCALATION_POLICY.min_signals,
     );
     expect(result.score).toBeGreaterThan(base().score);
-    expect(result.level).not.toBe(base().level);
     expect(result.explanation).toContain("Escalada automática");
+  });
+
+  it("raises the review level when the escalated score crosses a threshold", () => {
+    const nearThreshold = base({ severity: "critical", reported_at: daysAgo(120, NOW) });
+    const result = escalatePriority(nearThreshold, {
+      independent_reports: 6,
+      evidence_count: 4,
+      preventive_signals: ["emerging_concentration"],
+      now: NOW,
+    });
+
+    expect(result.escalation?.applied).toBe(true);
+    expect(result.score).toBeGreaterThan(nearThreshold.score);
+    expect(result.level).not.toBe(nearThreshold.level);
   });
 
   it("escalates on a single strong signal", () => {
@@ -84,7 +97,7 @@ describe("escalatePriority", () => {
   });
 
   it("ignores popularity: supporters alone never escalate", () => {
-    const popularity = base({ unique_supporters: 400 });
+    const popularity = base({ severity: "low", unique_supporters: 400 });
     const result = escalatePriority(popularity, {
       independent_reports: 0,
       evidence_count: 0,

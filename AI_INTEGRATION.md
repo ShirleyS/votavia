@@ -54,6 +54,7 @@ import {
 | `matchReportToIssue(report, candidates)` | Convenience wrapper returning the single best `same_problem` / `related_problem` suggestion. | Same as above. |
 | `normalizeReportIntake(report)` | Shared intake for every source: verbatim text, redacted prompt copy, category preservation, location precision. Pure. | No. |
 | `suggestPriority(input)` | Explainable 0–100 attention score with per-factor evidence. Votes never dominate. Pure. | No. |
+| `escalatePriority(suggestion, context)` | Automatic, deterministic escalation when corroborating signals accumulate. Pure. | No. |
 | `assessResolution(input)` | Compares an official closure with newer citizen evidence and returns a review signal. Pure. | No. |
 | `generateCaseBrief({ report, ... })` | Government briefing with risk, related cases, historical context and jurisdiction. | Yes, with deterministic fallback. |
 | `calculatePreventiveSignals({ records })` | Counts, clusters, windows and recurrence. Pure and synchronous. | No. |
@@ -280,11 +281,56 @@ plus `report_source`, `source_label`, `source_record_id`, `original_category`,
   confidence_label: "heuristic";
   is_verified: false;
   requires_human_review: true;
+  escalation?: PriorityEscalation | null;
 }
 ```
 
 Votes alone cap the result at `medium`. A dangerous, old problem with several
 independent reports, evidence and nearby concentration can reach `urgent`.
+
+### Automatic escalation (`escalatePriority`)
+
+Priority is not static: when corroborating signals accumulate, the issue is
+re-scored automatically, with no model call and no waiting for someone to
+manually re-prioritize it. `classifyReport` and `processReport` call
+`escalatePriority` on every pass, and callers can re-run it whenever new
+signals arrive.
+
+```ts
+{
+  applied: boolean;
+  reason: string;
+  signals: Array<{ code, label, points, evidence }>;
+  bonus: number;                    // capped points added to the base score
+  from_level; from_score;
+  to_level; to_score;
+  level_changed: boolean;
+  auto_applied: true;
+  evaluated_at: string;
+}
+```
+
+Signal points (from `ESCALATION_SIGNAL_POINTS`): emerging concentration 12,
+persistence after closure 12, repeated reports 10, high severity 10, recurring
+problem 8, independent reports 6, evidence accumulation 4.
+
+Policy rules, all in `ESCALATION_POLICY`:
+
+- Escalation needs at least two distinct signals, or one "strong" signal
+  (≥ 10 points). A single weak signal never escalates.
+- Independent reports count from 3 upward; evidence counts from 3 items upward.
+- A preventive cluster signal (`repeated_reports`, `emerging_concentration`,
+  `recurring_problem`) suppresses the plain `independent_reports` signal so the
+  same corroboration is never counted twice.
+- The bonus is capped at 25 points and the review level rises at most one step
+  per evaluation, so escalation cannot jump from `low` to `urgent`.
+- Reaching `urgent` requires two or more distinct strong signals.
+- Popularity never escalates: when `supporters_only` is true the evaluation
+  returns `applied: false`.
+
+Escalation is automatic but stays advisory for **action**: it changes the
+attention score and the review level only. It never writes case status,
+assignment, permissions or dispatch, and `requires_human_review` stays `true`.
 
 ### Resolution signal (`ResolutionSignal`)
 
@@ -631,6 +677,9 @@ The standard suite is fully mocked and makes no network calls. Coverage:
 - Priority and resolution: votes-only stays below `urgent`, dangerous/old/
   repeated problems escalate, official closure plus newer evidence yields
   `persists_after_closure`, and no signal ever declares a case resolved.
+- Escalation: accumulated independent reports, evidence and preventive signals
+  raise score and level automatically, supporters alone never escalate, the
+  bonus and level steps are capped, and `urgent` needs two strong signals.
 - Briefing: real-only citations, fabricated ids, no-history wording, model
   failure, unsupported incidents, jurisdiction uncertainty.
 - Preventive: geographic clusters, emerging/repeated/recurring signals, sparse
