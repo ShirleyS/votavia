@@ -22,7 +22,11 @@
     "dev:collect": "node --experimental-strip-types src/cli.ts collect",
     "dev:validate": "node --experimental-strip-types src/cli.ts validate",
     "dev:export": "node --experimental-strip-types src/cli.ts export",
-    "dev:sync": "node --experimental-strip-types src/cli.ts sync"
+    "dev:sync": "node --experimental-strip-types src/cli.ts sync",
+    "cuauh:discover": "bash scripts/cuauhtemoc-first-run.sh discover",
+    "cuauh:peek": "bash scripts/cuauhtemoc-first-run.sh peek",
+    "cuauh:import": "bash scripts/cuauhtemoc-first-run.sh import",
+    "cuauh:report": "bash scripts/cuauhtemoc-first-run.sh report"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",
