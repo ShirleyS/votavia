@@ -95,8 +95,37 @@ describe("demo walkthrough (fixtures only)", () => {
     expect(live.confidence).toBeLessThanOrEqual(1);
   });
 
-  it.fails("stage 3 — the report is linked to an existing issue instead of duplicating it", async () => {
-    // @ts-expect-error - module intentionally absent; this check is expected to fail.
+  it("stage 3a — the wizard is offered duplicate candidates around the reported point", async () => {
+    const app = await freshApp({ cookies: { vv_pid: "demo-citizen-0000009" } });
+    const issue = (await app.service.listIssues({})).items[0];
+    const route = await import("@/app/api/cases/duplicates/route");
+
+    const response = await withCookies(app.cookieStore, () =>
+      route.POST(
+        request("/api/cases/duplicates", {
+          method: "POST",
+          body: JSON.stringify({
+            description: "Hay un bache profundo en la esquina otra vez.",
+            latitude: issue.latitude,
+            longitude: issue.longitude,
+            colonia: issue.colonia,
+          }),
+        }),
+      ),
+    );
+
+    // Never blocks reporting: 200 with an analysis payload, fallback or live.
+    expect(response.status).toBe(200);
+    const body = await readJson(response);
+    expect(body.analysis).not.toBeNull();
+    expect(typeof body.analysis.suggested_category).toBe("string");
+    expect(Array.isArray(body.analysis.duplicates)).toBe(true);
+    expect(typeof body.analysis.is_fallback).toBe("boolean");
+  });
+
+  it.fails("stage 3b — a report can be linked to an existing issue instead of duplicating it", async () => {
+    // Reported separately as I-23: duplicate *detection* exists, but there is no
+    // endpoint that attaches a new report to an existing issue.
     const route = await import("@/app/api/cases/[id]/link/route").catch(() => null);
     expect(route).not.toBeNull();
   });

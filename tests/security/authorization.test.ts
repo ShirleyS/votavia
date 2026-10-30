@@ -188,10 +188,47 @@ describe("citizen write surface", () => {
     expect(body.error.code).toBe("auth_required");
   });
 
-  it("S3 does not expose status or verification updates to citizens", async () => {
-    const route = await import("@/app/api/cases/[id]/route");
+  it("S3 exposes author editing but never status or verification fields", async () => {
+    const app = await freshApp();
+    // Phase 12 adds PATCH for the report's author. The security property is not
+    // the absence of the verb but that the editable surface is descriptive only.
+    expect(Object.keys(app.routes.caseById).sort()).toEqual(["GET", "PATCH", "dynamic"]);
 
-    expect(Object.keys(route).sort()).toEqual(["GET", "dynamic"]);
+    await withCookies(app.cookieStore, () =>
+      app.routes.demoAuth.POST(
+        request("/api/auth/demo", {
+          method: "POST",
+          body: JSON.stringify({ email: "editora@example.mx" }),
+        }),
+      ),
+    );
+    const created = await readJson(await createCase(app, [makeImage("image/png", 128)]));
+    const caseId = created.case.case_id as string;
+
+    const patched = await withCookies(app.cookieStore, () =>
+      app.routes.caseById.PATCH(
+        request(`/api/cases/${caseId}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            title: "Bache corregido en la esquina",
+            operational_status: "completed",
+            community_verification_status: "verified_resolved",
+            external_status: "FORGED-OFFICIAL",
+            status: "resolved",
+            role: "admin",
+          }),
+        }),
+        { params: Promise.resolve({ id: caseId }) },
+      ),
+    );
+    expect(patched.status).toBe(200);
+
+    const after = await app.service.getCase(caseId);
+    expect(after?.title).toBe("Bache corregido en la esquina");
+    expect(after?.status).toBe("reported");
+    expect(after?.operational_status ?? "new").toBe("new");
+    expect(after?.community_verification_status ?? "unreviewed").toBe("unreviewed");
+    expect(after?.external_status ?? null).toBeNull();
   });
 
   it("S4 serves uploaded photos without any authentication", async () => {

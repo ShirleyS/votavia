@@ -58,11 +58,13 @@ const DB_VERSION = 4;
 const daysAgoIso = (days: number) => new Date(Date.now() - days * 86400000).toISOString();
 
 /**
- * Demo organization identifier. Must be a real UUID: the operational and
- * evidence schemas validate `organization_id` as `uuid`, so a slug here made
- * every operator update fail with 422 instead of reaching the service.
+ * Demo organization identifier. Must be a *valid* UUID: the operational and
+ * evidence schemas validate `organization_id` with zod's `uuid()`, which
+ * enforces RFC 4122 version/variant nibbles. A slug (or an all-zero-ish value
+ * such as `00000000-...-000000000311`) is rejected with 422 before reaching
+ * the service. Version 4, variant 8 keeps the value self-describing.
  */
-export const DEMO_ORGANIZATION_ID = "00000000-0000-0000-0000-000000000311";
+export const DEMO_ORGANIZATION_ID = "11111111-1111-4111-8111-111111111111";
 
 
 export const DATA_DIR =

@@ -53,12 +53,31 @@ describe("operational vs community state", () => {
     const caseId = created.case.case_id as string;
 
     const route = app.routes.caseById as Record<string, unknown>;
-    expect(route.PATCH).toBeUndefined();
+    // Author editing is allowed, but only over descriptive fields.
+    expect(route.PATCH).toBeTypeOf("function");
     expect(route.PUT).toBeUndefined();
     expect(route.DELETE).toBeUndefined();
 
+    // An anonymous participant cookie has no user_id, so editing is refused.
+    const refused = await withCookies(app.cookieStore, () =>
+      app.routes.caseById.PATCH(
+        request(`/api/cases/${caseId}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            title: "Bache corregido por la persona que reportó",
+            operational_status: "completed",
+            external_status: "FORGED-OFFICIAL",
+          }),
+        }),
+        { params: Promise.resolve({ id: caseId }) },
+      ),
+    );
+    expect(refused.status).toBe(401);
+
     const after = await app.service.getCase(caseId);
     expect(after?.status).toBe("reported");
+    expect(after?.operational_status ?? "new").toBe("new");
+    expect(after?.external_status ?? null).toBeNull();
   });
 
   it("keeps the timeline append-only and chronologically ordered", async () => {

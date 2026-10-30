@@ -155,6 +155,7 @@ behaviour was weakened to make a test pass.
 - **Actual:** the handler calls `listEvidence(id)` with **no auth or visibility check**. Anonymous callers can read evidence on non-public issues, and captions are returned raw (`vecina@example.com`, phone numbers), although the public API redacts the same fields. `POST` does enforce auth.
 - **Minimal fix:** add a `canViewIssue(participant, issue)` gate before listing, and run captions through `redactPersonalData` for non-organization viewers.
 - **Tests:** `tests/security/evidence-privacy.test.ts`
+- **Status: RESOLVED** in `c575b7a` (integration branch). `GET` now resolves the issue through `getIssue(id, participant)`, returns 404 when the caller cannot view it, filters `is_public` rows for non-privileged callers, and redacts captions with `redactPersonalData`. Both `it.fails` guards are now ordinary regression tests. Per-item visibility, organization scope and attachment access were the remaining parts of this item and are tracked as I-22 and I-21.
 
 ### I-15 — Public API still defaults to the demo dataset (P1, Session 4)
 - **Interface:** `src/public-api/adapters/resolve.ts` → `getPublicCaseSource()`
@@ -195,8 +196,53 @@ behaviour was weakened to make a test pass.
 - **Interface:** `demo-store` seed (`id: "org-demo-cuauhtemoc"`), `operationalUpdateSchema.organization_id = z.string().uuid()`
 - **Expected:** the seeded demo org is a valid UUID so operator actions validate.
 - **Actual:** the seeded org id (and the seeded issue's `organization_id`) is the non-UUID string `"org-demo-cuauhtemoc"`; the zod `uuid()` check rejects it, so **every** demo government update returns **422** `invalid_format uuid`, while membership checks would match by string. The console being mock (I-16) masks this today; a real API demo breaks at step 3.
-- **Minimal fix:** re-seed the demo org with a fixed UUID (e.g. `00000000-0000-0000-0000-000000000311`) and use it consistently in the seeded issue/membership, **or** relax `organization_id` to a validated slug. Prefer the UUID seed so the schema stays strict.
+- **Minimal fix:** re-seed the demo org with a fixed UUID and use it consistently in the seeded issue/membership, **or** relax `organization_id` to a validated slug. Prefer the UUID seed so the schema stays strict.
 - **Tests:** `tests/security/status-boundary.test.ts`
+- **Status: RESOLVED** in `c575b7a`, with a QA correction. The first candidate used `00000000-0000-0000-0000-000000000311`, which zod still rejects: `z.string().uuid()` enforces RFC 4122 version/variant nibbles and only exempts the all-zero UUID. The seed now uses `11111111-1111-4111-8111-111111111111` (v4/variant 8), and the regression test pins that literal so a future slug or nil-UUID seed fails immediately.
+
+### I-21 — Evidence files are served as unauthenticated, permanently public URLs (P1, Session 1)
+- **Interface:** `GET /api/uploads/[name]` (`src/app/api/uploads/[name]/route.ts`), `storePhoto`
+- **Expected:** a photograph attached to a non-public report is only readable by people allowed to see that report, and is not cached as public.
+- **Actual:** the route joins `DATA_DIR/uploads` by filename with **no session, no ownership and no evidence lookup**, and answers with `cache-control: public, max-age=31536000, immutable`. Any holder of the URL — including a link shared out of context, a proxy cache or a referrer leak — gets the bytes. With Supabase storage (`getPublicUrl`) the same applies to the bucket object. Filenames are random UUIDs, so this is capability-URL security, not access control. The evidence **metadata** is now gated (I-14) but the **bytes** are not.
+- **Minimal fix:** in the uploads handler resolve the file to its `evidence` row (or its case/issue), call `canViewIssue(participant, issue)` / organization scope, return `404` when not allowed, and change `cache-control` to `private, no-store` for anything attached to a non-public record. Buckets must be private with signed URLs.
+- **Tests:** `tests/security/evidence-privacy.test.ts` → `it.fails("I-21 …")`
+
+### I-22 — Evidence reads are not scoped to the caller's organization (P1, Session 1)
+- **Interface:** `GET /api/issues/[id]/evidence`, `canViewIssue`
+- **Expected:** a government staffer sees official evidence for their own organization (plus public citizen evidence); staff of another organization do not.
+- **Actual:** visibility is decided by the **global** session role (`government` / `admin`). `canViewIssue` grants any government-role account access to any non-public issue, and the evidence route then lets that account read every row, including rows uploaded by a different organization. Same root cause as I-13 (scope stored, never enforced).
+- **Minimal fix:** derive the actor's memberships (`resolveActor`) and require `hasOrganizationRole(memberships, item.organization_id, "responder")` for rows that carry an organization, while `is_public` citizen rows stay readable.
+- **Tests:** `tests/security/evidence-privacy.test.ts` → `it.fails("I-22 …")`
+
+### I-23 — Duplicate *detection* exists but there is no "link to this issue" endpoint (P1, Session 1)
+- **Interface:** `POST /api/cases/duplicates` exists; `POST /api/cases/[id]/link` does not.
+- **Expected (demo step 5):** after seeing duplicate candidates the citizen can attach their report to an existing issue instead of creating a new one.
+- **Actual:** the wizard can ask for candidates and receive them (real, deterministic shortlist + AI relationship), but no route or service method attaches a new report to an existing issue. Nothing in the codebase mutates `case.issue_id` after creation, so "user links the report to an issue" cannot be demonstrated end to end.
+- **Minimal fix:** `POST /api/cases/[id]/link { issue_id }` — author-only, same-status rules as PATCH, moves the report into the existing issue, appends a `reported_linked` event, and preserves the original report row (no data loss, counts unchanged).
+- **Tests:** `tests/integration/demo-readiness.test.ts` → `it.fails("stage 3b …")`
+
+### I-24 — The demo seed has no verified organization membership, so the console stops at the session wall (P0 for the government demo, Session 1)
+- **Interface:** `demo-store` seed (`organizationMembers: []`), `SessionGate`, `GET /api/organizations/me`
+- **Expected:** a signed-in demo government account lands on the console with its organization loaded.
+- **Actual:** no membership rows are seeded, so every staff account hits "sin organización verificada". Session 2's `SESSION5_HANDOFF.md` records this as the blocking dependency for their I-16 wiring. The membership must be created by the data owner, not simulated in the console, otherwise the console would be a second authorization system.
+- **Minimal fix:** seed one row for the demo government email with `organization_id = DEMO_ORGANIZATION_ID`, `role = "responder"`, `verified_at` set, `revoked_at` null, and a `user_id` equal to the deterministic demo id `"demo-" + sha256(email.toLowerCase()).slice(0,24)` (the same rule as `/auth/confirm`).
+- **Tests:** none yet — the console is not covered by the service-level suite; verified by reading the seed and the session gate.
+
+### I-25 — Session 2's I-16 fix cannot be cherry-picked onto the integrated line (P0 for the console demo, Session 2)
+- **Interface:** `30ef694 fix(government-ux): make the core API the production data path (I-16)` on `feature/government-ux`
+- **Expected:** the console's production data path can be reviewed as an isolated commit.
+- **Actual:** dependency check shows the commit **cannot apply** to `main`/integration without wholesale branch content:
+  - it modifies `src/lib/government/core/adapter.ts` and `service.ts`, which **do not exist** on `main`;
+  - it rewrites `AppShell.tsx`, `CaseDetailView.tsx`, `CaseGovernance.tsx`, `GovernmentProvider.tsx` from versions that differ from `main`'s;
+  - its parent chain starts at the initial commit (`7332feb`), so the branch diff against `main` is ~24k lines including its own `tsconfig.json`, `src/app/layout.tsx` and page tree.
+  Cherry-picking it would either conflict or import a second application shell.
+- **Minimal fix (owner):** rebase `feature/government-ux` onto the integrated line and split the work: (a) `src/lib/government/core/*` added, (b) `SessionGate` + provider wiring, (c) the `AppShell`/detail/governance edits. Land (a) first; (b) and (c) follow as reviewed commits once I-24 exists.
+- **Tests:** `tests/contracts/contract-parity.test.ts` (dependency matrix), manual `git` dependency check.
+
+### I-26 — Two agents wrote to the same integration worktree concurrently (process finding)
+- **Interface:** `/private/tmp/votavia-integ` git state
+- **Observed:** at 14:07:40 a second process committed `fix(security): gate evidence reads and use a UUID demo org id` (`3dfb7e2`), reset it away, and re-committed it as `c575b7a` while this session was editing the same branch. No data was lost (the tree was consistent on inspection and reflog shows the reset), but a `reset`/`amend` on a shared worktree can silently discard an in-flight patch.
+- **Minimal fix:** one writer per worktree. Treat `feature/integration-phase12` as Session 5-only; other sessions hand over commits, they do not commit into it.
 
 ## Fixtures vs. real integrations (for demo honesty)
 
