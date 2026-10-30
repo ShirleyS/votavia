@@ -1,0 +1,12 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+.openrouter-key
+node_modules/
+dist/
+build/
+coverage/
+*.log
+__pycache__/
+.venv/
