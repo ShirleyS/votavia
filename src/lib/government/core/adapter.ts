@@ -520,6 +520,22 @@ export class CoreGovernmentService implements GovernmentService {
     };
   }
 
+  /**
+   * Abre la sesión de demostración del núcleo (`POST /api/auth/demo`).
+   *
+   * Es el mecanismo canónico de Session 1 cuando no hay Supabase Auth: la
+   * consola no crea sesiones propias, sólo llama al endpoint del núcleo. La
+   * cuenta resultante es una cuenta de demostración, nunca una cuenta oficial.
+   */
+  async signInDemo(email: string): Promise<void> {
+    await coreRequest("/auth/demo", { method: "POST", json: { email } });
+  }
+
+  /** Cierra la sesión del núcleo (`DELETE /api/auth/demo`). */
+  async signOut(): Promise<void> {
+    await coreRequest("/auth/demo", { method: "DELETE" });
+  }
+
   private async fetchDetail(issueId: string): Promise<IssueDetail> {
     const response = await coreRequest<{ issue: IssueDetail }>(
       `/issues/${encodeURIComponent(issueId)}`,
@@ -803,7 +819,7 @@ export class CoreGovernmentService implements GovernmentService {
     await this.postOperational(
       id,
       STATUS_TO_OPERATIONAL[status],
-      "Actualización desde la consola de gobierno (entorno de demostración).",
+      "Actualización registrada desde la consola de gobierno.",
     );
     this.overridesFor(id).status = status;
     this.emit();
@@ -929,7 +945,7 @@ export class CoreGovernmentService implements GovernmentService {
     await this.postOperational(
       caseId,
       "completed",
-      "Publicación de resultado desde la consola de gobierno (entorno de demostración).",
+      "Publicación de resultado registrada desde la consola de gobierno.",
     );
     const overrides = this.overridesFor(caseId);
     overrides.outcome = outcome.trim();

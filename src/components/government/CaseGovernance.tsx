@@ -764,7 +764,7 @@ function ChevronRightIcon() {
 }
 
 export function OperatorAssignmentPanel({ item }: { item: GovernmentCase }) {
-  const { operatorRoster, can, permissionReason, assignOperator } = useGovernment();
+  const { operatorRoster, can, permissionReason, assignOperator, dataSource } = useGovernment();
   const [operatorId, setOperatorId] = useState(item.assignedOperatorId ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -795,6 +795,15 @@ export function OperatorAssignmentPanel({ item }: { item: GovernmentCase }) {
         </div>
         <UserCheck size={18} />
       </div>
+      {dataSource === "core" ? (
+        <div className="dispatch-source-note" role="note">
+          <LockKeyhole size={14} />
+          <span>
+            Roster simulado: el núcleo no expone operadores. Esta lista son cuentas de
+            demostración y la asignación de operador se guarda local y etiquetada.
+          </span>
+        </div>
+      ) : null}
       <div className="operator-panel__current">
         <span className="operator-panel__avatar">
           {(item.assignedOperatorName ?? "Sin asignar").split(" ").slice(0, 2).map((part) => part[0]).join("").toUpperCase()}

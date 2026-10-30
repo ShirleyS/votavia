@@ -610,6 +610,12 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
                 {actionBusy === "department" ? <span className="button-spinner button-spinner--dark" /> : <Building2 size={15} />}
                 {currentCase.departmentId ? "Actualizar asignación" : "Asignar departamento"}
               </button>
+              {dataSource === "core" ? (
+                <p className="management-hint">
+                  Asignación local etiquetada: el núcleo sólo acepta <code>organization_id</code> en
+                  el cambio operativo, no un departamento distinto.
+                </p>
+              ) : null}
             </div>
 
             <div className="management-actions">

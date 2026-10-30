@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { useGovernment } from "./GovernmentProvider";
+import { SessionGate } from "./SessionGate";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -48,7 +49,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           pendingContracts={pendingContracts}
           onRetry={() => void retry()}
         />
-        <main className="gov-content">{children}</main>
+        <main className="gov-content">
+          <SessionGate>{children}</SessionGate>
+        </main>
       </div>
     </div>
   );

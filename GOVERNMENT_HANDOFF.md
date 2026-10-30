@@ -266,21 +266,55 @@ Detalles:
 
 ## Modo núcleo: integración con Session 1
 
-La consola funciona en dos modos, elegidos al arrancar:
+El camino de producción es el **modo núcleo**: APIs autenticadas de Session 1, sin
+datos ficticios ni `localStorage`. El modo de muestra existe sólo como excepción
+explícita para revisar la interfaz cuando no hay núcleo levantado.
 
 | Modo | Activación | Fuente de datos | Sesión |
 | --- | --- | --- | --- |
-| Demostración (predeterminado) | `NEXT_PUBLIC_VOTAVIA_API_MODE=demo` | `MockGovernmentService` (`localStorage`) | Cuentas ficticias locales |
-| Núcleo | `NEXT_PUBLIC_VOTAVIA_API_MODE=core` | `CoreGovernmentService` → API `/api` de Session 1 | `/api/organizations/me` |
+| **Núcleo (predeterminado / producción)** | sin variable, o `NEXT_PUBLIC_VOTAVIA_API_MODE=core` | `CoreGovernmentService` → API `/api` de Session 1 | `/api/organizations/me` (cookie del núcleo) |
+| Demostración (excepción explícita) | `NEXT_PUBLIC_VOTAVIA_API_MODE=demo` | `MockGovernmentService` (`localStorage`) | Cuentas ficticias locales |
+
+Reglas del camino de producción:
+
+- Ninguna vista importa `mock-service`; sólo el selector de fuente lo referencia y
+  únicamente lo instancia con `demo` explícito (proxy diferido).
+- No hay respaldo silencioso: si el núcleo no responde, se muestra el error y los
+  expedientes permanecen vacíos.
+- La consola no persiste sesión propia. El usuario de demostración de la consola ya
+  no se guarda en `localStorage` en el camino de producción.
 
 En modo núcleo el `next.config.ts` reescribe `/core-api/:path*` hacia
-`${VOTAVIA_CORE_ORIGIN}/api/:path*`. Variables:
+`${VOTAVIA_CORE_ORIGIN}/api/:path*`. Variables (ver `.env.example`):
 
 ```
-NEXT_PUBLIC_VOTAVIA_API_MODE=core
 VOTAVIA_CORE_ORIGIN=http://localhost:3000          # origen del núcleo (Session 1)
+NEXT_PUBLIC_VOTAVIA_API_MODE=core                  # opcional; es el valor por omisión
 NEXT_PUBLIC_VOTAVIA_CORE_BASE_PATH=/core-api        # opcional; prefijo del navegador
 ```
+
+Sin `VOTAVIA_CORE_ORIGIN` la reescritura no se registra y la consola informa
+"núcleo no disponible": es el comportamiento correcto, no un fallo silencioso.
+
+### Sesión y autorización (I-16)
+
+- La consola abre sesión con `POST /api/auth/demo` de Session 1 (sólo cuando el
+  núcleo no tiene Supabase Auth) y la cierra con `DELETE /api/auth/demo`. No hay
+  contraseñas, usuarios ni cookies propias.
+- Con la sesión abierta, la puerta de sesión (`SessionGate`) exige una membresía
+  verificada de `/api/organizations/me`. Sin membresía no se listan expedientes ni
+  se habilitan acciones: el acceso se otorga por fila de membresía, no por dominio
+  de correo.
+- Los permisos se derivan del rol devuelto por el núcleo
+  (`responder < supervisor < admin`) y el alcance por `organization_id`.
+
+> **Dependencia abierta (Session 1).** El sembrado de demostración crea
+> organizaciones pero deja `organizationMembers: []`, así que hoy ninguna cuenta
+> obtiene membresía y la consola muestra el muro "sin organización verificada".
+> Contrato faltante exacto: una fila de `organizationMembers` con
+> `organization_id`, `user_id`, `role`, `verified_at` no nulo y `revoked_at` nulo
+> para el correo de gobierno de demostración, o un endpoint administrativo que la
+> cree. La consola no lo simula: inventarlo sería una segunda autorización.
 
 El navegador nunca llama al núcleo directamente por otro host: la base por defecto
 es `/core-api` (mismo origen) para conservar cookies de sesión.
@@ -310,7 +344,10 @@ es `/core-api` (mismo origen) para conservar cookies de sesión.
 - `src/lib/government/core/service.ts` — selector `demo | core` y `PENDING_CONTRACTS`.
 - `src/lib/government/priority.ts` — `computePriorityBreakdown` compartido (seguridad
   pesa más que popularidad).
+- `src/components/government/SessionGate.tsx` — puerta de sesión: sin membresía
+  verificada no hay expedientes ni acciones.
 - `next.config.ts` — reescritura `/core-api` → API del núcleo.
+- `.env.example` — variables del camino de producción.
 
 Endpoints consumidos (sin inventar rutas): `GET /issues`, `GET /issues/[id]`,
 `POST /issues/[id]/operational`, `GET|POST /issues/[id]/evidence`,
@@ -363,6 +400,29 @@ superior muestra la etiqueta `Demo`/`Núcleo` (`gov-source-chip`) y el banner de
 servicio indica el origen. Ninguna cuenta de demostración se presenta como
 funcionario real, y la consola nunca afirma una adopción oficial de CDMX.
 
+## Cierre de I-16 (camino de producción sin mocks)
+
+Session 5 reportó que la consola seguía usando mocks y `localStorage`. El cambio:
+
+1. **Modo núcleo por omisión.** `NEXT_PUBLIC_VOTAVIA_API_MODE` ya no cae a `demo`:
+   sin variable se usa el adaptador real contra `/api` de Session 1. `demo` es una
+   excepción explícita y rotulada.
+2. **Sin instanciación de muestra en producción.** `MockGovernmentService` se crea
+   de forma diferida y sólo si el modo es `demo`, así que el camino de producción no
+   lee ni escribe `localStorage` ni la clave del usuario de demostración anterior.
+3. **Sesión real, no simulada.** `SessionGate` abre y cierra sesión con
+   `POST|DELETE /api/auth/demo` del núcleo y exige membresía verificada de
+   `/api/organizations/me`. Sin organización no se muestran datos.
+4. **Estados de error explícitos.** Núcleo caído, 401, 403, 404, 422, 429, timeout y
+   lista vacía se muestran con reintento; nunca se rellena con datos ficticios.
+5. **Fronteras respetadas.** El registro oficial sigue en sólo lectura (fuente,
+   folio, estado reportado, frescura, fecha de importación); el avance operativo y
+   la verificación ciudadana se muestran en carriles distintos y ningún cierre
+   operativo escribe en ellos.
+6. **Despacho.** La interfaz consume `DispatchGateway` de Ismael; como no hay
+   backend HTTP, las órdenes se marcan en pantalla como fixture y no como
+   asignaciones reales.
+
 ## Validación realizada
 
 - `npm run typecheck` — TypeScript sin errores.
@@ -391,12 +451,17 @@ de ejecutar en un equipo con `npm run dev`.
 
 - La barra superior muestra el atajo `⌘ K`; el botón de búsqueda funciona, pero no hay
   listener global de teclado.
-- Los datos son de muestra y no provienen de servicios reales; no deben usarse para
-  decisiones operativas.
-- La autorización es de demostración: no hay autenticación real, sesión de servidor ni
-  identidad verificada. El control de permisos y alcance vive en el cliente.
-- La evidencia cargada se guarda como data URL en `localStorage` (límite 1.5 MB por
-  archivo); en producción debe ir a un almacenamiento con control de acceso.
+- En el camino de producción los datos provienen del núcleo de Session 1. El modo
+  `demo` sigue existiendo, pero está rotulado y no se activa sin pedirlo.
+- La autorización se resuelve contra membresías del núcleo; el cliente sólo refleja
+  los permisos que el servidor devuelve. Las acciones sensibles vuelven a validarse
+  en el núcleo (401/403).
+- La evidencia del camino de producción se envía como multipart a
+  `/api/issues/[id]/evidence`; el `localStorage` de 1.5 MB sólo aplica al modo de
+  muestra.
+- Asignación de área/operador, respuesta a disputas y publicación de resultado son
+  overrides locales etiquetados: no hay contrato de Session 1 todavía (ver
+  `PENDING_CONTRACTS`).
 - La exportación CSV se genera en el cliente a partir de los casos filtrados.
 - Los scripts usan `--webpack` porque Turbopack no resuelve `node_modules` enlazado
   fuera de la carpeta del proyecto en este entorno.

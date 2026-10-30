@@ -40,6 +40,11 @@ import type {
   SpecialistRecommendation,
 } from "@/lib/government/types";
 
+/**
+ * Sólo se usa en modo de muestra explícito (`NEXT_PUBLIC_VOTAVIA_API_MODE=demo`).
+ * El camino de producción lee la sesión de `/organizations/me` y nunca de
+ * `localStorage`.
+ */
 const DEMO_USER_KEY = "votavia-government-demo-user-v1";
 
 const CORE_PLACEHOLDER: DemoUser = {
@@ -154,6 +159,10 @@ interface GovernmentContextValue {
   organizations: GovernmentOrganization[];
   pendingContracts: { id: string; label: string; detail: string }[];
   isDemoEnvironment: boolean;
+  hasMembership: boolean;
+  sessionEmail: string | null;
+  signInDemo: (email: string) => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const GovernmentContext = createContext<GovernmentContextValue | null>(null);
@@ -214,6 +223,7 @@ export function GovernmentProvider({ children }: { children: React.ReactNode }) 
   );
   const [error, setError] = useState<string | null>(null);
   const [authenticated, setAuthenticated] = useState(!coreMode);
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = useCallback((next: Omit<Toast, "id">) => {
@@ -639,6 +649,51 @@ export function GovernmentProvider({ children }: { children: React.ReactNode }) 
     [currentUser],
   );
 
+  const signInDemo = useCallback(
+    async (email: string) => {
+      if (!coreMode) return;
+      const cleaned = email.trim().toLowerCase();
+      if (!cleaned.includes("@")) {
+        showToast({
+          title: "Correo no válido",
+          detail: "Escribe el correo de la cuenta de demostración del núcleo.",
+          tone: "warning",
+        });
+        return;
+      }
+      setAvailability("connecting");
+      setLoading(true);
+      try {
+        await coreService.signInDemo(cleaned);
+        setSessionEmail(cleaned);
+        await loadCoreSession();
+        await refresh();
+      } catch (cause) {
+        setAvailability("degraded");
+        setLoading(false);
+        showError(cause);
+      }
+    },
+    [loadCoreSession, refresh, showError, showToast],
+  );
+
+  const signOut = useCallback(async () => {
+    if (!coreMode) return;
+    try {
+      await coreService.signOut();
+    } catch {
+      // El cierre local procede aunque el núcleo no responda.
+    }
+    setAuthenticated(false);
+    setSessionEmail(null);
+    setOrganizations([]);
+    setCases([]);
+    setCurrentUser(CORE_PLACEHOLDER);
+    setAvailability("degraded");
+    setError(null);
+    showToast({ title: "Sesión cerrada", detail: "Se cerró la sesión del núcleo.", tone: "info" });
+  }, [showToast]);
+
   const value = useMemo<GovernmentContextValue>(
     () => ({
       cases,
@@ -680,6 +735,10 @@ export function GovernmentProvider({ children }: { children: React.ReactNode }) 
       organizations,
       pendingContracts: coreMode ? PENDING_CONTRACTS : [],
       isDemoEnvironment: !coreMode || currentUser.isDemo,
+      hasMembership: !coreMode || (authenticated && organizations.length > 0),
+      sessionEmail,
+      signInDemo,
+      signOut,
     }),
     [
       cases,
@@ -708,6 +767,9 @@ export function GovernmentProvider({ children }: { children: React.ReactNode }) 
       error,
       authenticated,
       organizations,
+      sessionEmail,
+      signInDemo,
+      signOut,
     ],
   );
 
