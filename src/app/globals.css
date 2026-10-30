@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #f7f4ec;
+  --color-paper-2: #efeade;
+  --color-ink: #10201c;
+  --color-forest: #0d3b33;
+  --color-forest-2: #14584c;
+  --color-lime: #d8f36b;
+  --color-clay: #c9684c;
+  --color-mist: #dfe8e3;
+  --color-slate-soft: #5b6b65;
+
+  --font-sans: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --font-mono: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 6.5rem;
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-lime);
+  color: var(--color-ink);
+}
+
+.grid-paper {
+  background-image:
+    linear-gradient(to right, rgba(13, 59, 51, 0.055) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(13, 59, 51, 0.055) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.dot-grid {
+  background-image: radial-gradient(rgba(216, 243, 107, 0.16) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+.prose-civic p {
+  text-wrap: pretty;
+}
+
+.link-underline {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  text-decoration-color: color-mix(in srgb, var(--color-forest) 35%, transparent);
+}
+
+.link-underline:hover {
+  text-decoration-color: var(--color-forest);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
