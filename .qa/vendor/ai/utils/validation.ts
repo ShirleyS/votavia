@@ -18,6 +18,11 @@ const CATEGORY_ALIASES: Array<{ category: CaseCategory; terms: string[] }> = [
     terms: [
       "bache",
       "baches",
+      // Colloquial augmentatives/diminutives: word-boundary matching means
+      // "bache" alone does not match "bacheón" or "bachecito".
+      "bacheon",
+      "bacheote",
+      "bachecito",
       "hoyo",
       "hoyote",
       "hoyos",

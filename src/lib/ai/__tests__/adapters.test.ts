@@ -4,8 +4,12 @@ import type { Case } from "@/shared/votavia-contract";
 import {
   caseToDuplicateCandidate,
   caseToReportInput,
+  issueToReportLinkCandidate,
   toAIAnalysisResult,
+  toReportProcessingSharedView,
 } from "../adapters/case-repository";
+import { processReport } from "../services/process-report";
+import type { AIClient } from "../client";
 import {
   historicalCoverage,
   historicalToPreventiveRecord,
@@ -280,5 +284,64 @@ describe("prompt-injection and PII helpers", () => {
     expect(redacted).not.toContain("vecina@example.com");
     expect(redacted).not.toContain("55 1234 5678");
     expect(redacted).not.toContain("https://example.com");
+  });
+});
+
+describe("issue-aware adapters", () => {
+  it("maps a shared issue onto an issue-link candidate", () => {
+    const candidate = issueToReportLinkCandidate(
+      {
+        issue_id: "issue-pothole-1",
+        title: "Bache en Colima y Orizaba",
+        description: "Bache profundo reportado por varios vecinos.",
+        category: "road_damage",
+        latitude: 19.4195,
+        longitude: -99.1605,
+        colonia: "Roma Norte",
+        origin: "mixed",
+        support_count: 12,
+        report_count: 3,
+        created_at: "2026-10-20T10:00:00.000Z",
+        resolved_at: null,
+      },
+      { representative_case_id: "case-citizen-2" },
+    );
+
+    expect(candidate.case_id).toBe("case-citizen-2");
+    expect(candidate.issue_id).toBe("issue-pothole-1");
+    expect(candidate.category).toBe("road_damage");
+    expect(candidate.supporters).toBe(12);
+    expect(candidate.prior_links).toBe(3);
+    expect(candidate.location?.latitude).toBe(19.4195);
+    expect(candidate.colonia).toBe("Roma Norte");
+  });
+
+  it("projects the report-processing envelope onto the shared analysis shape", async () => {
+    const client: AIClient = {
+      model: "mock",
+      configured: false,
+      completeJson: async () => {
+        throw new Error("el fallback no debe llamar al modelo");
+      },
+    };
+
+    const result = await processReport(
+      {
+        case_id: "case-citizen-1",
+        description: "Hay un bache enorme en la esquina de Colima y Orizaba.",
+        category: "road_damage",
+        location: { latitude: 19.4195, longitude: -99.1605, colonia: "Roma Norte" },
+      },
+      { client, now: () => new Date("2026-10-30T12:00:00.000Z") },
+    );
+
+    const view = toReportProcessingSharedView(result);
+    expect(view.case_id).toBe("case-citizen-1");
+    expect(view.suggested_category).toBe("road_damage");
+    expect(view.severity).toBe(result.classification.severity);
+    expect(view.confidence).toBe(result.classification.confidence);
+    expect(view.summary).toBe(result.classification.summary);
+    expect(view.created_at).toBe(result.analyzed_at);
+    expect(view.duplicate_candidates).toEqual([]);
   });
 });
