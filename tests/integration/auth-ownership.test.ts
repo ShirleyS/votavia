@@ -155,7 +155,7 @@ describe("guest report claim", () => {
     expect(body.items.some((item: { case_id: string }) => item.case_id === created.case.case_id)).toBe(true);
   });
 
-  it.fails("does not let another citizen take over an already-owned report", async () => {
+  it("does not let another citizen take over an already-owned report", async () => {
     const app = await freshApp({ cookies: { vv_pid: "owner-participant-0001" } });
     const { body: ownerLink } = await magicLink(app, "owner@example.mx");
     await confirm(app, ownerLink.link);
@@ -170,9 +170,16 @@ describe("guest report claim", () => {
         }),
       ),
     );
+
+    // The claim route refuses before issuing any link: an owned report is 409.
+    expect(claimResponse.status).toBe(409);
     const claim = await readJson(claimResponse);
-    const confirmed = await confirm(other, claim.link);
-    expect(locationOf(confirmed)).toContain("claim_error=1");
+    expect(claim.error.code).toBe("already_linked");
+
+    // The owner recorded on the case is unchanged.
+    const repo = other.repo as unknown as RepoAccess;
+    const row = (await repo.getById(created.case.case_id))?.row;
+    expect(row.created_by_user_id).toMatch(/^demo-/);
   });
 
   it("keeps the original owner when a third party tries to claim an owned report", async () => {
@@ -200,8 +207,9 @@ describe("guest report claim", () => {
     expect(row.created_by_user_id).toBe(ownerId);
   });
 
-  it.fails("does NOT let an attacker claim a guest report using only its public id", async () => {
+  it("does NOT let an attacker claim a guest report using only its public id", async () => {
     const app = await freshApp({ cookies: { vv_pid: "victim-participant-0001" } });
+    // Guest report with no contact email on file.
     const { body: created } = await create(app);
 
     const attacker = await freshApp({ dataDir: app.dataDir, cookies: { vv_pid: "attacker-participant-2" } });
@@ -213,9 +221,35 @@ describe("guest report claim", () => {
         }),
       ),
     );
+
+    // Knowing the public display id is not proof of ownership.
+    expect(claimResponse.status).toBe(409);
     const claim = await readJson(claimResponse);
-    const confirmed = await confirm(attacker, claim.link);
-    expect(locationOf(confirmed)).toContain("claim_error=1");
+    expect(claim.error.code).toBe("no_contact_email");
+
+    const repo = attacker.repo as unknown as RepoAccess;
+    const row = (await repo.getById(created.case.case_id))?.row;
+    expect(row.created_by_user_id).toBeNull();
+  });
+
+  it("refuses a claim when the supplied email is not the report's contact email", async () => {
+    const app = await freshApp({ cookies: { vv_pid: "victim-participant-0002" } });
+    const { body: created } = await create(app, { email: "duena@example.mx" });
+    expect(created.case.case_id).toBeTruthy();
+
+    const attacker = await freshApp({ dataDir: app.dataDir, cookies: { vv_pid: "attacker-participant-3" } });
+    const claimResponse = await withCookies(attacker.cookieStore, () =>
+      attacker.routes.claim.POST(
+        request("/api/auth/claim", {
+          method: "POST",
+          body: JSON.stringify({ case_id: created.case.case_id, email: "attacker@example.mx" }),
+        }),
+      ),
+    );
+
+    expect(claimResponse.status).toBe(403);
+    const claim = await readJson(claimResponse);
+    expect(claim.error.code).toBe("claim_mismatch");
 
     const repo = attacker.repo as unknown as RepoAccess;
     const row = (await repo.getById(created.case.case_id))?.row;

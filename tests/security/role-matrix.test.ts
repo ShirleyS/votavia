@@ -83,16 +83,38 @@ describe("actor matrix", () => {
   });
 
   it("rejects citizen attempts to change official status or moderation fields", async () => {
-    const app = await freshApp();
-    const caseId = "0b7f1f3e-6f2a-4a1c-9a58-1c1e8d000001";
-    for (const method of ["PATCH", "PUT", "DELETE"]) {
-      const route = app.routes.caseById as Record<string, unknown>;
-      expect(route[method]).toBeUndefined();
-    }
+    // Editing exists for the author, but the schema must drop every field that
+    // belongs to government moderation or the two status axes.
+    const { updateCaseSchema } = await import("@/server/validation");
+    const parsed = updateCaseSchema.parse({
+      title: "Reporte corregido por su autor",
+      operational_status: "completed",
+      community_verification_status: "verified_resolved",
+      external_status: "FORGED-OFFICIAL",
+      status: "resolved",
+      role: "admin",
+    } as Record<string, unknown>);
+    expect(Object.keys(parsed).sort()).toEqual(["title"]);
+
     const caseRoute = await import("@/app/api/cases/[id]/route");
     const handlers = Object.keys(caseRoute).filter((key) => key !== "dynamic");
-    expect(handlers.sort()).toEqual(["GET"]);
-    expect(caseId).toBeTruthy();
+    expect(handlers.sort()).toEqual(["GET", "PATCH"]);
+    // Withdrawal is an audited POST that preserves the row; never DELETE.
+    expect("PUT" in caseRoute).toBe(false);
+    expect("DELETE" in caseRoute).toBe(false);
+
+    // Anonymous callers cannot edit at all.
+    const app = await freshApp();
+    const anonymous = await withCookies(app.cookieStore, () =>
+      app.routes.caseById.PATCH(
+        request("/api/cases/0b7f1f3e-6f2a-4a1c-9a58-1c1e8d000001", {
+          method: "PATCH",
+          body: JSON.stringify({ title: "Intento anónimo de edición" }),
+        }),
+        { params: Promise.resolve({ id: "0b7f1f3e-6f2a-4a1c-9a58-1c1e8d000001" }) },
+      ),
+    );
+    expect(anonymous.status).toBe(401);
   });
 
   it("does not expose evidence deletion to citizens", async () => {

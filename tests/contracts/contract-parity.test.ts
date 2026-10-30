@@ -27,6 +27,7 @@ const SESSIONS: Array<{ name: string; dir: string; owner: string }> = [
   { name: "votavia-official-data", dir: "votavia-official-data", owner: "Session 6 (official data)" },
   { name: "votavia-public-api", dir: "votavia-public-api", owner: "Session 4 (public API)" },
   { name: "votavia-qa", dir: "votavia-qa", owner: "Session 5 (QA)" },
+  { name: "votavia-whatsapp", dir: "votavia-whatsapp", owner: "Messaging session" },
 ];
 
 /**
@@ -36,14 +37,16 @@ const SESSIONS: Array<{ name: string; dir: string; owner: string }> = [
  * integration report is updated instead of silently drifting.
  */
 const EXPECTED: Record<string, "match" | "drift" | "absent"> = {
-  // Main's working tree carries an uncommitted +75-line contract extension
-  // (report edit/withdraw + advisory analysis). It is not on a branch yet.
-  votavia: "drift",
+  // The 707-line contract (report edit/withdraw + advisory analysis) is now
+  // committed on `feature/session1-citizen-core` and present in the main
+  // worktree, so `votavia` matches the canonical file byte for byte.
+  votavia: "match",
   "votavia-ai": "drift",
   "votavia-government-ux": "absent",
   "votavia-official-data": "absent",
   "votavia-public-api": "drift",
   "votavia-qa": "drift",
+  "votavia-whatsapp": "drift",
 };
 
 function digest(file: string) {

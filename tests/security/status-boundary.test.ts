@@ -1,7 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { freshApp, request } from "../support/app";
 import { withCookies } from "../support/next-headers-mock";
-import { encodeDemoUser } from "@/server/auth/demo-auth";
+
+/**
+ * Sign a demo session in *after* `freshApp()` has reset the module graph.
+ * A static `encodeDemoUser` import would keep the previous DATA_DIR (and its
+ * HMAC secret), producing a cookie the session reader rejects.
+ */
+async function signIn(
+  app: Awaited<ReturnType<typeof freshApp>>,
+  userId: string,
+  email: string,
+) {
+  const { encodeDemoUser } = await import("@/server/auth/demo-auth");
+  app.cookieStore.set("vv_demo_user", await encodeDemoUser({ user_id: userId, email }));
+}
 
 /**
  * Symptom: the three status domains (operational / official source / community
@@ -10,7 +23,13 @@ import { encodeDemoUser } from "@/server/auth/demo-auth";
  * See INTEGRATION_ISSUE_LOG.md → I-11 (responder can rewrite external_status).
  */
 
-const ORG = "org-demo-cuauhtemoc";
+/**
+ * The seeded demo organization id. It must be a UUID because
+ * `operationalUpdateSchema.organization_id` validates `z.string().uuid()`
+ * (INTEGRATION_ISSUE_LOG.md → I-20). Pinned as a literal so a regression that
+ * re-introduces the old slug fails here instead of in the demo.
+ */
+const ORG = "11111111-1111-4111-8111-111111111111";
 
 async function seeded() {
   const app = await freshApp();
@@ -39,10 +58,7 @@ describe("status domain boundaries", () => {
         userId: "gov-operator-0001",
         role: "responder",
       });
-      app.cookieStore.set(
-        "vv_demo_user",
-        await encodeDemoUser({ user_id: "gov-operator-0001", email: "operador@cuauhtemoc.gob.mx" }),
-      );
+      await signIn(app, "gov-operator-0001", "operador@cuauhtemoc.gob.mx");
 
       const list = await app.service.listIssues({});
       const issueId = list.items[0].issue_id;
@@ -70,7 +86,7 @@ describe("status domain boundaries", () => {
     },
   );
 
-  it.fails(
+  it(
     "I-20: the seeded demo organization is addressable through the government route",
     async () => {
       const app = await freshApp({ cookies: { vv_pid: "demo-gov-operator-0002" } });
@@ -79,10 +95,7 @@ describe("status domain boundaries", () => {
         userId: "gov-operator-0002",
         role: "responder",
       });
-      app.cookieStore.set(
-        "vv_demo_user",
-        await encodeDemoUser({ user_id: "gov-operator-0002", email: "operador@cuauhtemoc.gob.mx" }),
-      );
+      await signIn(app, "gov-operator-0002", "operador@cuauhtemoc.gob.mx");
 
       const list = await app.service.listIssues({});
       const issueId = list.items[0].issue_id;
@@ -101,9 +114,10 @@ describe("status domain boundaries", () => {
         ),
       );
 
-      // The demo org id is "org-demo-cuauhtemoc", but the shared validator
-      // requires a UUID, so every demo update is rejected with 422.
+      // Regression guard for I-20: a non-UUID seed made this 422 for everyone.
       expect(response.status).toBe(200);
+      const detail = await app.service.getIssue(issueId);
+      expect(detail?.operational_status).toBe("in_progress");
     },
   );
 

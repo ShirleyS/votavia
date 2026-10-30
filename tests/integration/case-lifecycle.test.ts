@@ -173,9 +173,12 @@ describe("case lifecycle: citizen → AI → government → dispatch → verific
     expect(body.case.status).toBe("reported");
   });
 
-  it("has no citizen route to change status, evidence or verification", async () => {
+  it("exposes only author-owned edit verbs, never destructive ones", async () => {
     const routeModule = await import("@/app/api/cases/[id]/route");
-    expect("PATCH" in routeModule).toBe(false);
+    // Phase 12 adds PATCH (title/description/category/address only). PUT and
+    // DELETE must never appear: withdrawal is an audited POST that keeps data.
+    expect("PATCH" in routeModule).toBe(true);
     expect("PUT" in routeModule).toBe(false);
+    expect("DELETE" in routeModule).toBe(false);
   });
 });
