@@ -244,6 +244,27 @@ behaviour was weakened to make a test pass.
 - **Observed:** at 14:07:40 a second process committed `fix(security): gate evidence reads and use a UUID demo org id` (`3dfb7e2`), reset it away, and re-committed it as `c575b7a` while this session was editing the same branch. No data was lost (the tree was consistent on inspection and reflog shows the reset), but a `reset`/`amend` on a shared worktree can silently discard an in-flight patch.
 - **Minimal fix:** one writer per worktree. Treat `feature/integration-phase12` as Session 5-only; other sessions hand over commits, they do not commit into it.
 
+### I-27 — Session 2's `DispatchGateway` mirror diverges from the canonical contract (P1, Session 2)
+- **Interface:** `votavia-government-ux/src/lib/government/core/contract.ts` (self-described as a typed mirror of `src/shared/votavia-contract.ts` @ `d9b2bfd`) vs. the canonical `DispatchGateway`.
+- **Expected:** the mirror is a subset with identical semantics; the header says "cualquier diferencia es un defecto de integración".
+- **Actual:** canonical declares `requestDispatch(input: Omit<DispatchRequest, "dispatch_request_id" | "requested_at">)`; the mirror declares `requestDispatch(input: DispatchRequest)` (full object). `git show d9b2bfd:src/shared/votavia-contract.ts` confirms the canonical `Omit` form already existed at the mirror's stated source commit. A real dispatch module written to the canonical contract is therefore **not assignable** to the console's `DispatchGateway` without a cast, and QA's canonical-shaped fake is not assignable either. The console adapter additionally extends the interface with a local `assign()` (`ConsoleDispatchGateway`) that is not in the canonical contract.
+- **Minimal fix (owner):** change the mirror's two-line signature to `Omit<…>`; either drop `assign()` from the surface used against a real gateway or propose it as an additive canonical method with Ismael. If cross-worktree imports are acceptable, replace the 257-line mirror with `export * from "@/shared/votavia-contract"` and keep local UI types separate.
+- **Verified:** `sed` of both definitions, `git show d9b2bfd:…`, and `tests/integration/dispatch-contract.test.ts` (12/12 pass against the canonical shape).
+
+### I-28 — Session 2's membership recipe uses a non-UUID organization id and would reintroduce I-20 (P0 for the console demo, Session 1 + docs)
+- **Interface:** `votavia-government-ux/SESSION5_HANDOFF.md` ("Contrato faltante exacto": `organization_id = "org-demo-cuauhtemoc"`), `GET /api/organizations/me`, `POST /api/issues/[id]/operational`, `operationalUpdateSchema.organization_id = z.string().uuid()`.
+- **Expected:** seeding the membership unblocks the console's session gate.
+- **Actual:** after the I-20 fix the demo organization id is `11111111-1111-4111-8111-111111111111` (a valid v4 UUID). `resolveActor` returns membership rows verbatim, the console sends `actor.organizationId` on every operational update, and the schema rejects a slug with `422 invalid_format uuid`. Following Session 2's recipe would put the demo straight back into I-20.
+- **Minimal fix:** seed with `DEMO_ORGANIZATION_ID` (UUID) and correct `SESSION5_HANDOFF.md` / `GOVERNMENT_HANDOFF.md` to reference the UUID instead of the slug. No schema change, no console code change.
+- **Tests:** `tests/security/status-boundary.test.ts` pins the UUID literal; the membership row itself is still unseeded (I-24).
+
+### I-29 — Nothing ever writes private evidence (`is_public: false`) (P2, Session 1)
+- **Interface:** `addEvidenceRow` (demo store) and the Supabase evidence insert.
+- **Expected:** evidence attached to a non-public report should not be default-public.
+- **Actual:** every insert hard-codes `is_public: true`. The read projection already honours the column (QA flips a row on disk and proves the anonymous caller stops seeing it), but no production path can create that row, so per-item visibility is implemented only on the read side.
+- **Minimal fix:** derive `is_public` from the target issue/case visibility at insert time, or accept it from the caller after an ownership/organization check.
+- **Tests:** `tests/security/evidence-privacy.test.ts` ("per-item visibility hides `is_public: false` rows").
+
 ## Fixtures vs. real integrations (for demo honesty)
 
 | Area | Status |
