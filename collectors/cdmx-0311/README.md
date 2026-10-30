@@ -28,6 +28,26 @@ Details: [`docs/0311-dashboard-discovery.md`](docs/0311-dashboard-discovery.md).
 
 ## Quick start (offline fixtures)
 
+### First live run, scoped to Cuauhtémoc
+
+Cuauhtémoc is the default target and the only alcaldía this collector publishes.
+Rows from the other 15 alcaldías are filtered out, and rows with a blank
+alcaldía are dropped unless `--include-missing-alcaldia` is set (they are then
+labelled `No especificada`, never assigned to Cuauhtémoc).
+
+```bash
+./scripts/cuauhtemoc-first-run.sh discover   # read CKAN metadata only
+./scripts/cuauhtemoc-first-run.sh peek       # bounded dry run, writes nothing
+./scripts/cuauhtemoc-first-run.sh import     # bounded import (2024, max 500)
+./scripts/cuauhtemoc-first-run.sh report     # counts by category/colonia/status
+```
+
+Override the scope with `ALCALDIA`, `YEAR`, `MAX_RECORDS` or `DATA_DIR`. The
+newest observed resource covers 2024-Q1, so `YEAR=2024` is the default; raise
+`MAX_RECORDS` only after reviewing the first sample. These commands are
+read-only against the government source and write to
+`data/official-0311-cuauhtemoc/`.
+
 ```bash
 cd collectors/cdmx-0311
 npm install
