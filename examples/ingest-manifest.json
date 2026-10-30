@@ -1,0 +1,37 @@
+{
+  "contract_version": "1.0.0",
+  "collector": {
+    "name": "votavia-cdmx-0311",
+    "version": "0.1.0"
+  },
+  "source_system": "cdmx_0311",
+  "source_dataset": "0311",
+  "run_id": "20261030195008-fcur",
+  "generated_at": "2026-10-30T19:50:08.684Z",
+  "idempotency_key": "13b183610001c5af96fe7411396066e1740a8ca7714c889a8fcde5cb77089ce7",
+  "counts": {
+    "records": 10,
+    "status_observations": 10,
+    "created": 10,
+    "updated": 0,
+    "unchanged": 0
+  },
+  "license": {
+    "id": "CC-BY-4.0-ESP",
+    "url": "https://creativecommons.org/licenses/by/4.0/deed.es",
+    "attribution": "Gobierno de la Ciudad de México — Portal de Datos Abiertos CDMX, conjunto «Solicitudes *0311» (ADIP).",
+    "redistribution": "allowed",
+    "note": "CC BY 4.0 (España) permits redistribution with attribution. Attribution to the Government of Mexico City and the dataset title is required; the collector does not provide legal clearance.",
+    "verified_from": "ckan_metadata"
+  },
+  "upsert_key": [
+    "source_system",
+    "source_record_id"
+  ],
+  "deletion_policy": "Records absent from a batch are NOT deleted or deactivated. The collector emits no tombstones; absence may mean a partial download, a filtered batch, a publisher rollback or a transient failure. Deactivate a record only from an explicit government signal or a documented, reviewed decision.",
+  "outputs": {
+    "records": "/tmp/vv-sample/ingest/0311/20261030195008-gnwm/records.jsonl",
+    "status_history": "/tmp/vv-sample/ingest/0311/20261030195008-gnwm/status-history.jsonl"
+  },
+  "warnings": []
+}
