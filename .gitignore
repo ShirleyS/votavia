@@ -10,3 +10,6 @@ coverage/
 *.log
 __pycache__/
 .venv/
+collectors/cdmx-0311/data/
+collectors/cdmx-0311/dashboard.config.json
+collectors/cdmx-0311/node_modules

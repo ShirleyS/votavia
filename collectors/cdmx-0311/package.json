@@ -1,0 +1,31 @@
+{
+  "name": "@votavia/collector-cdmx-0311",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone official *0311 Locatel collector for VotaVía (CDMX).",
+  "type": "module",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "discover:0311": "node dist/cli.js discover",
+    "import:0311": "node dist/cli.js import",
+    "collect:0311": "node dist/cli.js collect",
+    "validate:0311": "node dist/cli.js validate",
+    "dev:discover": "node --experimental-strip-types src/cli.ts discover",
+    "dev:import": "node --experimental-strip-types src/cli.ts import",
+    "dev:collect": "node --experimental-strip-types src/cli.ts collect",
+    "dev:validate": "node --experimental-strip-types src/cli.ts validate"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.2"
+  },
+  "optionalDependencies": {
+    "playwright": "^1.56.0"
+  }
+}
