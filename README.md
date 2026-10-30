@@ -91,7 +91,8 @@ demostración.
 | `/` | Portada, métricas, mapa y resultados recientes |
 | `/explorar` | Mapa y lista con filtros, búsqueda y orden |
 | `/reportar` | Flujo guiado de reporte con mapa, fotos y detección de duplicados |
-| `/reportes/[id]` | Detalle, apoyo, observaciones, seguimiento y vinculación |
+| `/reportes/[id]` | Detalle, análisis IA, apoyo, observaciones, seguimiento y vinculación |
+| `/reportes/[id]/editar` | Edición y retiro por parte de quien reportó |
 | `/casos/[id]` | Caso compartido: estados, registros oficiales y evidencia |
 | `/resultados` | Resultados públicos, antes/después y desglose por colonia |
 | `/login` | Acceso con enlace mágico |
@@ -104,10 +105,13 @@ demostración.
 | --- | --- | --- |
 | `GET` | `/api/cases` | Lista paginada; filtros `category`, `status`, `colonia`, `q`, `sort`, `mine`, `supported` |
 | `POST` | `/api/cases` | Crea un reporte (`multipart/form-data`: `payload` JSON + `photos[]`) |
-| `GET` | `/api/cases/[id]` | Caso, cronología y observaciones |
+| `GET` | `/api/cases/[id]` | Caso, cronología, observaciones y análisis IA |
+| `PATCH` | `/api/cases/[id]` | Edición por el autor mientras el caso está en revisión |
+| `POST` | `/api/cases/[id]/withdraw` | El autor retira su reporte (cierra, no borra) |
 | `POST` | `/api/cases/[id]/support` | Apoyo idempotente por participante |
 | `GET`/`POST` | `/api/cases/[id]/observations` | Lectura y alta de observaciones |
 | `GET` | `/api/cases/nearby` | Casos cercanos para detectar duplicados |
+| `POST` | `/api/cases/duplicates` | Sugerencias IA de duplicados para el asistente de reporte |
 | `GET` | `/api/stats` | Métricas públicas |
 | `GET` | `/api/issues` | Casos compartidos con filtros por estado, origen y verificación |
 | `GET` | `/api/issues/[id]` | Caso compartido con reportes, registros oficiales y evidencia |

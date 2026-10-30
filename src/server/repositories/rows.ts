@@ -261,3 +261,23 @@ export interface IssueAggregate {
   verification_counts: Record<VerificationVerdict, number>;
   my_verdict: VerificationVerdict | null;
 }
+
+
+/** Persisted advisory analysis for one citizen report. */
+export interface CaseAnalysisRow {
+  case_id: string;
+  issue_id: string | null;
+  analysis_version: string;
+  model: string;
+  summary: string;
+  suggested_category: CaseCategory | null;
+  severity: "low" | "medium" | "high" | "critical" | null;
+  confidence: number | null;
+  priority: Record<string, unknown> | null;
+  duplicate_candidates: Array<{ case_id: string; score: number; reason: string }>;
+  report_source: string | null;
+  is_fallback: boolean;
+  payload: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}

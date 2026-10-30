@@ -12,6 +12,7 @@ import {
   MapPin,
   MessageSquare,
   ShieldCheck,
+  Sparkles,
   ThumbsUp,
   Users,
 } from "lucide-react";
@@ -166,7 +167,7 @@ export default async function ReportePage({ params }: PageProps) {
     ),
   );
 
-  const [timeline, observations, related] = await Promise.all([
+  const [timeline, observations, related, caseAnalysis] = await Promise.all([
     service.getCaseTimeline(item.case_id),
     service.getCaseObservations(item.case_id),
     service.findNearbyCases({
@@ -176,6 +177,7 @@ export default async function ReportePage({ params }: PageProps) {
       radiusMeters: 600,
       limit: 4,
     }),
+    service.getCaseAnalysis(item.case_id).catch(() => null),
   ]);
 
   const categoryMeta = CATEGORY_META[item.category];
@@ -299,6 +301,87 @@ export default async function ReportePage({ params }: PageProps) {
                 </div>
               ) : null}
             </section>
+
+            {caseAnalysis ? (
+              <section aria-labelledby="analisis" className="rounded-2xl border border-royal-200 bg-royal-50/40 p-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 id="analisis" className="flex items-center gap-2 text-base font-extrabold">
+                    <Sparkles className="h-4 w-4 text-royal-700" aria-hidden /> Análisis automático
+                  </h2>
+                  <span className="rounded-full bg-white px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-royal-800 ring-1 ring-inset ring-royal-200">
+                    Sugerencia, no verificación
+                  </span>
+                </div>
+                <p className="mt-2 text-[15px] leading-relaxed text-navy-700">
+                  {caseAnalysis.analysis.summary}
+                </p>
+                <dl className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold">
+                  <div className="rounded-full bg-white px-2.5 py-1 ring-1 ring-inset ring-line">
+                    <dt className="inline text-navy-500">Prioridad sugerida: </dt>
+                    <dd className="inline text-navy-800">
+                      {String((caseAnalysis.extras.priority as { level?: string } | null)?.level ?? "media")}
+                    </dd>
+                  </div>
+                  <div className="rounded-full bg-white px-2.5 py-1 ring-1 ring-inset ring-line">
+                    <dt className="inline text-navy-500">Severidad: </dt>
+                    <dd className="inline text-navy-800">{caseAnalysis.analysis.severity ?? "media"}</dd>
+                  </div>
+                  {caseAnalysis.analysis.suggested_category &&
+                  caseAnalysis.analysis.suggested_category !== item.category ? (
+                    <div className="rounded-full bg-white px-2.5 py-1 ring-1 ring-inset ring-line">
+                      <dt className="inline text-navy-500">Categoría sugerida: </dt>
+                      <dd className="inline text-navy-800">
+                        {CATEGORY_META[caseAnalysis.analysis.suggested_category].shortLabel}
+                      </dd>
+                    </div>
+                  ) : null}
+                  {caseAnalysis.extras.is_fallback ? (
+                    <div className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-900 ring-1 ring-inset ring-amber-200">
+                      Análisis determinista (sin modelo disponible)
+                    </div>
+                  ) : null}
+                </dl>
+
+                {caseAnalysis.extras.needs_more_information &&
+                caseAnalysis.extras.missing_information.length ? (
+                  <div className="mt-3 rounded-xl bg-white p-3 ring-1 ring-inset ring-line">
+                    <p className="text-xs font-bold text-navy-900">Falta información para atenderlo mejor</p>
+                    <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[11px] text-navy-600">
+                      {caseAnalysis.extras.missing_information.map((missing) => (
+                        <li key={missing}>{missing}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {caseAnalysis.analysis.duplicate_candidates.length ? (
+                  <div className="mt-3">
+                    <p className="text-xs font-bold text-navy-900">Posibles reportes relacionados</p>
+                    <ul className="mt-1.5 space-y-1">
+                      {caseAnalysis.analysis.duplicate_candidates
+                        .filter((candidate) => candidate.case_id !== item.case_id)
+                        .slice(0, 4)
+                        .map((candidate) => (
+                          <li key={candidate.case_id}>
+                            <Link
+                              href={`/reportes/${candidate.case_id}`}
+                              className="flex items-start justify-between gap-2 rounded-lg bg-white px-2.5 py-1.5 text-[11px] ring-1 ring-inset ring-line hover:ring-royal-300"
+                            >
+                              <span className="min-w-0 text-navy-700">{candidate.reason}</span>
+                              <ArrowRight className="h-3 w-3 shrink-0 text-navy-400" aria-hidden />
+                            </Link>
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                <p className="mt-3 text-[10px] leading-relaxed text-navy-500">
+                  Generado por {caseAnalysis.analysis.model}. No cambia el estado del caso ni cuenta
+                  como verificación ciudadana.
+                </p>
+              </section>
+            ) : null}
 
             <section aria-labelledby="estado" className="rounded-2xl border border-line bg-white p-5 shadow-[var(--shadow-card)]">
               <h2 id="estado" className="text-base font-extrabold">Estado del caso</h2>
@@ -623,9 +706,20 @@ export default async function ReportePage({ params }: PageProps) {
                 <p className="mt-1 text-xs text-emerald-900/80">
                   Recibirás actualizaciones cuando cambie el estado.
                 </p>
-                <Link href="/mis-reportes" className={cn(buttonStyles({ variant: "secondary", size: "sm" }), "mt-3 w-full")}>
-                  Ver mis reportes
-                </Link>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href="/mis-reportes"
+                    className={cn(buttonStyles({ variant: "secondary", size: "sm" }), "flex-1")}
+                  >
+                    Ver mis reportes
+                  </Link>
+                  <Link
+                    href={`/reportes/${item.case_id}/editar`}
+                    className={cn(buttonStyles({ variant: "outline", size: "sm" }), "flex-1")}
+                  >
+                    Editar reporte
+                  </Link>
+                </div>
               </div>
             )}
 

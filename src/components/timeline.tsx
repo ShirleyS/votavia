@@ -42,6 +42,16 @@ const EVENT_META: Record<
     label: "Registro oficial vinculado",
   },
   support_removed: { icon: ThumbsUp, tone: "bg-slate-100 text-slate-700", label: "Apoyo retirado" },
+  report_updated: {
+    icon: MessageSquarePlus,
+    tone: "bg-navy-50 text-navy-700",
+    label: "Reporte actualizado",
+  },
+  report_withdrawn: {
+    icon: CircleDot,
+    tone: "bg-slate-100 text-slate-600",
+    label: "Reporte retirado",
+  },
   evidence_uploaded: {
     icon: FileCheck2,
     tone: "bg-teal-50 text-teal-800",

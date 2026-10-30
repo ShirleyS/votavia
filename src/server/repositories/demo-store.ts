@@ -10,6 +10,7 @@ import type {
 } from "@/shared/votavia-contract";
 import type {
   CaseAggregate,
+  CaseAnalysisRow,
   CaseRow,
   ClaimRow,
   EventRow,
@@ -49,9 +50,10 @@ interface DemoDatabase {
   organizations: OrganizationRow[];
   organizationMembers: OrganizationMemberRow[];
   officialStatusHistory: OfficialStatusHistoryRow[];
+  caseAnalyses: CaseAnalysisRow[];
 }
 
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 const daysAgoIso = (days: number) => new Date(Date.now() - days * 86400000).toISOString();
 
@@ -360,6 +362,7 @@ function buildDatabase(): DemoDatabase {
     verifications: [],
     organizations,
     organizationMembers: [],
+    caseAnalyses: [],
     officialStatusHistory: officialRecords.map((row, index) => ({
       id: `demo-status-${index + 1}`,
       official_record_id: row.id,
@@ -385,6 +388,7 @@ function upgradeDatabase(db: DemoDatabase): DemoDatabase {
   db.organizations ??= [];
   db.organizationMembers ??= [];
   db.officialStatusHistory ??= [];
+  db.caseAnalyses ??= [];
 
   // Backfill ingestion fields on any official record from an older file.
   for (const row of db.officialRecords) {
@@ -814,6 +818,65 @@ export class DemoCaseRepository implements CaseRepository {
       created_by_user_id: row.created_by_user_id,
       reporter_email: row.reporter_email,
     };
+  }
+
+  async updateCase(
+    caseId: string,
+    patch: {
+      title?: string;
+      description?: string;
+      category?: CaseRow["category"];
+      address_hint?: string | null;
+    },
+  ) {
+    return mutate((db) => {
+      const row = db.cases.find((c) => c.id === caseId || c.display_id === caseId);
+      if (!row) return null;
+      if (patch.title !== undefined) row.title = patch.title;
+      if (patch.description !== undefined) row.description = patch.description;
+      if (patch.category !== undefined) row.category = patch.category;
+      if (patch.address_hint !== undefined) row.address_hint = patch.address_hint;
+      row.updated_at = new Date().toISOString();
+
+      // Keep the grouped issue headline roughly in sync without touching its
+      // operational or verification status.
+      const issue = db.issues.find((item) => item.id === row.issue_id);
+      if (issue) {
+        issue.title = row.title;
+        issue.description = row.description;
+        issue.category = row.category;
+        issue.updated_at = row.updated_at;
+      }
+      return toAggregate(db, row, undefined);
+    });
+  }
+
+  async setStatus(caseId: string, status: CaseRow["status"], resolvedAt?: string | null) {
+    await mutate((db) => {
+      const row = db.cases.find((item) => item.id === caseId || item.display_id === caseId);
+      if (!row) return;
+      row.status = status;
+      if (resolvedAt !== undefined) row.resolved_at = resolvedAt;
+      row.updated_at = new Date().toISOString();
+    });
+  }
+
+  async saveAnalysis(row: CaseAnalysisRow) {
+    await mutate((db) => {
+      const existing = db.caseAnalyses.findIndex((item) => item.case_id === row.case_id);
+      const next: CaseAnalysisRow = { ...row, updated_at: new Date().toISOString() };
+      if (existing >= 0) db.caseAnalyses[existing] = next;
+      else db.caseAnalyses.push(next);
+    });
+  }
+
+  async analysisForCase(caseId: string) {
+    const db = await readDatabase();
+    const direct = db.caseAnalyses.find((item) => item.case_id === caseId);
+    if (direct) return direct;
+    const report = db.cases.find((row) => row.display_id === caseId);
+    if (!report) return null;
+    return db.caseAnalyses.find((item) => item.case_id === report.id) ?? null;
   }
 
 
