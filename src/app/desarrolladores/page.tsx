@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { isLiveMode } from "@/public-api/config";
 import { ApiPlayground } from "./_components/ApiPlayground";
 import { CodeBlock } from "./_components/CodeBlock";
