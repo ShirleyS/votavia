@@ -25,6 +25,7 @@ export function SessionGate({ children }: { children: React.ReactNode }) {
     error,
     organizations,
     retry,
+    demoAvailable,
   } = useGovernment();
 
   const [email, setEmail] = useState("");
@@ -92,7 +93,7 @@ export function SessionGate({ children }: { children: React.ReactNode }) {
               <dd>{organizations.length === 0 ? "Ninguna" : organizations.map((org) => org.name).join(", ")}</dd>
             </div>
           </dl>
-        ) : (
+        ) : demoAvailable ? (
           <form
             className="session-gate__form"
             onSubmit={(event) => {
@@ -157,6 +158,13 @@ export function SessionGate({ children }: { children: React.ReactNode }) {
               </p>
             ) : null}
           </form>
+        ) : (
+          <p className="session-gate__note">
+            Este despliegue está conectado a una base de datos real, así que no puede
+            cargar datos de demostración: el sembrado escribiría registros ficticios
+            junto a los ciudadanos. Para mostrarla con datos de muestra, publica el
+            entorno con <code>VOTAVIA_DEMO_MODE=1</code>.
+          </p>
         )}
 
         <footer className="session-gate__foot">

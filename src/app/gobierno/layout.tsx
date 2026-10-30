@@ -10,10 +10,11 @@ export default function GovernmentLayout({
 }) {
   // No service-role key (or an explicit demo deployment) means the seeded
   // dataset is the source of truth, so the console can enter itself.
-  const autoDemo = !hasSupabaseDatabase();
+  const demoAvailable = !hasSupabaseDatabase();
+  const autoDemo = demoAvailable;
 
   return (
-    <GovernmentProvider autoDemo={autoDemo}>
+    <GovernmentProvider autoDemo={autoDemo} demoAvailable={demoAvailable}>
       <AppShell>{children}</AppShell>
     </GovernmentProvider>
   );

@@ -161,6 +161,8 @@ interface GovernmentContextValue {
   organizations: GovernmentOrganization[];
   pendingContracts: { id: string; label: string; detail: string }[];
   isDemoEnvironment: boolean;
+  /** True when this deployment serves the seeded demo store and can self-seed. */
+  demoAvailable: boolean;
   hasMembership: boolean;
   sessionEmail: string | null;
   signInDemo: (email: string) => Promise<void>;
@@ -215,10 +217,13 @@ function describeError(cause: unknown): { title: string; detail: string; tone: T
 export function GovernmentProvider({
   children,
   autoDemo = false,
+  demoAvailable = false,
 }: {
   children: React.ReactNode;
   /** Demo deployments enter the console on their own; nobody should hunt for a form. */
   autoDemo?: boolean;
+  /** Demo seeding is refused on a real backend, so the form must not be offered there. */
+  demoAvailable?: boolean;
 }) {
   const [cases, setCases] = useState<GovernmentCase[]>([]);
   const [loading, setLoading] = useState(true);
@@ -782,6 +787,7 @@ export function GovernmentProvider({
       organizations,
       pendingContracts: coreMode ? PENDING_CONTRACTS : [],
       isDemoEnvironment: !coreMode || currentUser.isDemo,
+      demoAvailable,
       hasMembership: !coreMode || (authenticated && organizations.length > 0),
       sessionEmail,
       signInDemo,
@@ -820,6 +826,7 @@ export function GovernmentProvider({
       error,
       authenticated,
       organizations,
+      demoAvailable,
       sessionEmail,
       signInDemo,
       signOut,
