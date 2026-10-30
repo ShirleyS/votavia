@@ -638,6 +638,7 @@ de ejecutar en un equipo con `npm run dev`.
 | `28ce97c` | Checkpoint `checkpoint(feature/government-ux): preserve session work` — consola completa (panel, reportes, detalle, gobernanza, evidencia, disputas) con adaptador de núcleo **detrás** de `NEXT_PUBLIC_VOTAVIA_API_MODE=core`; por omisión caía a `demo` | Conservado en la rama, es ancestro del actual |
 | `30ef694` | `fix(government-ux): make the core API the production data path (I-16)` — modo núcleo por omisión, instanciación diferida del mock, `SessionGate`, sesión por `/auth/demo` | Encima de `28ce97c` |
 | `ce281ec` | `docs(government-ux): session 5 handoff for the I-16 core wiring` — `SESSION5_HANDOFF.md` | Encima de `30ef694` |
+| `b39f7b6` | `docs(government-ux): data traceability, auth model and session 5 delivery` — este documento: trazabilidad, autenticación, contratos pendientes y entrega | Encima de `ce281ec` · **HEAD** |
 
 Rama: `feature/government-ux` · Worktree:
 `/Users/shirley/Documents/code/votavia-government-ux` · Etiqueta local:
@@ -685,16 +686,45 @@ respaldo y de que la autorización depende de una membresía real del núcleo.
 
 ### Sobre el parche
 
-Si Session 5 no puede leer este worktree (equipos o entornos distintos) y el push
-sigue fallando, el canal alterno es un parche `git format-patch` generado desde
-`28ce97c..HEAD` y guardado en una ruta compartida. Ese parche se anuncia con su ruta
-y tamaño **sólo después** de comprobar que es legible y aplicable con
-`git apply --check`. Si no se puede verificar, se reporta como *no entregado*.
+El push al remoto **sigue fallando** en este entorno (`fatal: Could not read from
+remote repository`, exit 128): no hay salida DNS/red. Por eso se preparó un parche
+`git format-patch` desde `28ce97c..HEAD` y se guardó en una ruta del espacio de
+trabajo compartido:
+
+```
+/Users/shirley/Documents/code/votavia-session2-patches/
+  0001-fix-government-ux-make-the-core-API-the-production-d.patch
+  0002-docs-government-ux-session-5-handoff-for-the-I-16-co.patch
+  0003-docs-government-ux-data-traceability-auth-model-and-.patch
+  0004-docs-government-ux-record-final-commit-and-verified-.patch
+```
+
+**Estado: accesible y verificado.** Se clonó este worktree en una ruta temporal, se
+retrocedió a `28ce97c` y se aplicaron los cuatro parches con `git am`: éxito, sin
+conflictos, `git status` limpio, y el árbol resultante coincide byte a byte con el
+árbol de HEAD de este worktree. Por lo tanto el parche **sí se declara entregado**.
+
+Los hashes de commit del parche aplicado pueden diferir de los de este worktree
+porque `git am` reescribe la fecha de autoría; lo que debe coincidir es el
+**árbol**. Compruébalo así en ambas copias: `git rev-parse HEAD^{tree}`.
+
+Para aplicarlo en otra copia:
+
+```bash
+git checkout -b feature/government-ux 28ce97c   # o el checkpoint indicado
+git am /Users/shirley/Documents/code/votavia-session2-patches/000*.patch
+git log --oneline -5                            # 28ce97c + 4 commits de esta sesión
+```
+
+Si esa ruta no es visible desde el equipo de Session 5, el parche debe copiarse a
+un canal compartido (adjunto, unidad compartida o artefacto de CI) y verificarse de
+nuevo con `git apply --check` antes de darlo por entregado. No se declara entregado
+un parche que no se haya podido leer y aplicar.
 
 ## Estado del trabajo
 
 Los cambios están **confirmados en local** sobre `feature/government-ux`
-(`28ce97c` → `30ef694` → `ce281ec`). El push al remoto falla en este entorno porque
+(`28ce97c` → `30ef694` → `ce281ec` → `b39f7b6`). El push al remoto falla en este entorno porque
 no hay salida DNS/red, así que los commits y la etiqueta existen únicamente en esta
 copia. Este slice **no se fusiona ni se despliega**: la coordinación y las pruebas
 E2E (Session 5) deciden la integración. La rama no se rebasea ni se mezcla desde
