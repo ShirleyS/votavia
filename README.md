@@ -30,6 +30,15 @@ comunitaria. Un aviso de gobierno de “completado” abre la verificación; no 
 Detalle para otras sesiones en [INTEGRATION_SHARED_MODEL.md](INTEGRATION_SHARED_MODEL.md) y el
 contrato de ingesta en [SESSION6_INGESTION_CONTRACT.md](SESSION6_INGESTION_CONTRACT.md).
 
+## Canal de WhatsApp (texto y voz)
+
+El canal ciudadano de WhatsApp recibe texto, notas de voz y ubicación, arma un borrador,
+pide confirmación explícita y solo entonces crea el reporte. Las notas de voz se transcriben
+con un endpoint compatible con `/audio/transcriptions`; sin esa configuración el bot pide el
+reporte por escrito. El webhook valida la firma de Meta y deduplica por id de mensaje.
+
+Configuración, estados, privacidad y límites en [docs/WHATSAPP_CHANNEL.md](docs/WHATSAPP_CHANNEL.md).
+
 ## Stack
 
 - Next.js 16 (App Router) + React 19 + TypeScript estricto
@@ -117,14 +126,15 @@ demostración.
 | `POST` | `/api/issues/[id]/operational` | Actualización operativa de personal autorizado |
 | `GET` | `/api/organizations/me` | Membresías verificadas del usuario |
 | `GET` | `/api/official-records/[id]/history` | Historial de estado oficial (público si es redistribuible) |
-
-La ingesta oficial la ejecuta Session 6 con `upsert_official_record(jsonb)`; VotaVía expone el
-adaptador `fromCollectorRecord()` y el validador `officialRecordIngestSchema` para esa integración.
+| `GET`/`POST` | `/api/whatsapp/webhook` | Handshake y eventos de WhatsApp Cloud API (texto, voz, ubicación) |
 | `POST` | `/api/auth/magic-link` | Envía o muestra el enlace de acceso |
 | `POST` | `/api/auth/claim` | Inicia la vinculación de un reporte a una cuenta |
 | `POST` | `/api/auth/demo` | Sesión local de demostración |
 | `POST` | `/api/auth/signout` | Cierra la sesión |
 | `GET` | `/api/uploads/[name]` | Fotografías en modo demostración |
+
+La ingesta oficial la ejecuta Session 6 con `upsert_official_record(jsonb)`; VotaVía expone el
+adaptador `fromCollectorRecord()` y el validador `officialRecordIngestSchema` para esa integración.
 
 Los errores usan `{ "error": { "code", "message", "details?" } }`.
 
