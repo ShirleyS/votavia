@@ -25,7 +25,9 @@ No feature branch was merged wholesale. Each commit was dependency-checked befor
 Branches **not** integrated (and why):
 
 - `votavia-ai` (`2e068b4`, 316-line contract drift), `votavia-public-api` (`660ad57`, 523-line drift), `votavia-official-data` (`2e502b8`, contract absent), `votavia-government-ux` (`ce281ec`, contract absent + separate app shell), `votavia-qa` (`ca0f1e5`, superseded by the QA suite already in this line), `votavia-whatsapp` (`d9b2bfd`, 632-line drift).
-- Session 2's `30ef694` (I-16 console fix) **cannot** be cherry-picked: its parent chain starts at `7332feb` and it imports `src/lib/government/core/{adapter,service}.ts`, which do not exist on `main`; the branch diff is ≈24k lines and would import a second app shell. Recorded as **I-25**.
+- Session 2's console branch moved to `dd1f99b` (docs only on top of `30ef694`). Its `30ef694` (I-16 fix) **cannot** be cherry-picked: its parent chain starts at `7332feb` and it imports `src/lib/government/core/{adapter,service}.ts`, which do not exist on `main`; the branch diff is ≈24k lines and would import a second app shell. Recorded as **I-25**.
+
+Contract spot-check of Session 2's `dd1f99b` (read-only): the console's core adapter is a genuine server integration, but its self-described `contract.ts` mirror declares `requestDispatch(input: DispatchRequest)` while the canonical contract declares `Omit<…>` (verified against `d9b2bfd`) — **I-27**; and its requested membership uses the slug `org-demo-cuauhtemoc`, which would 422 against the UUID schema after I-20 — **I-28**. Both are reported to the owner with minimal patches; neither was edited here.
 
 Local-only note: `de96a02` is committed but **not pushed** — the remote is GitHub and outbound DNS/network is blocked in this environment; the approval service that would allow an escalated push also returned 404. Nothing was lost; the commit is in the local worktree.
 
@@ -210,6 +212,9 @@ Initial import PASS · duplicate re-import idempotent PASS · status update PASS
 | I-04 | P0 (data) | No importer→server ingest bridge | official-data |
 | I-19 | P0 (contract) | Contract drift across unmerged worktrees | Session 1 |
 | I-12 | P2 | App-layer check ignores org active state | Session 1 |
+| I-27 | P1 | Console `DispatchGateway` mirror does not match canonical (`Omit<…>` vs full request) | Session 2 |
+| I-28 | P0 (demo) | Membership recipe uses `org-demo-cuauhtemoc`, would reintroduce I-20 422 | Session 1 + 2 docs |
+| I-29 | P2 | No writer ever sets `is_public:false`; visibility is read-side only | Session 1 |
 | I-18 | P3 | No security headers | Session 1 |
 
 ---
@@ -219,8 +224,8 @@ Initial import PASS · duplicate re-import idempotent PASS · status update PASS
 1. `main` + Session 1 Phase-12 + Session 1 docs (done: `fb2eed3`, `9965e24`).
 2. QA suite and converted regressions (done: `341c6a2`, `de96a02`).
 3. I-20 seed org UUID and I-14 evidence-route auth (done: `c575b7a`).
-4. **I-24** — seed a verified organization membership for the demo user (Session 1); required before any console demo.
-5. **I-25** — Session 2 rebases the console commits onto this line (or replays them as reviewed, dependency-checked commits).
+4. **I-24 / I-28** — seed a verified organization membership for the demo user **with the UUID org id** (Session 1); required before any console demo, and correct the Session 2 handoff docs to match.
+5. **I-25 / I-27** — Session 2 rebases the console commits onto this line and aligns the contract mirror with the canonical `DispatchGateway`.
 6. **I-21 / I-22** — authenticated, org-scoped attachment access and evidence reads (Session 1).
 7. **I-23** — duplicate-link endpoint that moves reports without deleting either (Session 1).
 8. **I-11 / I-12 / I-13** — official-status write boundary and org/colonia enforcement (Session 1).
@@ -256,6 +261,7 @@ No migration was applied by this session.
 - `tests/contracts/contract-parity.test.ts`
 - `src/server/repositories/demo-store.ts` — QA-owned minimal fix: `DEMO_ORGANIZATION_ID` → `11111111-1111-4111-8111-111111111111` (a valid RFC 4122 v4 UUID; the earlier `…0311` candidate is still rejected by zod)
 - `INTEGRATION_ISSUE_LOG.md` — I-14/I-20 resolved; I-21…I-26 added
+- `INTEGRATION_CHECKLIST.md` — new: contract surface, invariants, journey/security/data gates
 - `QA_RELEASE_HANDOFF.md` — this file
 
 No other session's worktree was modified. `node_modules` is an untracked symlink and was never staged.
@@ -264,4 +270,4 @@ No other session's worktree was modified. `node_modules` is an untracked symlink
 
 ## 19. Verdict
 
-The integrated line is **coherent and safe to keep building on**, with **two demo-critical blockers (I-24, I-25)** and **three exposure/authority blockers (I-21, I-22, I-11)** that must be fixed before a government-facing demo. All 46 remaining expected-failures are documented, owned findings; none are silent. Browser-level E2E, live external services and rate limiting remain **unverified**, and this report does not claim otherwise.
+The integrated line is **coherent and safe to keep building on**, with **three demo-critical blockers (I-24, I-25, I-28)** and **three exposure/authority blockers (I-21, I-22, I-11)** that must be fixed before a government-facing demo. All 46 remaining expected-failures are documented, owned findings; none are silent. Browser-level E2E, live external services and rate limiting remain **unverified**, and this report does not claim otherwise.
