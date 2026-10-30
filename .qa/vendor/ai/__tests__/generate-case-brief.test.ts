@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { generateCaseBrief } from "../services/generate-case-brief";
 import type { CaseBriefInput, HistoricalRecord, ReportClassification } from "../types";
+import { suggestPriority } from "../utils/priority";
 import { createMockClient } from "./test-helpers";
 
 const NOW = new Date("2026-10-30T12:00:00.000Z");
@@ -17,6 +18,7 @@ const classification: ReportClassification = {
   missing_information: [],
   uncertainty_notes: null,
   severity: "high",
+  severity_rationale: "Falla de señal en un cruce con peatones.",
   confidence: 0.8,
   original_description: "El semáforo no sirve.",
   input_truncated: false,
@@ -24,6 +26,25 @@ const classification: ReportClassification = {
   analysis_version: "2026-10-30.1",
   analyzed_at: NOW.toISOString(),
   fallback: false,
+  report_source: "citizen_web",
+  source_label: null,
+  source_record_id: null,
+  original_category: null,
+  category_normalization: {
+    normalized_category: "traffic_signals",
+    original_category: null,
+    original_preserved: false,
+    method: "explicit",
+    confidence: 0.95,
+    note: null,
+  },
+  priority: suggestPriority({
+    severity: "high",
+    independent_reports: 1,
+    unique_supporters: 0,
+    reported_at: NOW.toISOString(),
+    now: NOW.toISOString(),
+  }),
 };
 
 const historical: HistoricalRecord[] = [

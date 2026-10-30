@@ -56,6 +56,9 @@ const CATEGORY_ALIASES: Array<{ category: CaseCategory; terms: string[] }> = [
     terms: [
       "semaforo",
       "semaforos",
+      "semaforo descompuesto",
+      "semaforo apagado",
+      "luz roja",
       "señal",
       "señales",
       "senal",
@@ -91,8 +94,12 @@ const CATEGORY_ALIASES: Array<{ category: CaseCategory; terms: string[] }> = [
     terms: [
       "arbol",
       "arboles",
+      "arbol caido",
+      "arboles caidos",
+      "arbol caida",
       "rama",
       "ramas",
+      "rama caida",
       "poda",
       "vegetacion",
       "tronco",
@@ -164,16 +171,59 @@ export function normalizeCategory(value: unknown): CaseCategory | null {
   return null;
 }
 
+/**
+ * Tie-break order for equally strong keyword evidence. A named asset (a traffic
+ * light, a tree) is the subject of a report; an area or surface is usually only
+ * its location. Without this, "el semáforo está intermitente" matched the
+ * street-lighting modifier and "árbol caído en la banqueta" matched the
+ * sidewalk term (QA F-04 / F-05).
+ */
+const CATEGORY_TIE_BREAK: CaseCategory[] = [
+  "traffic_signals",
+  "trees_vegetation",
+  "street_lighting",
+  "road_damage",
+  "waste_sanitation",
+  "sidewalk_accessibility",
+  "parks_public_spaces",
+  "other",
+];
+
+/** Word-boundary occurrence count, so "alto" never matches "asalto". */
+function countTerm(text: string, term: string): number {
+  if (!term) return 0;
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, "g");
+  let count = 0;
+  while (pattern.exec(text) !== null) count += 1;
+  return count;
+}
+
+function tieBreakRank(category: CaseCategory): number {
+  const index = CATEGORY_TIE_BREAK.indexOf(category);
+  return index === -1 ? CATEGORY_TIE_BREAK.length : index;
+}
+
 /** Deterministic keyword classifier used as fallback and as a sanity check. */
 export function inferCategoryFromText(value: string): CaseCategory {
   const text = normalizeText(value);
   let best: { category: CaseCategory; score: number } | null = null;
   for (const { category, terms } of CATEGORY_ALIASES) {
-    const score = terms.reduce(
-      (total, term) => (text.includes(term) ? total + term.split(" ").length : total),
-      0,
-    );
-    if (score > 0 && (!best || score > best.score)) best = { category, score };
+    const score = terms.reduce((total, term) => {
+      const occurrences = countTerm(text, term);
+      if (occurrences === 0) return total;
+      // Multi-word phrases are far more specific than a single word.
+      const weight = term.includes(" ") ? 3 : 1;
+      return total + occurrences * weight;
+    }, 0);
+    if (score <= 0) continue;
+    if (
+      !best ||
+      score > best.score ||
+      (score === best.score && tieBreakRank(category) < tieBreakRank(best.category))
+    ) {
+      best = { category, score };
+    }
   }
   return best?.category ?? "other";
 }

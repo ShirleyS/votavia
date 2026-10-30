@@ -5,11 +5,16 @@ import { GET as getStatistics } from "@/app/api/v1/public/statistics/route";
 import { GET as getRiskSignals } from "@/app/api/v1/public/risk-signals/route";
 import { __resetRateLimit } from "@/public-api/rate-limit";
 import { __resetPublicApiServiceForTests } from "@/public-api/runtime";
+import { isCasePublishable } from "@/public-api/provenance";
+import { publishablePrecisionMeters } from "@/public-api/privacy";
 import { demoCases } from "@/public-api/mock-data";
 import { request, readJson } from "../support/app";
 
-const published = demoCases.filter((item) => item.is_published);
-const unpublished = demoCases.filter((item) => !item.is_published);
+// Publication is decided by provenance, licence and permission, not by the
+// raw `is_published` flag alone. A government import that is not licensed for
+// redistribution must never be listed or counted.
+const published = demoCases.filter((item) => isCasePublishable(item));
+const unpublished = demoCases.filter((item) => !isCasePublishable(item));
 const sample = published[0];
 
 async function list(query = "") {
@@ -161,7 +166,11 @@ describe("public API case detail", () => {
     const { latitude, longitude } = body.data.location;
     expect(Math.round(latitude * 1000) / 1000).toBe(latitude);
     expect(Math.round(longitude * 1000) / 1000).toBe(longitude);
-    expect(body.data.location.precision_meters).toBe(110);
+    // Safety-sensitive reports are coarsened further than ordinary ones.
+    expect(body.data.location.precision_meters).toBe(
+      publishablePrecisionMeters(body.data.has_safety_concern),
+    );
+    expect([110, 1100]).toContain(body.data.location.precision_meters);
   });
 
   it("redacts emails and phone numbers from public text", async () => {
