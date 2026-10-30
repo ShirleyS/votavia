@@ -17,3 +17,6 @@ next-env.d.ts
 collectors/cdmx-0311/data/
 collectors/cdmx-0311/dashboard.config.json
 collectors/cdmx-0311/node_modules
+
+# Local Netlify folder
+.netlify
