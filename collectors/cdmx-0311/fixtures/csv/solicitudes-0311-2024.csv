@@ -1,0 +1,14 @@
+folio,fecha_solicitud,hora_solicitud,tipo_solicitud,categoria,subcategoria,descripcion,fecha_concluido,alcaldia,colonia_datos,0311_colonia_registro,codigo_postal_solicitud,latitud,longitud,dependencia_responsable,estatus,nombre,telefono
+CUH-2024-0001,15/03/2024,09:30,Reporte,Baches y pavimento,Bache,"Bache profundo frente a la escuela, cerca del cruce con Avenida Insurgentes.",20/03/2024,Cuauhtémoc,Roma Norte,Roma Norte,06700,19.4185,-99.1613,Secretaría de Obras,Concluido,Ana López,5512345678
+CUH-2024-0001,15/03/2024,09:30,Reporte,Baches y pavimento,Bache,"Bache profundo frente a la escuela, cerca del cruce con Avenida Insurgentes.",20/03/2024,Cuauhtémoc,Roma Norte,Roma Norte,06700,19.4185,-99.1613,Secretaría de Obras,Concluido,Ana López,5512345678
+CUH-2024-0002,2024-04-02,18:05,Reporte,Alumbrado,Luminaria,"Luminaria apagada en el parque; vecinos reportan oscuridad.",,Cuauhtémoc,Condesa,Hipódromo Condesa,06140,19.4127,-99.1725,Servicios Urbanos,En proceso,,
+CUH-2024-0003,03/04/2024,11:15,Reporte,Fuga de agua,Drenaje,"Fuga de agua en la banqueta. Contacto: 55 1234 5678 o vecino@example.com.",05/04/2024,CUAUHTEMOC,Centro Histórico,Centro,06000,19.4352,-99.1412,SACMEX,Concluido,,
+IZT-2024-0001,04/04/2024,08:00,Reporte,Baches y pavimento,Bache,"Bache en Iztapalapa.",,Iztapalapa,San Miguel,San Miguel,09000,19.35,-99.05,Obras,En proceso,,
+SIN-2024-0001,05/04/2024,10:00,Reporte,Alumbrado,Luminaria,"Luminaria sin alcaldía registrada.",,,,,19.42,-99.15,Servicios,Recibido,,
+CUH-2024-0004,06/04/2024,12:00,Reporte,Seguridad vial,Choque,"Accidente vial con dos vehículos; no es una solicitud de infraestructura.",07/04/2024,Cuauhtémoc,Juárez,Juárez,06600,19.4285,-99.1532,Secretaría de Movilidad,Atendido,,
+CUH-2024-0005,07/04/2024,13:00,Reporte,Baches y pavimento,Bache,"Coordenadas inválidas en el registro.",,Cuauhtémoc,Doctores,Doctores,06720,999,-99.1483,Obras,En proceso,,
+CUH-2024-0006,,14:00,Reporte,Árboles y vegetación,Poda,"Árbol con rama en riesgo, sin fecha de solicitud.",,Cuauhtémoc,Santa María la Ribera,Santa María la Ribera,06400,19.4475,-99.1562,Medio Ambiente,Recibido,,
+CUH-2024-0007,08/04/2024,15:00,Reporte,Basura,Residuos,"Basura acumulada en la esquina.
+Segunda línea con detalle.",,Cuauhtémoc,Obrera,Obrera,06800,19.424,-99.144,Limpia,En proceso,,
+CUH-2024-0008,09/04/2024,16:00,Reporte,Semáforos,Semáforo,"Semáforo intermitente en el cruce.",10/04/2024,Cuauhtémoc,Tabacalera,Tabacalera,06030,19.428,-99.162,Semovi,Concluido,,
+CUH-2024-0001,10/04/2024,17:00,Reporte,Baches y pavimento,Bache,"Bache duplicado con contenido distinto.",,Cuauhtémoc,Roma Norte,Roma Norte,06700,19.4185,-99.1613,Obras,En proceso,,

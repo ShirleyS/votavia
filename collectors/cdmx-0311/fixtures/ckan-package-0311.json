@@ -1,0 +1,96 @@
+{
+  "help": "Local representative fixture shaped like CKAN package_show for CDMX dataset 0311. Not a live response.",
+  "success": true,
+  "result": {
+    "id": "529aac27-d1c1-426f-8c45-fd76fba43bf4",
+    "name": "0311",
+    "title": "Solicitudes *0311",
+    "license_id": "CC-BY-4.0-ESP",
+    "license_title": "Creative Commons Atribución 4.0 España",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/deed.es",
+    "metadata_modified": "2024-04-01T12:00:00.000000",
+    "organization": {
+      "name": "agencia-digital-de-innovacion-publica",
+      "title": "Agencia Digital de Innovación Pública (ADIP)"
+    },
+    "resources": [
+      {
+        "id": "84bfe107-c6b5-4c9b-8f7c-69c65cf354bc",
+        "name": "Solicitudes *0311 (2019)",
+        "format": "CSV",
+        "url": "https://archivo.datos.cdmx.gob.mx/suac/solicitudes_311_2019.csv",
+        "datastore_active": false,
+        "created": "2020-03-01T00:00:00",
+        "last_modified": "2021-06-01T00:00:00",
+        "size": 12500000,
+        "description": "Solicitudes registradas del 01 de enero de 2019 al 31 de diciembre de 2019."
+      },
+      {
+        "id": "710ec3c1-7739-436f-b76a-99c64bd69d8a",
+        "name": "Solicitudes *0311 (2020)",
+        "format": "CSV",
+        "url": "https://archivo.datos.cdmx.gob.mx/suac/solicitudes_311_2020.csv",
+        "datastore_active": false,
+        "created": "2021-03-01T00:00:00",
+        "last_modified": "2022-06-01T00:00:00",
+        "size": 13500000,
+        "description": "Solicitudes registradas del 01 de enero de 2020 al 31 de diciembre de 2020."
+      },
+      {
+        "id": "bcc682eb-ffc5-4d42-a202-2475fb006e3d",
+        "name": "Solicitudes *0311 (2021)",
+        "format": "CSV",
+        "url": "https://archivo.datos.cdmx.gob.mx/suac/solicitudes_311_2021.csv",
+        "datastore_active": false,
+        "created": "2022-03-01T00:00:00",
+        "last_modified": "2023-06-01T00:00:00",
+        "size": 14500000,
+        "description": "Solicitudes registradas del 01 de enero de 2021 al 31 de diciembre de 2021."
+      },
+      {
+        "id": "253cd343-e420-49a6-b795-1038ee4073a9",
+        "name": "Solicitudes *0311 (2022)",
+        "format": "CSV",
+        "url": "https://archivo.datos.cdmx.gob.mx/suac/solicitudes_311_2022.csv",
+        "datastore_active": true,
+        "created": "2023-03-01T00:00:00",
+        "last_modified": "2023-06-01T00:00:00",
+        "size": 15500000,
+        "description": "Solicitudes registradas del 01 de enero de 2022 al 31 de diciembre de 2022."
+      },
+      {
+        "id": "2722a030-020c-497c-bef8-a8c6188f7aaa",
+        "name": "Solicitudes *0311 (2022) — vista alternativa",
+        "format": "CSV",
+        "url": "https://archivo.datos.cdmx.gob.mx/suac/solicitudes_311_2022_alt.csv",
+        "datastore_active": false,
+        "created": "2023-04-01T00:00:00",
+        "last_modified": "2023-04-01T00:00:00",
+        "size": 15500000,
+        "description": "Vista alternativa del mismo año, conservada para probar la selección de recursos."
+      },
+      {
+        "id": "d2578dff-f4f3-4202-974c-a75ef9110f5b",
+        "name": "Solicitudes *0311 (2023)",
+        "format": "CSV",
+        "url": "https://archivo.datos.cdmx.gob.mx/suac/solicitudes_311_2023.csv",
+        "datastore_active": false,
+        "created": "2024-03-01T00:00:00",
+        "last_modified": "2024-03-01T00:00:00",
+        "size": 16500000,
+        "description": "Solicitudes registradas del 01 de enero de 2023 al 31 de diciembre de 2023."
+      },
+      {
+        "id": "44913088-806d-4f80-acca-1409a8225e9c",
+        "name": "Solicitudes *0311 (2024)",
+        "format": "CSV",
+        "url": "https://archivo.datos.cdmx.gob.mx/suac/solicitudes_311_2024.csv",
+        "datastore_active": false,
+        "created": "2024-03-01T00:00:00",
+        "last_modified": "2024-04-01T00:00:00",
+        "size": 17500000,
+        "description": "Solicitudes registradas del 01 de enero de 2024 al 31 de marzo de 2024."
+      }
+    ]
+  }
+}
