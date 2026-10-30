@@ -146,6 +146,22 @@ Simulated or unverified:
 
 ## 7. Demo script
 
+### Fastest path (no Supabase, no deploy)
+
+The app runs fully in demo mode with no configuration: data is kept in
+`.data/db.json` and every seeded record is labelled as demo. This needs no
+migrations and no hosting.
+
+```bash
+npm install
+npm run dev          # http://localhost:3000
+```
+
+Use this when time is short. The Supabase path below is only needed for a
+deployment with persistent data.
+
+### Configured path
+
 ```bash
 # 1. Configure
 cp .env.example .env.local     # fill Supabase + ElevenLabs values
