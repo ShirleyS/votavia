@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Ilustración de muestra: reparación de pavimento con maquinaria">
+  <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9e6f8"/><stop offset="1" stop-color="#f3f7fc"/></linearGradient></defs>
+  <rect width="1200" height="800" fill="url(#sky)"/>
+  <g fill="#c4d2e5"><rect x="0" y="90" width="250" height="390"/><rect x="950" y="120" width="250" height="360"/><rect x="680" y="175" width="210" height="305"/></g>
+  <g fill="#a8b9cf"><rect x="34" y="142" width="64" height="72" rx="3"/><rect x="134" y="142" width="64" height="72" rx="3"/><rect x="994" y="172" width="58" height="70" rx="3"/></g>
+  <rect y="430" width="1200" height="110" fill="#d7e0ed"/>
+  <rect y="540" width="1200" height="260" fill="#4b5769"/>
+  <path d="M330 570 L780 570 L850 760 L260 760 Z" fill="#232b38"/>
+  <path d="M360 590 L750 590 L800 720 L310 720 Z" fill="#313b4b"/>
+  <g stroke="#64748b" stroke-width="4" opacity="0.55"><path d="M0 610 H1200"/><path d="M0 700 H1200"/></g>
+  <g transform="translate(790 430)">
+    <rect x="0" y="70" width="230" height="80" rx="18" fill="#f59e0b"/>
+    <rect x="24" y="0" width="150" height="90" rx="14" fill="#fbbf24"/>
+    <rect x="44" y="18" width="64" height="48" rx="6" fill="#1e293b"/>
+    <circle cx="58" cy="164" r="34" fill="#1f2937"/><circle cx="58" cy="164" r="16" fill="#94a3b8"/>
+    <circle cx="180" cy="164" r="34" fill="#1f2937"/><circle cx="180" cy="164" r="16" fill="#94a3b8"/>
+  </g>
+  <g transform="translate(480 500)">
+    <circle cx="0" cy="0" r="27" fill="#f2c9a0"/>
+    <path d="M-30 34 H30 L44 140 H-44 Z" fill="#1453d8"/>
+    <rect x="-18" y="-34" width="36" height="22" rx="10" fill="#f59e0b"/>
+    <path d="M30 54 L96 106" stroke="#f2c9a0" stroke-width="16" stroke-linecap="round"/>
+    <path d="M96 106 L160 132" stroke="#475569" stroke-width="9" stroke-linecap="round"/>
+  </g>
+  <g fill="#f59e0b" stroke="#b45309" stroke-width="5"><path d="M180 620 L222 540 L264 620 Z"/><path d="M1010 640 L1052 560 L1094 640 Z"/></g>
+  <rect x="984" y="36" width="176" height="40" rx="20" fill="#0b1f3a" opacity="0.82"/>
+  <text x="1072" y="63" font-family="system-ui, sans-serif" font-size="20" font-weight="700" letter-spacing="2" fill="#fff" text-anchor="middle">MUESTRA</text>
+  <text x="48" y="770" font-family="system-ui, sans-serif" font-size="22" fill="#e2e8f0">Ilustración de muestra · VotaVía</text>
+</svg>
