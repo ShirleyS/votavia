@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -55,13 +55,13 @@ export function MapView() {
     });
   }, [cases, category, onlyOpen, priority, query]);
 
-  useEffect(() => {
-    if (!filtered.some((item) => item.id === selectedId)) {
-      setSelectedId(filtered[0]?.id ?? null);
-    }
-  }, [filtered, selectedId]);
+  // Derived selection: keeps the map and list in sync when filters hide the
+  // currently selected case, without a state-syncing effect.
+  const activeId = filtered.some((item) => item.id === selectedId)
+    ? selectedId
+    : (filtered[0]?.id ?? null);
 
-  const selected = cases.find((item) => item.id === selectedId) ?? null;
+  const selected = cases.find((item) => item.id === activeId) ?? null;
   const openCount = filtered.filter((item) => !["resolved", "closed"].includes(item.status)).length;
   const criticalCount = filtered.filter((item) => ["critical", "high"].includes(item.priority)).length;
   const colonias = new Set(filtered.map((item) => item.colonia)).size;
@@ -146,7 +146,7 @@ export function MapView() {
             </div>
             <CityMap
               cases={filtered}
-              activeCaseId={selectedId}
+              activeCaseId={activeId}
               onSelectCase={setSelectedId}
               showLabels
             />
@@ -165,7 +165,7 @@ export function MapView() {
                   <button
                     type="button"
                     key={item.id}
-                    className={selectedId === item.id ? "is-active" : ""}
+                    className={activeId === item.id ? "is-active" : ""}
                     onClick={() => setSelectedId(item.id)}
                   >
                     <span className={`map-queue-list__priority map-queue-list__priority--${item.priority}`} />

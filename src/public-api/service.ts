@@ -1,4 +1,4 @@
-import type { CaseCategory, CaseStatus } from "@/shared/votavia-contract";
+import type { CaseCategory } from "@/shared/votavia-contract";
 import { readPublicMetadata, type RecordOrigin } from "./contract-extensions";
 import { notFound, riskSignalsUnavailable } from "./errors";
 import { categories as categoryCatalog } from "./catalog";

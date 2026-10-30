@@ -4,7 +4,6 @@ import { DemoCaseSource } from "../adapters/demo-source";
 import { CompositeCaseSource } from "../adapters/composite-source";
 import {
   Session6OfficialCaseSource,
-  datasetInfoFromManifest,
   loadOfficialRecords,
   mapSession6Record,
   officialCaseId,

@@ -1102,7 +1102,6 @@ export class FixtureDispatchGateway implements ConsoleDispatchGateway {
   async assign(
     dispatchRequestId: string,
     specialistId: string,
-    _assignee: string,
   ): Promise<DispatchAssignment> {
     const request = this.requests.get(dispatchRequestId);
     if (!request) throw new Error("Solicitud de despacho inexistente");
@@ -1128,7 +1127,6 @@ export class FixtureDispatchGateway implements ConsoleDispatchGateway {
   async updateAssignment(
     assignmentId: string,
     status: DispatchAssignment["status"],
-    _actor: string,
   ): Promise<DispatchAssignment> {
     const assignment = this.assignments.get(assignmentId);
     if (!assignment) throw new Error("Asignación de despacho inexistente");

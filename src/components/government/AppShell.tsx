@@ -10,6 +10,7 @@ import { SessionGate } from "./SessionGate";
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  const [lastPathname, setLastPathname] = useState(pathname);
   const {
     dataSource,
     availability,
@@ -20,9 +21,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     loading,
   } = useGovernment();
 
-  useEffect(() => {
+  // Close the mobile drawer when navigation changes the route. Adjusting state
+  // during render avoids an extra commit and the effect round-trip.
+  if (pathname !== lastPathname) {
+    setLastPathname(pathname);
     setMobileOpen(false);
-  }, [pathname]);
+  }
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {

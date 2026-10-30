@@ -694,6 +694,23 @@ export function GovernmentProvider({ children }: { children: React.ReactNode }) 
     showToast({ title: "Sesión cerrada", detail: "Se cerró la sesión del núcleo.", tone: "info" });
   }, [showToast]);
 
+  // Stable service getters: consumers run them inside effects, so they must not
+  // change identity on every provider render.
+  const getDashboard = useCallback(() => governmentService.getDashboard(), []);
+  const getPreventiveSignals = useCallback(() => governmentService.getPreventiveSignals(), []);
+  const getDispatchOrder = useCallback(
+    (caseId: string) => governmentService.getDispatchOrder(caseId),
+    [],
+  );
+  const getDispatchRecommendations = useCallback(
+    (caseId: string) => governmentService.getDispatchRecommendations(caseId),
+    [],
+  );
+  const getCaseAnalysis = useCallback(
+    (caseId: string) => governmentService.getCaseAnalysis(caseId),
+    [],
+  );
+
   const value = useMemo<GovernmentContextValue>(
     () => ({
       cases,
@@ -721,12 +738,11 @@ export function GovernmentProvider({ children }: { children: React.ReactNode }) 
       advanceDispatch,
       verifyIntervention,
       publishOutcome,
-      getDashboard: () => governmentService.getDashboard(),
-      getPreventiveSignals: () => governmentService.getPreventiveSignals(),
-      getDispatchOrder: (caseId) => governmentService.getDispatchOrder(caseId),
-      getDispatchRecommendations: (caseId) =>
-        governmentService.getDispatchRecommendations(caseId),
-      getCaseAnalysis: (caseId) => governmentService.getCaseAnalysis(caseId),
+      getDashboard,
+      getPreventiveSignals,
+      getDispatchOrder,
+      getDispatchRecommendations,
+      getCaseAnalysis,
       resetMockData,
       dataSource,
       availability,
@@ -762,6 +778,11 @@ export function GovernmentProvider({ children }: { children: React.ReactNode }) 
       advanceDispatch,
       verifyIntervention,
       publishOutcome,
+      getDashboard,
+      getPreventiveSignals,
+      getDispatchOrder,
+      getDispatchRecommendations,
+      getCaseAnalysis,
       resetMockData,
       availability,
       error,

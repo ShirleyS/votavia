@@ -41,7 +41,7 @@ import type {
   GovernmentEvidenceRecord,
 } from "@/lib/government/types";
 import { useGovernment } from "./GovernmentProvider";
-import { PriorityBadge, SampleBadge, StatusBadge } from "./ui";
+import { SampleBadge, StatusBadge } from "./ui";
 
 const KIND_LABELS: Record<GovernmentEvidenceRecord["kind"], string> = {
   before: "Antes",

@@ -65,7 +65,7 @@ export function PreventiveIntelligenceView() {
         value.some((item) => item.id === current) ? current : (value[0]?.id ?? ""),
       );
     });
-  }, []);
+  }, [getPreventiveSignals]);
 
   const filtered = useMemo(
     () =>

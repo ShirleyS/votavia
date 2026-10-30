@@ -17,7 +17,6 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import {
-  CATEGORY_SHORT_LABELS,
   formatDate,
   getDepartment,
 } from "@/lib/government/display";

@@ -3,20 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
   Building2,
   CalendarClock,
-  Camera,
   Check,
   CheckCircle2,
   ChevronDown,
   CircleDot,
   ClipboardCheck,
   Clock3,
-  FileText,
   HardHat,
   Image as ImageIcon,
   Link2,
@@ -36,7 +33,6 @@ import {
   DEPARTMENTS,
   DISPATCH_LABELS,
   PRIORITY_LABELS,
-  STATUS_LABELS,
   formatDate,
   getDepartment,
   relativeTime,
@@ -96,10 +92,12 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [selectedSpecialist, setSelectedSpecialist] = useState<string | null>(null);
   const [dispatchConfirm, setDispatchConfirm] = useState(false);
-  const [selectedDepartment, setSelectedDepartment] = useState("");
+  // Form drafts are keyed to the case they were typed against, so switching
+  // cases resets them without a state-syncing effect.
+  const [departmentDraft, setDepartmentDraft] = useState<{ caseId: string; value: string } | null>(null);
   const [verifyPanel, setVerifyPanel] = useState(false);
   const [publishPanel, setPublishPanel] = useState(false);
-  const [outcomeText, setOutcomeText] = useState("");
+  const [outcomeDraft, setOutcomeDraft] = useState<{ key: string; value: string } | null>(null);
   const [previewImage, setPreviewImage] = useState<InterventionEvidence | null>(null);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
 
@@ -118,7 +116,7 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
     return () => {
       active = false;
     };
-  }, [caseId]);
+  }, [caseId, getCaseAnalysis, getDispatchOrder, getDispatchRecommendations]);
 
   useEffect(() => {
     let active = true;
@@ -128,15 +126,22 @@ export function CaseDetailView({ caseId }: { caseId: string }) {
     return () => {
       active = false;
     };
-  }, [caseId, currentCase?.updatedAt]);
+  }, [caseId, currentCase?.updatedAt, getDispatchOrder]);
 
-  useEffect(() => {
-    if (currentCase?.departmentId) setSelectedDepartment(currentCase.departmentId);
-  }, [currentCase?.departmentId]);
+  const selectedDepartment =
+    departmentDraft?.caseId === caseId
+      ? departmentDraft.value
+      : (currentCase?.departmentId ?? "");
+  const setSelectedDepartment = (value: string) => setDepartmentDraft({ caseId, value });
 
-  useEffect(() => {
-    if (currentCase) setOutcomeText(currentCase.publicOutcome ?? defaultOutcome(currentCase));
-  }, [currentCase]);
+  const outcomeKey = `${caseId}:${currentCase?.publicOutcome ?? ""}`;
+  const outcomeText =
+    outcomeDraft?.key === outcomeKey
+      ? outcomeDraft.value
+      : currentCase
+        ? (currentCase.publicOutcome ?? defaultOutcome(currentCase))
+        : "";
+  const setOutcomeText = (value: string) => setOutcomeDraft({ key: outcomeKey, value });
 
   const department = getDepartment(currentCase?.departmentId);
   const specialist = useMemo(

@@ -5,6 +5,13 @@ import nextTs from "eslint-config-next/typescript";
 export default defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    // Government evidence photos are arbitrary uploads, data URLs and blob
+    // previews; `next/image` cannot optimize them without a custom loader, and
+    // several are opened full-screen as raw originals.
+    files: ["src/components/government/**/*.tsx"],
+    rules: { "@next/next/no-img-element": "off" },
+  },
   globalIgnores([
     ".next/**",
     "node_modules/**",

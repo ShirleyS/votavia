@@ -16,7 +16,6 @@ import { teamMembers } from "@/lib/government/mock-data";
 import type { GovernmentCase } from "@/lib/government/types";
 import { useGovernment } from "./GovernmentProvider";
 import {
-  CategoryBadge,
   InitialsAvatar,
   MetricCard,
   PriorityBadge,

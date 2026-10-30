@@ -24,7 +24,6 @@ import { CategoryBars, Sparkline, TrendChart } from "./charts";
 import { CityMap } from "./CityMap";
 import {
   CATEGORY_COLORS,
-  CATEGORY_SHORT_LABELS,
   STRENGTH_LABELS,
   relativeTime,
 } from "@/lib/government/display";
@@ -32,10 +31,7 @@ import type { GovernmentDashboard } from "@/lib/government/types";
 import {
   LoadingCard,
   MetricCard,
-  PriorityBadge,
   SampleBadge,
-  SectionTitle,
-  StatusBadge,
 } from "./ui";
 
 export function DashboardView() {
@@ -53,7 +49,7 @@ export function DashboardView() {
     return () => {
       active = false;
     };
-  }, [cases]);
+  }, [cases, getDashboard]);
 
   if (loading) {
     return (

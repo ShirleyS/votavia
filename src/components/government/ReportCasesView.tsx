@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -66,25 +66,22 @@ export function ReportCasesView() {
   const params = useSearchParams();
   const { cases, loading, error, retry, dataSource } = useGovernment();
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<CaseStatus | "all">("all");
+  // Deep links from the dashboard (`?status=`, `?priority=`) seed the initial
+  // filters. Reading them in the initializer keeps this out of an effect.
+  const [status, setStatus] = useState<CaseStatus | "all">(() => {
+    const value = params.get("status");
+    return value && value in STATUS_LABELS ? (value as CaseStatus) : "all";
+  });
   const [category, setCategory] = useState<CaseCategory | "all">("all");
-  const [priority, setPriority] = useState<CasePriority | "all">("all");
+  const [priority, setPriority] = useState<CasePriority | "all">(() => {
+    const value = params.get("priority");
+    return value && value in PRIORITY_LABELS ? (value as CasePriority) : "all";
+  });
   const [colonia, setColonia] = useState<string>("all");
   const [view, setView] = useState<ViewMode>("list");
   const [sort, setSort] = useState<"recent" | "priority">("recent");
   const [selectedMapCase, setSelectedMapCase] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
-
-  useEffect(() => {
-    const initialStatus = params.get("status");
-    const initialPriority = params.get("priority");
-    if (initialStatus && initialStatus in STATUS_LABELS) {
-      setStatus(initialStatus as CaseStatus);
-    }
-    if (initialPriority && initialPriority in PRIORITY_LABELS) {
-      setPriority(initialPriority as CasePriority);
-    }
-  }, [params]);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();

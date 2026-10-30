@@ -112,14 +112,19 @@ export function DonutChart({
   centerLabel: string;
 }) {
   const total = segments.reduce((sum, segment) => sum + segment.value, 0) || 1;
-  let cursor = 0;
+  // Built with reduce so no render-scope variable is reassigned inside a
+  // callback (the React Compiler rejects that pattern).
   const gradient = segments
-    .map((segment) => {
-      const start = cursor;
-      cursor += (segment.value / total) * 100;
-      return `${segment.color} ${start}% ${cursor}%`;
-    })
-    .join(", ");
+    .reduce<{ stops: string[]; cursor: number }>(
+      (acc, segment) => {
+        const end = acc.cursor + (segment.value / total) * 100;
+        acc.stops.push(`${segment.color} ${acc.cursor}% ${end}%`);
+        acc.cursor = end;
+        return acc;
+      },
+      { stops: [], cursor: 0 },
+    )
+    .stops.join(", ");
   return (
     <div className="donut-chart">
       <div

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -83,14 +83,15 @@ export function ColoniasView() {
       });
   }, [query, sort, summaries]);
 
-  useEffect(() => {
-    if (!selected || !summaries.some((item) => item.name === selected)) {
-      setSelected(summaries[0]?.name ?? null);
-    }
-  }, [selected, summaries]);
+  // Derived selection: fall back to the first colonia when the current pick is
+  // gone (filter change, data refresh) without a state-syncing effect.
+  const activeSelection =
+    selected && summaries.some((item) => item.name === selected)
+      ? selected
+      : (summaries[0]?.name ?? null);
 
-  const selectedSummary = summaries.find((item) => item.name === selected) ?? null;
-  const selectedCases = cases.filter((item) => item.colonia === selected);
+  const selectedSummary = summaries.find((item) => item.name === activeSelection) ?? null;
+  const selectedCases = cases.filter((item) => item.colonia === activeSelection);
   const selectedCategories = useMemo<CategoryCount[]>(() => {
     const counts = new Map<GovernmentCase["category"], number>();
     selectedCases.forEach((item) => {
@@ -172,7 +173,7 @@ export function ColoniasView() {
                     {filteredSummaries.map((item) => (
                       <tr
                         key={item.name}
-                        className={selected === item.name ? "is-selected" : ""}
+                        className={activeSelection === item.name ? "is-selected" : ""}
                         onClick={() => setSelected(item.name)}
                       >
                         <td>
@@ -200,7 +201,7 @@ export function ColoniasView() {
                   <button
                     type="button"
                     key={item.name}
-                    className={selected === item.name ? "is-selected" : ""}
+                    className={activeSelection === item.name ? "is-selected" : ""}
                     onClick={() => setSelected(item.name)}
                   >
                     <div><strong>{item.name}</strong><span>{item.total} casos · {item.open} abiertos</span></div>
@@ -248,7 +249,7 @@ export function ColoniasView() {
 
           <section className="panel colonia-cases-panel">
             <div className="panel__head">
-              <div><span className="eyebrow">Expedientes</span><h2>Casos de {selected ?? "la colonia"}</h2></div>
+              <div><span className="eyebrow">Expedientes</span><h2>Casos de {activeSelection ?? "la colonia"}</h2></div>
               <span>{selectedCases.length}</span>
             </div>
             <div className="colonia-case-list">

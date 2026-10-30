@@ -18,9 +18,7 @@ import {
 import { useGovernment } from "./GovernmentProvider";
 import { CategoryBars, DonutChart, HorizontalStackedBars, TrendChart } from "./charts";
 import {
-  CATEGORY_COLORS,
   CATEGORY_LABELS,
-  CATEGORY_SHORT_LABELS,
   COLONIAS,
   formatDate,
   getDepartment,
@@ -29,7 +27,6 @@ import type {
   CaseCategory,
   CategoryCount,
   DispatchOrder,
-  GovernmentCase,
   InterventionEvidence,
 } from "@/lib/government/types";
 import {
@@ -61,7 +58,7 @@ export function ResultsView() {
     return () => {
       active = false;
     };
-  }, [cases]);
+  }, [cases, getDispatchOrder]);
 
   const filteredCases = useMemo(
     () =>
