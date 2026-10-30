@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import { useGovernment } from "./GovernmentProvider";
 import { CategoryBars, DonutChart, HorizontalStackedBars, TrendChart } from "./charts";
-import { governmentService } from "@/lib/government/mock-service";
 import {
   CATEGORY_COLORS,
   CATEGORY_LABELS,
@@ -46,7 +45,7 @@ import { mockTrend } from "@/lib/government/mock-data";
 const closedStatuses = ["resolved", "closed"];
 
 export function ResultsView() {
-  const { cases, loading } = useGovernment();
+  const { cases, loading, getDispatchOrder, error, retry } = useGovernment();
   const [orders, setOrders] = useState<DispatchOrder[]>([]);
   const [category, setCategory] = useState<CaseCategory | "all">("all");
   const [colonia, setColonia] = useState("all");
@@ -54,7 +53,7 @@ export function ResultsView() {
 
   useEffect(() => {
     let active = true;
-    void Promise.all(cases.map((item) => governmentService.getDispatchOrder(item.id))).then(
+    void Promise.all(cases.map((item) => getDispatchOrder(item.id))).then(
       (values) => {
         if (active) setOrders(values.filter((value): value is DispatchOrder => Boolean(value)));
       },
@@ -137,6 +136,17 @@ export function ResultsView() {
           <ClipboardCheck size={16} /> Revisar casos abiertos
         </Link>
       </div>
+
+      {error && cases.length === 0 ? (
+        <div className="panel permission-note" role="alert">
+          <strong>No pudimos cargar los resultados.</strong> {error}
+          <div style={{ marginTop: 8 }}>
+            <button type="button" className="button button--secondary button--small" onClick={() => void retry()}>
+              Reintentar
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="metric-grid results-metrics">
         <MetricCard

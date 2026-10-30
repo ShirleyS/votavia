@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight, Inbox, type LucideIcon } from "lucide-react";
+import { useGovernment } from "./GovernmentProvider";
 import {
   CATEGORY_COLORS,
   CATEGORY_SHORT_LABELS,
@@ -206,6 +209,10 @@ export function ProgressBar({
 }
 
 export function SampleBadge({ children = "Datos de muestra" }: { children?: React.ReactNode }) {
+  const { dataSource } = useGovernment();
+  const neutral =
+    children === "Datos de muestra" || children === "Datos ficticios";
+  if (dataSource === "core" && neutral) return null;
   return (
     <span className="sample-badge">
       <span className="sample-badge__dot" />

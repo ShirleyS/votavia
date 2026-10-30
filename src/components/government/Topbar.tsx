@@ -31,7 +31,7 @@ const routeLabels: Record<string, string> = {
 export function Topbar({ onMenu }: { onMenu: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { cases, currentUser, demoUsers, switchDemoUser } = useGovernment();
+  const { cases, currentUser, demoUsers, switchDemoUser, dataSource, availability } = useGovernment();
   const [profileOpen, setProfileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -77,6 +77,16 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
           <span>Gobierno CDMX</span>
           <i>/</i>
           <strong>{title}</strong>
+          <span
+            className={`gov-source-chip gov-source-chip--${dataSource}`}
+            title={
+              dataSource === "core"
+                ? `Datos del núcleo VotaVía · ${availability}`
+                : "Datos ficticios de demostración"
+            }
+          >
+            {dataSource === "core" ? "Núcleo" : "Demo"}
+          </span>
         </div>
       </div>
 
@@ -229,7 +239,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
             <div className="gov-command__footer">
               <span><kbd>↑</kbd><kbd>↓</kbd> para navegar</span>
               <span><kbd>↵</kbd> para abrir</span>
-              <span>Solo datos de muestra</span>
+              <span>{dataSource === "core" ? "Núcleo VotaVía" : "Solo datos de muestra"}</span>
             </div>
           </div>
         </div>

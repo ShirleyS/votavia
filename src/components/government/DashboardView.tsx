@@ -29,7 +29,6 @@ import {
   relativeTime,
 } from "@/lib/government/display";
 import type { GovernmentDashboard } from "@/lib/government/types";
-import { governmentService } from "@/lib/government/mock-service";
 import {
   LoadingCard,
   MetricCard,
@@ -41,20 +40,22 @@ import {
 
 export function DashboardView() {
   const router = useRouter();
-  const { cases, loading, currentUser } = useGovernment();
+  const { cases, loading, currentUser, getDashboard, error, retry, dataSource } = useGovernment();
   const [dashboard, setDashboard] = useState<GovernmentDashboard | null>(null);
 
   useEffect(() => {
     let active = true;
-    void governmentService.getDashboard().then((value) => {
+    void getDashboard().then((value) => {
       if (active) setDashboard(value);
+    }).catch(() => {
+      if (active) setDashboard(null);
     });
     return () => {
       active = false;
     };
   }, [cases]);
 
-  if (loading || !dashboard) {
+  if (loading) {
     return (
       <div className="page-stack">
         <div className="page-heading">
@@ -70,6 +71,26 @@ export function DashboardView() {
         <div className="overview-grid">
           <LoadingCard lines={6} />
           <LoadingCard lines={6} />
+        </div>
+      </div>
+    );
+  }
+
+  if (!dashboard) {
+    return (
+      <div className="page-stack">
+        <div className="page-heading">
+          <div>
+            <span className="eyebrow">Centro de operaciones</span>
+            <h1>Resumen de gobierno</h1>
+          </div>
+        </div>
+        <div className="empty-state empty-state--page">
+          <strong>No pudimos cargar el resumen operativo</strong>
+          <p>{error ?? "Revisa la conexión con el núcleo VotaVía e inténtalo de nuevo."}</p>
+          <button type="button" className="button button--primary" onClick={() => void retry()}>
+            Reintentar
+          </button>
         </div>
       </div>
     );
@@ -273,7 +294,7 @@ export function DashboardView() {
           <div>
             <span className="eyebrow">Inteligencia preventiva</span>
             <h2>Señales para inspección anticipada</h2>
-            <p>Concentraciones observadas en datos de muestra. No son predicciones.</p>
+            <p>{dataSource === "core" ? "Señales preventivas pendientes de contrato con el núcleo. No son predicciones." : "Concentraciones observadas en datos de muestra. No son predicciones."}</p>
           </div>
           <Link href="/gobierno/inteligencia" className="button button--secondary button--small">
             Explorar señales <ArrowRight size={15} />

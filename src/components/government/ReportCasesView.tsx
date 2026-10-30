@@ -64,7 +64,7 @@ const priorityOrder: Record<CasePriority, number> = {
 
 export function ReportCasesView() {
   const params = useSearchParams();
-  const { cases, loading } = useGovernment();
+  const { cases, loading, error, retry, dataSource } = useGovernment();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<CaseStatus | "all">("all");
   const [category, setCategory] = useState<CaseCategory | "all">("all");
@@ -234,7 +234,7 @@ export function ReportCasesView() {
       </section>
 
       <div className="inbox-sortbar">
-        <span>{filtered.length} casos · Datos de muestra</span>
+        <span>{filtered.length} casos · {dataSource === "core" ? "API del núcleo" : "Datos de muestra"}</span>
         <label>
           <ArrowDownUp size={14} />
           <select value={sort} onChange={(event) => setSort(event.target.value as "recent" | "priority")}>
@@ -244,7 +244,13 @@ export function ReportCasesView() {
         </label>
       </div>
 
-      {loading ? (
+      {error && cases.length === 0 ? (
+        <EmptyState
+          title="No pudimos cargar los casos"
+          detail={error}
+          action={<button type="button" className="button button--secondary button--small" onClick={() => void retry()}>Reintentar</button>}
+        />
+      ) : loading ? (
         <div className="case-table-skeleton" aria-label="Cargando reportes">
           {Array.from({ length: 5 }).map((_, index) => <span key={index} />)}
         </div>

@@ -78,7 +78,7 @@ const specialistPartners = [
 ];
 
 export function TeamView() {
-  const { cases, loading } = useGovernment();
+  const { cases, loading, dataSource } = useGovernment();
   const openCases = cases.filter((item) => !["resolved", "closed"].includes(item.status));
 
   const rows = profiles.map((profile) => {
@@ -141,7 +141,7 @@ export function TeamView() {
               <h2>Integrantes y carga de trabajo</h2>
               <p>Cada tarjeta combina el rol de la mesa con los casos abiertos de la muestra.</p>
             </div>
-            <span className="team-roster__stamp"><span /> Datos de muestra</span>
+            <span className="team-roster__stamp"><span /> {dataSource === "core" ? "Datos del núcleo" : "Datos de muestra"}</span>
           </div>
 
           {loading ? (
