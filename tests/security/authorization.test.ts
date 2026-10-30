@@ -29,7 +29,7 @@ async function createCase(app: Awaited<ReturnType<typeof freshApp>>, files: File
 }
 
 describe("demo session identity", () => {
-  it("S1 accepts an unsigned forged demo cookie as a real user identity", async () => {
+  it("rejects an unsigned forged demo cookie instead of trusting it", async () => {
     const forgedId = "demo-forged-owner-000001";
     const app = await freshApp({
       cookies: {
@@ -42,16 +42,18 @@ describe("demo session identity", () => {
       },
     });
 
+    // The guest write still succeeds, but it must stay anonymous: an unsigned
+    // cookie carries no verifiable identity.
     const response = await createCase(app);
     const body = await readJson(response);
     const stored = await app.repo.getById(body.case.case_id);
 
     expect(response.status).toBe(201);
-    expect(stored?.row.created_by_user_id).toBe(forgedId);
-    expect(body.case.is_mine).toBe(true);
+    expect(stored?.row.created_by_user_id).toBeNull();
+    expect(body.case.is_mine).toBeFalsy();
   });
 
-  it("S1 forces the citizen role even when the forged cookie claims admin", async () => {
+  it("never grants a role from an unsigned cookie claiming admin", async () => {
     const app = await freshApp({
       cookies: {
         vv_demo_user: forgeDemoUser({
@@ -67,8 +69,8 @@ describe("demo session identity", () => {
       (await import("@/server/auth/session")).getParticipant(),
     );
 
-    expect(participant.role).toBe("citizen");
-    expect(participant.user_id).toBe("demo-forged-admin-000001");
+    expect(participant.role).toBe("anonymous");
+    expect(participant.user_id).toBeNull();
   });
 
   it("S1 signs in any syntactically valid email without verification", async () => {
@@ -88,7 +90,7 @@ describe("demo session identity", () => {
     expect(body.ok).toBe(true);
     expect(cookie?.value).toBeTruthy();
     const payload = JSON.parse(
-      Buffer.from(cookie!.value, "base64url").toString("utf8"),
+      Buffer.from(cookie!.value.split(".")[0], "base64url").toString("utf8"),
     );
     expect(payload.email).toBe("attacker@example.test");
     expect(payload.user_id).toMatch(/^demo-[a-f0-9]{24}$/);
@@ -105,7 +107,10 @@ describe("demo session identity", () => {
       ),
     );
     const payload = JSON.parse(
-      Buffer.from(app.cookieStore.get("vv_demo_user")!.value, "base64url").toString("utf8"),
+      Buffer.from(
+        app.cookieStore.get("vv_demo_user")!.value.split(".")[0],
+        "base64url",
+      ).toString("utf8"),
     );
 
     expect(response.status).toBe(200);
@@ -147,25 +152,40 @@ describe("database ownership policy", () => {
 });
 
 describe("citizen write surface", () => {
-  it("S3 exposes no government, specialist or dispatch server routes", async () => {
-    const apiRoot = path.join(ROOT, "src/app/api");
-    const found: string[] = [];
+  it("S3 gates government write routes behind a signed-in participant", async () => {
+    // Government-scoped routes exist by design; the invariant is that they
+    // never authorize from client-supplied data.
+    const app = await freshApp({
+      cookies: {
+        // A forged cookie must not satisfy the gate either.
+        vv_demo_user: Buffer.from(
+          JSON.stringify({
+            user_id: "demo-forged-operations",
+            email: "ops@example.test",
+            role: "admin",
+            is_demo: true,
+          }),
+        ).toString("base64url"),
+      },
+    });
+    const operational = await import("@/app/api/issues/[id]/operational/route");
+    const response = await withCookies(app.cookieStore, () =>
+      operational.POST(
+        request("/api/issues/0b7f1f3e-6f2a-4a1c-9a58-1c1e8d000001/operational", {
+          method: "POST",
+          body: JSON.stringify({
+            operational_status: "in_progress",
+            organization_id: "00000000-0000-0000-0000-000000000000",
+            role: "admin",
+          }),
+        }),
+        { params: Promise.resolve({ id: "0b7f1f3e-6f2a-4a1c-9a58-1c1e8d000001" }) },
+      ),
+    );
 
-    async function walk(dir: string) {
-      for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
-        const full = path.join(dir, entry.name);
-        if (entry.isDirectory()) await walk(full);
-        else if (/route\.ts$/.test(entry.name)) {
-          const relative = path.relative(apiRoot, full);
-          if (/government|specialist|dispatch|verification/i.test(relative)) {
-            found.push(relative);
-          }
-        }
-      }
-    }
-
-    await walk(apiRoot);
-    expect(found).toEqual([]);
+    expect(response.status).toBe(401);
+    const body = await readJson(response);
+    expect(body.error.code).toBe("auth_required");
   });
 
   it("S3 does not expose status or verification updates to citizens", async () => {

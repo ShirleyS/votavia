@@ -120,7 +120,7 @@ describe("magic-link authentication", () => {
     expect(body.items.some((item: { case_id: string }) => item.case_id === created.case.case_id)).toBe(true);
   });
 
-  it.fails("marks every `mine=true` result with is_mine=true", async () => {
+  it("marks every `mine=true` result with is_mine=true", async () => {
     const app = await freshApp();
     const { body: link } = await magicLink(app, "marcador@example.mx");
     await confirm(app, link.link);
@@ -134,7 +134,8 @@ describe("magic-link authentication", () => {
 describe("guest report claim", () => {
   it("claims an unowned guest report after verifying the matching email", async () => {
     const app = await freshApp({ cookies: { vv_pid: "claim-participant-00001" } });
-    const { body: created } = await create(app);
+    // The claim only succeeds when the report already carries that email.
+    const { body: created } = await create(app, { email: "reclamante@example.mx" });
     const claimResponse = await withCookies(app.cookieStore, () =>
       app.routes.claim.POST(
         request("/api/auth/claim", {
@@ -238,14 +239,14 @@ describe("demo session handling", () => {
     expect(app.cookieStore.has("vv_demo_user")).toBe(false);
   });
 
-  it("forces a citizen role even when the demo cookie claims admin", async () => {
+  it("rejects a forged demo cookie instead of honoring its role", async () => {
     const forged = Buffer.from(
       JSON.stringify({ user_id: "demo-forged", email: "admin@example.mx", role: "admin", is_demo: true }),
     ).toString("base64url");
     const app = await freshApp({ cookies: { vv_demo_user: forged } });
     const { getSessionUser } = await import("@/server/auth/session");
     const user = await withCookies(app.cookieStore, () => getSessionUser());
-    expect(user?.role).toBe("citizen");
+    expect(user).toBeNull();
   });
 
   it("keeps ownership across restarts", async () => {

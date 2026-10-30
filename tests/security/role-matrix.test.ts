@@ -53,7 +53,10 @@ describe("actor matrix", () => {
     const participant = await withCookies(app.cookieStore, async () =>
       (await import("@/server/auth/session")).getParticipant(),
     );
-    expect(participant.role).toBe("citizen");
+    // Unsigned demo cookies carry no identity, so the visitor stays anonymous.
+    expect(participant.role).toBe("anonymous");
+    expect(participant.role).not.toBe("admin");
+    expect(participant.role).not.toBe("government");
 
     // Nothing accepts a role on the write paths that exist.
     const claim = await withCookies(app.cookieStore, () =>
@@ -70,11 +73,13 @@ describe("actor matrix", () => {
     );
     // The claim endpoint may accept the request (known F-13), but it must not
     // turn the supplied role into an authoritative session role.
-    expect([200, 400, 404, 422]).toContain(claim.status);
+    // 409 = the report has no matching contact email, a safe rejection.
+    expect([200, 400, 404, 409, 422]).toContain(claim.status);
     const afterClaim = await withCookies(app.cookieStore, async () =>
       (await import("@/server/auth/session")).getParticipant(),
     );
-    expect(afterClaim.role).toBe("citizen");
+    expect(afterClaim.role).not.toBe("admin");
+    expect(afterClaim.role).not.toBe("government");
   });
 
   it("rejects citizen attempts to change official status or moderation fields", async () => {

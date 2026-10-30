@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
@@ -13,17 +13,31 @@ import { mockCases, mockDispatchOrders } from "@votavia-government/mock-data";
 import { FIXTURE_CASE, FIXTURE_TIMELINE, uuid } from "../fixtures/cases";
 import { DUPLICATE_CANDIDATES } from "../fixtures/ai-results";
 
-const migration = readFileSync(
-  path.resolve(__dirname, "../../supabase/migrations/0001_votavia_phase1.sql"),
-  "utf8",
-);
+const MIGRATIONS_DIR = path.resolve(__dirname, "../../supabase/migrations");
+
+/** All migrations in apply order, so `alter type ... add value` is honored. */
+const migrations = readdirSync(MIGRATIONS_DIR)
+  .filter((name: string) => name.endsWith(".sql"))
+  .sort()
+  .map((name: string) => readFileSync(path.join(MIGRATIONS_DIR, name), "utf8"));
 
 function sqlEnum(name: string): string[] {
-  const match = migration.match(
-    new RegExp(`create type ${name} as enum \\(([\\s\\S]*?)\\);`, "i"),
-  );
-  if (!match) throw new Error(`missing SQL enum ${name}`);
-  return [...match[1].matchAll(/'([^']+)'/g)].map((entry) => entry[1]);
+  const base = migrations
+    .map((sql: string) =>
+      sql.match(new RegExp(`create type ${name} as enum \\(([\\s\\S]*?)\\);`, "i")),
+    )
+    .find(Boolean);
+  if (!base) throw new Error(`missing SQL enum ${name}`);
+  const values = [...base[1].matchAll(/'([^']+)'/g)].map((entry) => entry[1]);
+  for (const sql of migrations) {
+    const additions = sql.matchAll(
+      new RegExp(`alter type ${name} add value if not exists '([^']+)'`, "gi"),
+    );
+    for (const [, value] of additions) {
+      if (!values.includes(value)) values.push(value);
+    }
+  }
+  return values;
 }
 
 const UUID_PATTERN =

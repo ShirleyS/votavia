@@ -132,6 +132,7 @@ export const CASE_EVENT_TYPES = [
   "community_verification",
   "official_record_linked",
   "support_removed",
+  "evidence_uploaded",
 ] as const;
 
 export type CaseEventType = (typeof CASE_EVENT_TYPES)[number];

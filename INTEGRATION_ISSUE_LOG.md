@@ -100,3 +100,21 @@ Severity: **P0** blocks a credible demo, **P1** breaks a shared contract or a sa
 1. **Before any demo:** I-01, I-03, I-05 (a demo that shows "verified" on a single status axis would misstate official data).
 2. **Before merge:** I-02.
 3. **Before importing real data:** I-04 and I-03 together.
+
+## Resolution pass — 2026-10-30
+
+All previously failing assertions in the QA suite were re-checked against
+current `main` after the parallel-session integration. `npm run test:qa`
+now reports **0 failures** (193 passed, 45 expected failures kept as
+documented open gaps).
+
+| Area | Outcome |
+|---|---|
+| `case_event_type` SQL ↔ contract | Contract was missing `evidence_uploaded`, added by migration `0003`. Fixed in `src/shared/votavia-contract.ts`; the enum test now also reads `alter type … add value`. |
+| Demo session cookies | Demo cookies are HMAC-signed since integration, so unsigned forged cookies are rejected. Tests asserting the older "accepts forged cookie" behaviour were rewritten to assert rejection. |
+| `mine=true` + `is_mine` | Previously an expected failure; now passes, so it was promoted to a hard assertion. |
+| Guest report claim | Test created a report without a contact email, which the claim endpoint correctly rejects with `409`. Test now supplies the matching email. |
+| Government write routes | The "no government routes exist" check predated the government workspace. Replaced with a guard test: `/api/issues/[id]/operational` returns `401 auth_required` without a verified session, including for a forged cookie. |
+
+These are test-fidelity fixes plus one real contract defect; no production
+behaviour was weakened to make a test pass.

@@ -42,6 +42,11 @@ const EVENT_META: Record<
     label: "Registro oficial vinculado",
   },
   support_removed: { icon: ThumbsUp, tone: "bg-slate-100 text-slate-700", label: "Apoyo retirado" },
+  evidence_uploaded: {
+    icon: FileCheck2,
+    tone: "bg-teal-50 text-teal-800",
+    label: "Evidencia subida",
+  },
 };
 
 const ACTOR_LABEL: Record<string, string> = {
