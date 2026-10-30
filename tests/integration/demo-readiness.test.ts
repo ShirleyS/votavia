@@ -28,6 +28,7 @@ import { __resetRateLimit } from "@/public-api/rate-limit";
 import {
   casePayload,
   freshApp,
+  makeImage,
   multipartBody,
   readJson,
   request,
@@ -43,6 +44,11 @@ function fileExists(relative: string) {
     .stat(path.join(ROOT, relative))
     .then(() => true)
     .catch(() => false);
+}
+
+async function signIn(app: App, userId: string, email: string) {
+  const { encodeDemoUser } = await import("@/server/auth/demo-auth");
+  app.cookieStore.set("vv_demo_user", await encodeDemoUser({ user_id: userId, email }));
 }
 
 async function submitReport(app: App, overrides: Record<string, unknown> = {}) {
@@ -120,18 +126,117 @@ describe("demo walkthrough (fixtures only)", () => {
     expect(stored?.support_count).toBe(3);
   });
 
-  it.fails("stage 5 — a government operator records an intervention with evidence", async () => {
-    // @ts-expect-error - module intentionally absent; this check is expected to fail.
-    const route = await import("@/app/api/government/cases/[id]/intervention/route").catch(
-      () => null,
+  it("stage 5 — a government operator records an intervention with evidence", async () => {
+    const app = await freshApp({ cookies: { vv_pid: "demo-gov-00000001" } });
+    const created = await submitReport(app);
+    const caseId = created.body.case.case_id as string;
+    const stored = await app.service.getCase(caseId);
+    const issueId = stored!.issue_id!;
+
+    // Fixture organization: the seeded demo org id is not a UUID (see I-20).
+    const org = await app.repo.ensureOrganization({
+      slug: "alcaldia-cuauhtemoc-smoke",
+      name: "Alcaldía Cuauhtémoc (fixture)",
+      kind: "alcaldia",
+    });
+    await app.repo.upsertOrganizationMember({
+      organizationId: org.id,
+      userId: "demo-gov-operator-0001",
+      role: "responder",
+    });
+    await signIn(app, "demo-gov-operator-0001", "operador@cuauhtemoc.gob.mx");
+
+    const operational = await import("@/app/api/issues/[id]/operational/route");
+    const update = await withCookies(app.cookieStore, () =>
+      operational.POST(
+        request(`/api/issues/${issueId}/operational`, {
+          method: "POST",
+          body: JSON.stringify({
+            operational_status: "in_progress",
+            organization_id: org.id,
+            note: "Cuadrilla asignada a la colonia",
+          }),
+        }),
+        { params: Promise.resolve({ id: issueId }) },
+      ),
     );
-    expect(route).not.toBeNull();
+    expect(update.status).toBe(200);
+
+    const evidenceRoute = await import("@/app/api/issues/[id]/evidence/route");
+    const form = new FormData();
+    form.set(
+      "payload",
+      JSON.stringify({ kind: "government_intervention", caption: "Trabajo en curso" }),
+    );
+    form.set("organization_id", org.id);
+    form.set("photo", makeImage());
+    const upload = await withCookies(app.cookieStore, () =>
+      evidenceRoute.POST(
+        request(`/api/issues/${issueId}/evidence`, { method: "POST", body: form }),
+        { params: Promise.resolve({ id: issueId }) },
+      ),
+    );
+    expect(upload.status).toBe(201);
+
+    const issue = await app.service.getIssue(issueId);
+    expect(issue?.operational_status).toBe("in_progress");
+    expect(issue?.organization_id).toBe(org.id);
+    expect(issue?.community_verification_status).toBe("unreviewed");
+    const evidence = await app.service.listEvidence(issueId);
+    expect(evidence.map((item) => item.kind)).toContain("government_intervention");
   });
 
-  it.fails("stage 6 — a citizen verifies the fix, separately from the official status", async () => {
-    // @ts-expect-error - module intentionally absent; this check is expected to fail.
-    const route = await import("@/app/api/cases/[id]/verification/route").catch(() => null);
-    expect(route).not.toBeNull();
+  it("stage 6 — a citizen verifies the fix, separately from the official status", async () => {
+    const app = await freshApp({ cookies: { vv_pid: "demo-citizen-0000002" } });
+    const created = await submitReport(app);
+    const caseId = created.body.case.case_id as string;
+    const stored = await app.service.getCase(caseId);
+    const issueId = stored!.issue_id!;
+
+    const org = await app.repo.ensureOrganization({
+      slug: "alcaldia-cuauhtemoc-smoke",
+      name: "Alcaldía Cuauhtémoc (fixture)",
+      kind: "alcaldia",
+    });
+    await app.repo.upsertOrganizationMember({
+      organizationId: org.id,
+      userId: "demo-gov-operator-0002",
+      role: "responder",
+    });
+    await signIn(app, "demo-gov-operator-0002", "operador@cuauhtemoc.gob.mx");
+    const beforeVerification = await app.service.getIssue(issueId);
+
+    // The operator claims completion through the operational channel.
+    await app.service.recordOperationalUpdate(issueId, {
+      operationalStatus: "completed",
+      organizationId: org.id,
+      note: "Trabajo terminado",
+      participant: {
+        participant_key: "demo-gov-00000002",
+        user_id: "demo-gov-operator-0002",
+        role: "government",
+      },
+    });
+
+    // A citizen verdict is the only thing that can claim community resolution.
+    await signIn(app, "demo-citizen-0000002", "vecina@example.test");
+    const verification = await import("@/app/api/issues/[id]/verification/route");
+    const response = await withCookies(app.cookieStore, () =>
+      verification.POST(
+        request(`/api/issues/${issueId}/verification`, {
+          method: "POST",
+          body: JSON.stringify({ verdict: "verified_resolved", note: "Ya no está el bache" }),
+        }),
+        { params: Promise.resolve({ id: issueId }) },
+      ),
+    );
+    expect(response.status).toBe(201);
+
+    const after = await app.service.getIssue(issueId);
+    expect(after?.operational_status).toBe("completed");
+    expect(after?.community_verification_status).toBe("verified_resolved");
+    // Community verification never rewrites the external SUAC status.
+    expect(after?.external_status).toBe(beforeVerification?.external_status ?? null);
   });
 
   it("stage 7 — the published case reaches the public API with the same identifiers", async () => {
