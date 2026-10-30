@@ -95,7 +95,13 @@ export async function POST(request: NextRequest) {
       participant,
     );
 
-    return jsonOk({ case: created }, { status: 201 });
+    // Advisory AI pass. `analyzeCase` never throws and the engine falls back
+    // deterministically, so reporting works with no model key or on outage.
+    const analysis = await getCaseService().analyzeCase(created.case_id, participant).catch(
+      () => null,
+    );
+
+    return jsonOk({ case: created, analysis }, { status: 201 });
   } catch (error) {
     return handleError(error);
   }

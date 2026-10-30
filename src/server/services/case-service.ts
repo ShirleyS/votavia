@@ -12,6 +12,10 @@ import {
   type IssueDetail,
   type IssueFilters,
   type IssueSupportResult,
+  type CaseAnalysis,
+  type DraftAnalysisRequest,
+  type DraftAnalysisResponse,
+  type UpdateCaseInput,
   type OperationalUpdateInput,
   type RecordVerificationInput,
   type OfficialRecord,
@@ -38,6 +42,12 @@ import type {
 import type { CaseRepository } from "@/server/repositories/repository";
 import { distanceMeters } from "@/lib/utils";
 import { hasOrganizationRole } from "@/server/auth/roles";
+import {
+  analyzeDraft,
+  analyzePersistedCase,
+  storedAnalysisToPayload,
+  type CaseAnalysisPayload,
+} from "@/server/services/case-analysis";
 import { STATUS_META } from "@/lib/taxonomy";
 
 const DEFAULT_PAGE_SIZE = 12;
@@ -617,6 +627,167 @@ export class CaseService implements CivicPlatformService {
     const detail = await this.getIssue(aggregate.row.id, input.participant);
     if (!detail) throw Object.assign(new Error("Issue no encontrado"), { status: 404 });
     return detail;
+  }
+
+  /* ---------------- reporter-owned management ---------------- */
+
+  /**
+   * Ownership rule: the signed-in user must own the report (or hold an
+   * elevated role). An anonymous visitor can never edit anything, even while
+   * holding the same participant cookie they used to submit.
+   */
+  private async assertCanManage(
+    aggregate: CaseAggregate,
+    participant: ParticipantContext,
+  ): Promise<void> {
+    const ownership = await this.repo.ownership(aggregate.row.id);
+    const elevated = participant.role === "admin" || participant.role === "government";
+    // Guest submissions are claimed by email before they can be managed;
+    // the participant cookie alone never grants edit rights.
+    const sameUser =
+      Boolean(participant.user_id) &&
+      ownership?.created_by_user_id != null &&
+      ownership.created_by_user_id === participant.user_id;
+
+    if (!elevated && !sameUser) {
+      throw Object.assign(
+        new Error("Solo quien reportó puede modificar este reporte."),
+        { status: 403 },
+      );
+    }
+  }
+
+  async updateCase(caseId: string, input: UpdateCaseInput): Promise<Case> {
+    const aggregate = await this.repo.getById(caseId, input.participant.participant_key);
+    if (!aggregate) throw Object.assign(new Error("Caso no encontrado"), { status: 404 });
+    await this.assertCanManage(aggregate, input.participant);
+
+    const editable: CaseAggregate["row"]["status"][] = ["reported", "under_review"];
+    if (!editable.includes(aggregate.row.status) && input.participant.role !== "admin") {
+      throw Object.assign(
+        new Error(
+          "Este reporte ya está en atención. Agrega una observación en lugar de editarlo.",
+        ),
+        { status: 409 },
+      );
+    }
+
+    const updated = await this.repo.updateCase(aggregate.row.id, {
+      title: input.title,
+      description: input.description,
+      category: input.category,
+      address_hint: input.address_hint,
+    });
+    if (!updated) throw Object.assign(new Error("Caso no encontrado"), { status: 404 });
+
+    if (aggregate.row.issue_id) {
+      await this.repo.appendEvent({
+        caseId: aggregate.row.id,
+        issueId: aggregate.row.issue_id,
+        type: "report_updated",
+        actorType: "citizen",
+        actorUserId: input.participant.user_id,
+        organizationId: null,
+        title: "El reporte se actualizó",
+        description: "Quien reportó actualizó la información del caso.",
+        isPublic: true,
+      });
+    }
+
+    return this.enrichWithIssue(toCase(updated, input.participant), input.participant);
+  }
+
+  /**
+   * Withdrawing keeps the record: it closes the report and records why. Citizen
+   * data is not deleted, so counts and audit history stay honest.
+   */
+  async withdrawCase(caseId: string, participant: ParticipantContext): Promise<Case> {
+    const aggregate = await this.repo.getById(caseId, participant.participant_key);
+    if (!aggregate) throw Object.assign(new Error("Caso no encontrado"), { status: 404 });
+    await this.assertCanManage(aggregate, participant);
+
+    if (aggregate.row.status === "closed") {
+      return this.enrichWithIssue(toCase(aggregate, participant), participant);
+    }
+
+    // A withdrawal is not a resolution: keep `resolved_at` empty.
+    await this.repo.setStatus(aggregate.row.id, "closed", null);
+    if (aggregate.row.issue_id) {
+      await this.repo.updateIssue({
+        issueId: aggregate.row.issue_id,
+        operationalStatus: "cancelled",
+      });
+      await this.repo.appendEvent({
+        caseId: aggregate.row.id,
+        issueId: aggregate.row.issue_id,
+        type: "report_withdrawn",
+        actorType: "citizen",
+        actorUserId: participant.user_id,
+        organizationId: null,
+        title: "El reporte se retiró",
+        description: "Quien reportó retiró el reporte.",
+        isPublic: true,
+      });
+    }
+
+    const refreshed = await this.repo.getById(aggregate.row.id, participant.participant_key);
+    return this.enrichWithIssue(
+      toCase(refreshed ?? aggregate, participant),
+      participant,
+    );
+  }
+
+  /* ---------------- advisory AI ---------------- */
+
+  async analyzeCase(
+    caseId: string,
+    participant?: ParticipantContext,
+  ): Promise<CaseAnalysis | null> {
+    const item = await this.getCase(caseId, participant);
+    if (!item) throw Object.assign(new Error("Caso no encontrado"), { status: 404 });
+    const payload = await analyzePersistedCase(this.repo, item);
+    return payload ? { analysis: payload.analysis, extras: payload.extras } : null;
+  }
+
+  async getCaseAnalysis(caseId: string): Promise<CaseAnalysis | null> {
+    const row = await this.repo.analysisForCase(caseId);
+    const payload: CaseAnalysisPayload | null = storedAnalysisToPayload(row);
+    return payload ? { analysis: payload.analysis, extras: payload.extras } : null;
+  }
+
+  async analyzeDraft(request: DraftAnalysisRequest): Promise<DraftAnalysisResponse | null> {
+    const result = await analyzeDraft(this.repo, request);
+    if (!result) return null;
+
+    const byId = new Map(result.candidates.map((candidate) => [candidate.case_id, candidate]));
+    const duplicates = (result.duplicates?.matches ?? [])
+      .filter((match) => match.relationship !== "different_problem")
+      .map((match) => {
+        const candidate = byId.get(match.case_id);
+        return {
+          case_id: match.case_id,
+          display_id: candidate?.case_id ?? match.case_id,
+          title: candidate?.title ?? "Reporte cercano",
+          category: candidate?.category ?? request.category ?? "other",
+          status: candidate?.status ?? "reported",
+          distance_meters: match.distance_meters ?? 0,
+          score: match.confidence ?? 0.5,
+          reason: match.explanation,
+          relationship: match.relationship,
+        };
+      });
+
+    return {
+      suggested_category: result.classification.suggested_category,
+      suggested_title: result.classification.suggested_title,
+      summary: result.classification.normalized_summary,
+      severity: result.classification.severity,
+      confidence: result.classification.confidence,
+      needs_more_information: result.classification.needs_more_information,
+      missing_information: result.classification.missing_information,
+      is_fallback: result.classification.fallback,
+      duplicates,
+    };
   }
 
   async supportCase(id: string, participant: ParticipantContext): Promise<CommunitySupport> {

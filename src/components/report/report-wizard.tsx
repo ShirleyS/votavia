@@ -98,26 +98,26 @@ export function ReportWizard({
     };
   }, [previews]);
 
+  // Deterministic nearby lookup: the dependable baseline, always available.
   useEffect(() => {
-    if (!picked || !category) return;
+    if (!picked) return;
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
-      setChecking(true);
       try {
         const params = new URLSearchParams({
           lat: String(picked.latitude),
           lng: String(picked.longitude),
-          category,
           radius: "350",
         });
-        const response = await fetch(`/api/cases/nearby?${params}`, { signal: controller.signal });
+        if (category) params.set("category", category);
+        const response = await fetch(`/api/cases/nearby?${params}`, {
+          signal: controller.signal,
+        });
         if (!response.ok) throw new Error("nearby");
         const data = (await response.json()) as { results?: RelatedReport[] };
-        setNearby(data.results ?? []);
+        if (!controller.signal.aborted) setNearby(data.results ?? []);
       } catch {
-        if (!controller.signal.aborted) setNearby([]);
-      } finally {
-        if (!controller.signal.aborted) setChecking(false);
+        // Keep whatever we already have; the wizard stays usable.
       }
     }, 250);
     return () => {
@@ -125,6 +125,74 @@ export function ReportWizard({
       window.clearTimeout(timer);
     };
   }, [picked, category]);
+
+  // Advisory AI pass. Optional: on any failure we silently keep the
+  // deterministic nearby results and reporting continues normally.
+  useEffect(() => {
+    if (!picked || !category) return;
+    if (description.trim().length < 10) return;
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setChecking(true);
+      try {
+        const response = await fetch("/api/cases/duplicates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            description: description.trim(),
+            title: title.trim() || null,
+            category,
+            latitude: picked.latitude,
+            longitude: picked.longitude,
+            colonia: colonia || null,
+          }),
+        });
+        if (!response.ok) throw new Error("analysis");
+        const data = (await response.json()) as {
+          analysis?: {
+            duplicates?: Array<{
+              case_id: string;
+              title: string;
+              distance_meters: number;
+              reason: string;
+            }>;
+          } | null;
+        };
+        const duplicates = data.analysis?.duplicates ?? [];
+        if (controller.signal.aborted || !duplicates.length) return;
+
+        setNearby((current) => {
+          const known = new Set(current.map((entry) => entry.case_id));
+          return current.map((entry) => {
+            const match = duplicates.find((item) => item.case_id === entry.case_id);
+            return match ? { ...entry, ...match } : entry;
+          }).concat(
+            duplicates
+              .filter((item) => !known.has(item.case_id))
+              .map((item) => ({
+                case_id: item.case_id,
+                display_id: item.case_id.slice(0, 8),
+                title: item.title,
+                category,
+                status: "reported" as const,
+                support_count: 0,
+                distance_meters: item.distance_meters,
+                created_at: new Date().toISOString(),
+              })),
+          );
+        });
+      } catch {
+        // Ignore: AI is advisory and must never block reporting.
+      } finally {
+        if (!controller.signal.aborted) setChecking(false);
+      }
+    }, 700);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [picked, category, description, title, colonia]);
 
   const nearbyResults = picked && category ? nearby : [];
   const mapCases: MapCase[] = nearbyResults.flatMap((item) =>
