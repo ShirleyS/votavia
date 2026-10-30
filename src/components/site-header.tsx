@@ -9,15 +9,30 @@ import { DemoSeedButton } from "@/components/demo-seed-button";
 import { buttonStyles } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const NAV: { href: string; label: string; wideOnly?: boolean }[] = [
-  { href: "/explorar", label: "Explorar" },
-  { href: "/#prioridades", label: "Prioridades" },
-  { href: "/reportar", label: "Reportar" },
-  { href: "/resultados", label: "Resultados" },
-  { href: "/#como-funciona", label: "Cómo funciona", wideOnly: true },
-  { href: "/gobierno", label: "Para gobierno" },
-  { href: "/desarrolladores", label: "API", wideOnly: true },
+/**
+ * When each link appears in the desktop bar.
+ *
+ * The bar has to fit the wordmark, the actions and the account chip as well as
+ * these links, so they are revealed in stages. Adding a link without a stage
+ * makes every label wrap onto two lines and collides with the actions.
+ */
+type NavStage = "base" | "xl" | "2xl";
+
+const NAV: { href: string; label: string; stage: NavStage }[] = [
+  { href: "/explorar", label: "Explorar", stage: "base" },
+  { href: "/reportar", label: "Reportar", stage: "base" },
+  { href: "/resultados", label: "Resultados", stage: "base" },
+  { href: "/#prioridades", label: "Prioridades", stage: "xl" },
+  { href: "/gobierno", label: "Para gobierno", stage: "xl" },
+  { href: "/#como-funciona", label: "Cómo funciona", stage: "2xl" },
+  { href: "/desarrolladores", label: "API", stage: "2xl" },
 ];
+
+const STAGE_VISIBILITY: Record<NavStage, string> = {
+  base: "",
+  xl: "hidden xl:inline-flex",
+  "2xl": "hidden 2xl:inline-flex",
+};
 
 export function SiteHeader({
   email,
@@ -47,21 +62,21 @@ export function SiteHeader({
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-white">
-      <div className="container-page flex h-[76px] items-center justify-between gap-6">
-        <div className="flex min-w-0 items-center gap-4 xl:gap-6">
+      <div className="mx-auto flex h-[76px] w-full max-w-[92rem] items-center justify-between gap-4 px-4 md:px-6 xl:gap-6">
+        <div className="flex min-w-0 items-center gap-3 xl:gap-5">
           <Link href="/" aria-label="VotaVía, ir al inicio" className="shrink-0">
             <Logo />
           </Link>
 
-          <nav aria-label="Navegación principal" className="hidden items-center gap-1 lg:flex">
+          <nav aria-label="Navegación principal" className="hidden items-center gap-0.5 lg:flex">
             {NAV.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 aria-current={isActive(item.href) ? "page" : undefined}
                 className={cn(
-                  "relative rounded-md px-3 py-2 text-[13px] font-semibold transition-colors xl:px-3.5 xl:text-[14px]",
-                  item.wideOnly && "hidden xl:inline-flex",
+                  "relative whitespace-nowrap rounded-md px-2.5 py-2 text-[13px] font-semibold transition-colors xl:px-3 xl:text-[14px]",
+                  STAGE_VISIBILITY[item.stage],
                   isActive(item.href)
                     ? "text-[#1D4FD8] underline decoration-[2.5px] underline-offset-[9px]"
                     : "text-navy-700 hover:bg-navy-50 hover:text-navy-900",
@@ -73,10 +88,10 @@ export function SiteHeader({
           </nav>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Link
             href="/explorar#buscar"
-            className="hidden h-10 w-10 items-center justify-center rounded-full text-navy-700 hover:bg-navy-50 sm:inline-flex"
+            className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full text-navy-700 hover:bg-navy-50 xl:inline-flex"
             aria-label="Buscar reportes"
           >
             <Search className="h-5 w-5" aria-hidden />
@@ -106,7 +121,7 @@ export function SiteHeader({
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-royal-50 text-royal-700">
                   <UserRound className="h-4 w-4" aria-hidden />
                 </span>
-                <span className="hidden max-w-[10rem] truncate md:block">{email}</span>
+                <span className="hidden max-w-[9rem] truncate whitespace-nowrap xl:block">{email}</span>
                 <ChevronDown className="h-4 w-4 text-navy-500" aria-hidden />
               </button>
               {menu ? (
