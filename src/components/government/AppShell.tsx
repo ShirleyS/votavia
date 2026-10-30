@@ -13,11 +13,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [lastPathname, setLastPathname] = useState(pathname);
   const {
     dataSource,
-    availability,
     error,
     authenticated,
     retry,
-    pendingContracts,
     loading,
   } = useGovernment();
 
@@ -46,11 +44,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Topbar onMenu={() => setMobileOpen(true)} />
         <ServiceBanner
           dataSource={dataSource}
-          availability={availability}
           error={error}
           authenticated={authenticated}
           loading={loading}
-          pendingContracts={pendingContracts}
           onRetry={() => void retry()}
         />
         <main className="gov-content">
@@ -63,19 +59,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 function ServiceBanner({
   dataSource,
-  availability,
   error,
   authenticated,
   loading,
-  pendingContracts,
   onRetry,
 }: {
   dataSource: "demo" | "core";
-  availability: string;
   error: string | null;
   authenticated: boolean;
   loading: boolean;
-  pendingContracts: { id: string; label: string; detail: string }[];
   onRetry: () => void;
 }) {
   if (dataSource === "demo") return null;
@@ -105,17 +97,5 @@ function ServiceBanner({
     );
   }
 
-  return (
-    <div className="gov-service-banner gov-service-banner--info" role="status">
-      <strong>Fuente: núcleo VotaVía (Session 1)</strong>
-      <span>
-        Estado operativo: {availability === "core" ? "conectado" : availability}.
-        {pendingContracts.length > 0
-          ? ` ${pendingContracts.length} contratos pendientes: ${pendingContracts
-              .map((item) => item.label)
-              .join(", ")}.`
-          : " Asignación, disputas, publicación, bitácora y despacho operan contra el núcleo."}
-      </span>
-    </div>
-  );
+  return null;
 }
