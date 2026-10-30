@@ -22,7 +22,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       operationalStatus: body.operational_status,
       organizationId: body.organization_id,
       note: body.note ?? null,
-      externalStatus: body.external_status ?? undefined,
       participant,
     });
     return jsonOk({ issue });

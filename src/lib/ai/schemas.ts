@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { CASE_CATEGORIES } from "@/shared/votavia-contract";
+import { REPORT_SOURCES } from "./types";
 
 /**
  * Zod schemas for MODEL OUTPUT and imported datasets.
@@ -59,6 +61,127 @@ export const issueLinkModelSchema = z.object({
 });
 
 export type IssueLinkModelOutput = z.infer<typeof issueLinkModelSchema>;
+
+/* -------------------------------------------------------------------------- */
+/* Report-processing envelope                                                 */
+/* -------------------------------------------------------------------------- */
+
+const severitySchema = z.enum(["low", "medium", "high", "critical"]);
+const relationshipSchema = z.enum([
+  "same_problem",
+  "related_problem",
+  "different_problem",
+  "uncertain",
+]);
+const categoryMethodSchema = z.enum([
+  "explicit",
+  "alias",
+  "keyword",
+  "model",
+  "fallback",
+  "none",
+]);
+
+const priorityFactorCodeSchema = z.enum([
+  "safety_severity",
+  "independent_reports",
+  "unique_supporters",
+  "duration_unresolved",
+  "geographic_concentration",
+  "available_evidence",
+  "historical_context",
+]);
+
+export const prioritySuggestionSchema = z.object({
+  level: z.enum(["low", "medium", "high", "urgent"]),
+  score: z.number().min(0).max(100),
+  factors: z
+    .array(
+      z.object({
+        code: priorityFactorCodeSchema,
+        label: z.string().min(1).max(160),
+        weight: z.number().min(0).max(1),
+        value: z.number().min(0).max(1),
+        contribution: z.number().min(0).max(100),
+        evidence: z.string().min(1).max(400),
+      }),
+    )
+    .max(10),
+  explanation: z.string().min(1).max(600),
+  supporters_only: z.boolean(),
+  confidence_label: z.literal("heuristic"),
+  model_generated: z.boolean(),
+  is_verified: z.literal(false),
+  requires_human_review: z.literal(true),
+});
+
+/**
+ * Validates the report-processing envelope before it leaves the server.
+ * The model never produces this shape directly: the facade composes it from
+ * validated model output plus deterministic heuristics.
+ */
+export const reportProcessingResultSchema = z.object({
+  api_version: z.literal("v1"),
+  case_id: z.string().min(1).max(160).nullable(),
+  source: z.enum(REPORT_SOURCES),
+  original_text: z.string().max(20_000),
+  original_category: z.string().max(120).nullable(),
+  classification: z.object({
+    suggested_category: z.enum(CASE_CATEGORIES),
+    category_method: categoryMethodSchema,
+    category_note: z.string().max(600).nullable(),
+    title: z.string().min(1).max(160),
+    summary: z.string().min(1).max(1_200),
+    severity: severitySchema,
+    severity_rationale: z.string().max(400).nullable(),
+    confidence: z.number().min(0).max(1),
+    explanation: z.string().max(800),
+    needs_more_information: z.boolean(),
+    missing_information: z.array(z.string().max(300)).max(10),
+    safety_concerns: z.array(z.string().max(400)).max(8),
+    accessibility_considerations: z.array(z.string().max(400)).max(8),
+  }),
+  priority: prioritySuggestionSchema,
+  responsible_area: z.object({
+    suggested_department: z.string().max(200).nullable(),
+    required_specialist_skill: z.string().max(200).nullable(),
+    advisory: z.literal(true),
+    assigned: z.literal(false),
+    note: z.string().min(1).max(400),
+  }),
+  duplicate_suggestions: z
+    .array(
+      z.object({
+        candidate_issue_id: z.string().min(1).max(160),
+        candidate_case_ids: z.array(z.string().min(1).max(160)).max(20),
+        relationship: relationshipSchema,
+        confidence: z.number().min(0).max(1),
+        explanation: z.string().max(800),
+        evidence: z.array(z.string().max(300)).max(5),
+        distance_meters: z.number().min(0).nullable(),
+        auto_merge: z.literal(false),
+      }),
+    )
+    .max(10),
+  candidate_issue_ids: z.array(z.string().min(1).max(160)).max(10),
+  candidate_case_ids: z.array(z.string().min(1).max(160)).max(60),
+  issue_link_summary: z.object({
+    evaluated_candidates: z.number().int().min(0),
+    shortlisted_count: z.number().int().min(0),
+    comparison_method: z.enum(["model", "deterministic"]),
+  }),
+  auto_merge: z.literal(false),
+  requires_human_review: z.literal(true),
+  submission_allowed: z.literal(true),
+  ai_available: z.boolean(),
+  fallback: z.boolean(),
+  degraded_reasons: z.array(z.string().max(120)).max(10),
+  model: z.string().min(1).max(160),
+  analysis_version: z.string().min(1).max(60),
+  analyzed_at: z.string().min(1).max(60),
+});
+
+export type ReportProcessingResultOutput = z.infer<typeof reportProcessingResultSchema>;
 
 export const caseBriefModelSchema = z.object({
   summary: shortText(2_000).nullish(),

@@ -5,6 +5,8 @@
  * persisted. Never import this module from client components.
  */
 export { classifyReport } from "./services/classify-report";
+export { fallbackClassification } from "./services/classify-report";
+export { processReport } from "./services/process-report";
 export { findDuplicateReports } from "./services/find-duplicates";
 export type { FindDuplicatesOptions } from "./services/find-duplicates";
 export {
@@ -36,10 +38,13 @@ export {
   caseToReportInput,
   caseToDuplicateCandidate,
   caseToIssueLinkCandidate,
+  issueToReportLinkCandidate,
   governmentRecordToReportInput,
   toAIAnalysisResult,
   toAIAnalysisResultV2,
+  toReportProcessingSharedView,
   type ImportedGovernmentRecord,
+  type IssueLike,
   type AIAnalysisResultV2,
   type AIAnalysisExtras,
 } from "./adapters/case-repository";
@@ -50,5 +55,12 @@ export {
   historicalToPreventiveRecord,
 } from "./adapters/historical-data";
 export { normalizeCategory, analysisKey } from "./utils/validation";
-export { AI_ANALYSIS_VERSION, AI_LIMITS } from "./types";
+export { reportProcessingResultSchema } from "./schemas";
+export type { ReportProcessingResultOutput } from "./schemas";
+export {
+  AI_ANALYSIS_VERSION,
+  AI_LIMITS,
+  REPORT_PROCESSING_API_VERSION,
+  REPORT_PROCESSING_TIMEOUT_MS,
+} from "./types";
 export type * from "./types";

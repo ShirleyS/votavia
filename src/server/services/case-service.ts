@@ -598,7 +598,8 @@ export class CaseService implements CivicPlatformService {
     await this.repo.updateIssue({
       issueId: aggregate.row.id,
       operationalStatus: input.operationalStatus,
-      externalStatus: input.externalStatus,
+      // externalStatus intentionally not written here: the official source
+      // status may only change through the import path.
       resolvedAt: completed ? new Date().toISOString() : undefined,
       organizationId: input.organizationId,
     });

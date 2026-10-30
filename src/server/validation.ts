@@ -106,11 +106,16 @@ export const evidenceSchema = z.object({
   case_id: z.string().uuid().optional().nullable(),
 });
 
+/**
+ * Operator update. Deliberately has no `external_status` field: the official
+ * source status is owned by the import path (see OfficialRecordIngestInput),
+ * never by a VotaVía operator. `z.object` strips unknown keys, so a submitted
+ * `external_status` is dropped rather than silently written.
+ */
 export const operationalUpdateSchema = z.object({
   operational_status: z.enum(ISSUE_OPERATIONAL_STATUSES),
   organization_id: z.string().uuid(),
   note: z.string().trim().max(800).optional().nullable(),
-  external_status: z.string().trim().max(120).optional().nullable(),
 });
 
 

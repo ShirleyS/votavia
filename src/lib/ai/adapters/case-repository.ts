@@ -1,4 +1,4 @@
-import type { AIAnalysisResult, Case } from "@/shared/votavia-contract";
+import type { AIAnalysisResult, Case, CaseCategory } from "@/shared/votavia-contract";
 import type {
   DuplicateCandidateInput,
   DuplicateDetectionResult,
@@ -8,6 +8,7 @@ import type {
   PrioritySuggestion,
   ReportClassification,
   ReportInput,
+  ReportProcessingResult,
   ReportSource,
 } from "../types";
 
@@ -216,5 +217,127 @@ export function toAIAnalysisResultV2(input: {
       explanation: suggestion.explanation,
       auto_merge: false as const,
     })),
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Issue-aware adapters (Session 1 shared `Issue`, kept structural)            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Structural subset of the shared `Issue` contract. Declared locally so this
+ * module keeps compiling against the shared contract copy in this worktree;
+ * the main application's `Issue` satisfies it unchanged.
+ */
+export interface IssueLike {
+  issue_id: string;
+  title?: string | null;
+  description?: string | null;
+  category: CaseCategory;
+  latitude?: number | null;
+  longitude?: number | null;
+  colonia?: string | null;
+  origin?: "citizen" | "official" | "mixed" | null;
+  operational_status?: string | null;
+  support_count?: number | null;
+  report_count?: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  resolved_at?: string | null;
+}
+
+/**
+ * Maps a shared issue (the grouped problem) onto an issue-link candidate so
+ * duplicate suggestions are compared per issue instead of per report.
+ *
+ * `representative_case_id` is the report used to represent the issue in the
+ * comparison; it defaults to the issue id and is never used as a stored case
+ * identifier.
+ */
+export function issueToReportLinkCandidate(
+  issue: IssueLike,
+  extras: {
+    representative_case_id?: string | null;
+    /** Overrides the issue description when a representative report is known. */
+    description?: string | null;
+    category?: CaseCategory | null;
+    created_at?: string | null;
+    source?: ReportSource | null;
+    prior_links?: number | null;
+  } = {},
+): IssueLinkCandidate {
+  const description =
+    extras.description?.trim() ||
+    [issue.description, issue.title]
+      .map((part) => (typeof part === "string" ? part.trim() : ""))
+      .filter(Boolean)
+      .join(" — ");
+
+  const hasCoordinates =
+    typeof issue.latitude === "number" &&
+    Number.isFinite(issue.latitude) &&
+    typeof issue.longitude === "number" &&
+    Number.isFinite(issue.longitude);
+
+  return {
+    case_id: extras.representative_case_id?.trim() || issue.issue_id,
+    description,
+    category: extras.category ?? issue.category,
+    status: null,
+    location:
+      hasCoordinates || (issue.colonia && issue.colonia.trim())
+        ? {
+            latitude: hasCoordinates ? (issue.latitude as number) : Number.NaN,
+            longitude: hasCoordinates ? (issue.longitude as number) : Number.NaN,
+            colonia: issue.colonia?.trim() || null,
+          }
+        : null,
+    latitude: issue.latitude ?? null,
+    longitude: issue.longitude ?? null,
+    colonia: issue.colonia ?? null,
+    title: issue.title ?? null,
+    created_at: extras.created_at ?? issue.created_at ?? null,
+    issue_id: issue.issue_id,
+    source: extras.source ?? null,
+    supporters: issue.support_count ?? null,
+    prior_links: extras.prior_links ?? issue.report_count ?? null,
+    resolved_at: issue.resolved_at ?? null,
+  };
+}
+
+/**
+ * Projects the report-processing envelope onto the shared `AIAnalysisResult`
+ * shape used by the main application. Call it after the report row exists so
+ * `case_id` is a real Session 1 identifier.
+ */
+export function toReportProcessingSharedView(
+  result: ReportProcessingResult,
+  caseId?: string | null,
+): AIAnalysisResult {
+  const duplicates = result.duplicate_suggestions
+    .filter((suggestion) => suggestion.relationship !== "different_problem")
+    .slice(0, 8)
+    .flatMap((suggestion) => {
+      const ids =
+        suggestion.candidate_case_ids.length > 0
+          ? suggestion.candidate_case_ids
+          : [suggestion.candidate_issue_id];
+      return ids.slice(0, 8).map((id) => ({
+        case_id: id,
+        score: suggestion.confidence,
+        reason: suggestion.explanation,
+      }));
+    })
+    .slice(0, 8);
+
+  return {
+    case_id: (caseId ?? result.case_id ?? "").trim(),
+    model: result.model,
+    summary: result.classification.summary,
+    suggested_category: result.classification.suggested_category,
+    severity: result.classification.severity,
+    duplicate_candidates: duplicates,
+    confidence: result.classification.confidence,
+    created_at: result.analyzed_at,
   };
 }

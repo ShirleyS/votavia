@@ -132,7 +132,11 @@ export interface DuplicateComparison {
   relationship: DuplicateRelationship;
   explanation: string;
   evidence: string[];
-  /** Model heuristic only; null when the model omitted it. */
+  /**
+   * Heuristic confidence in [0,1], not a calibrated probability. Blends the
+   * deterministic similarity signals with the model value when one is present;
+   * derived from `signals.composite` alone when the model is unavailable.
+   */
   confidence: number | null;
   distance_meters: number | null;
   category_match: boolean;
