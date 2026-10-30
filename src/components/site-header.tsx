@@ -16,6 +16,7 @@ const NAV = [
   { href: "/resultados", label: "Resultados" },
   { href: "/#como-funciona", label: "Cómo funciona" },
   { href: "/gobierno", label: "Para gobierno" },
+  { href: "/desarrolladores", label: "API" },
 ];
 
 export function SiteHeader({
@@ -43,8 +44,8 @@ export function SiteHeader({
     href === "/" ? pathname === "/" : pathname.startsWith(href.split("#")[0]) && href !== "/#como-funciona";
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
-      <div className="container-page flex h-16 items-center justify-between gap-4">
+    <header className="sticky top-0 z-40 border-b border-line bg-white/90 backdrop-blur-md">
+      <div className="container-page flex h-[72px] items-center justify-between gap-4">
         <Link href="/" aria-label="VotaVía, ir al inicio" className="shrink-0">
           <Logo />
         </Link>
@@ -56,10 +57,10 @@ export function SiteHeader({
               href={item.href}
               aria-current={isActive(item.href) ? "page" : undefined}
               className={cn(
-                "rounded-full px-3 py-2 text-sm font-medium transition-colors",
+                "rounded-lg px-3 py-2 text-[13.5px] font-semibold transition-colors",
                 isActive(item.href)
-                  ? "text-royal-700 underline decoration-2 underline-offset-8"
-                  : "text-navy-700 hover:bg-navy-50",
+                  ? "text-royal-700 underline decoration-[2.5px] underline-offset-[10px]"
+                  : "text-navy-700 hover:bg-navy-50 hover:text-navy-900",
               )}
             >
               {item.label}
@@ -76,7 +77,7 @@ export function SiteHeader({
             <Search className="h-5 w-5" aria-hidden />
           </Link>
 
-          <Link href="/reportar" className={cn(buttonStyles({ size: "md" }), "hidden sm:inline-flex")}>
+          <Link href="/reportar" className={cn(buttonStyles({ size: "md" }), "hidden rounded-full shadow-[0_10px_22px_-16px_rgba(36,84,224,.9)] sm:inline-flex")}>
             Participa
           </Link>
 
