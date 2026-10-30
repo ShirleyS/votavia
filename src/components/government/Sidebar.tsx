@@ -44,7 +44,7 @@ export function Sidebar({
   onClose: () => void;
 }) {
   const pathname = usePathname();
-  const { cases, currentUser } = useGovernment();
+  const { cases, currentUser, dataSource, isDemoEnvironment } = useGovernment();
   const openCount = cases.filter(
     (item) => !["resolved", "closed"].includes(item.status),
   ).length;
@@ -119,8 +119,10 @@ export function Sidebar({
           <div className="sample-mode-card">
             <span className="sample-mode-card__pulse" />
             <div>
-              <strong>Modo muestra</strong>
-              <p>Acciones locales, sin efecto en la base real.</p>
+              <strong>{dataSource === "core" ? "Modo núcleo" : "Modo muestra"}</strong>
+              <p>{dataSource === "core"
+                ? "Datos de la API de Session 1; algunos cambios siguen pendientes de contrato."
+                : "Acciones locales, sin efecto en la base real."}</p>
             </div>
           </div>
           <Link href="/gobierno/configuracion" className="gov-user" onClick={onClose}>
@@ -128,7 +130,7 @@ export function Sidebar({
             <div>
               <strong>{currentUser.name}</strong>
               <span>{currentUser.title}</span>
-              <em className="gov-user__demo">Cuenta de demostración</em>
+              {isDemoEnvironment ? <em className="gov-user__demo">Cuenta de demostración</em> : null}
             </div>
             <ChevronRight size={15} />
           </Link>

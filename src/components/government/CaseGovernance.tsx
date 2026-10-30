@@ -214,6 +214,7 @@ export function GovernmentInterventionPanel({ item }: { item: GovernmentCase }) 
     permissionReason,
     uploadEvidence,
     recordCompletion,
+    dataSource,
   } = useGovernment();
   const [mode, setMode] = useState<"evidence" | "claim" | null>(null);
   const [kind, setKind] = useState<GovernmentEvidenceRecord["kind"]>("after");
@@ -398,7 +399,7 @@ export function GovernmentInterventionPanel({ item }: { item: GovernmentCase }) 
             {previewUrl ? (
               <div className="gov-upload-preview">
                 <img src={previewUrl} alt="Vista previa de la evidencia" />
-                <div><strong>{fileName || "Archivo seleccionado"}</strong><span>Se guardará como datos de demostración en este navegador.</span></div>
+                <div><strong>{fileName || "Archivo seleccionado"}</strong><span>{dataSource === "core" ? "Se enviará al núcleo de Session 1 como evidencia de gobierno." : "Se guardará como datos de demostración en este navegador."}</span></div>
                 <button type="button" onClick={() => { setPreviewUrl(""); setFileName(""); }} aria-label="Quitar archivo"><X size={15} /></button>
               </div>
             ) : null}
@@ -514,6 +515,13 @@ export function GovernmentInterventionPanel({ item }: { item: GovernmentCase }) 
             })}
           </div>
         )}
+
+        {dataSource === "core" ? (
+          <p className="permission-note">
+            En modo núcleo, el cierre se registra como cambio de estado operativo
+            (POST /issues/[id]/operational). La publicación de un resultado público sigue pendiente de contrato.
+          </p>
+        ) : null}
       </section>
     </>
   );
@@ -525,6 +533,7 @@ export function ResolutionDisputePanel({ item }: { item: GovernmentCase }) {
     can,
     permissionReason,
     respondDispute,
+    dataSource,
   } = useGovernment();
   const [response, setResponse] = useState("");
   const [followUpOpen, setFollowUpOpen] = useState(false);
@@ -679,6 +688,12 @@ export function ResolutionDisputePanel({ item }: { item: GovernmentCase }) {
             <LockKeyhole size={15} />
             <p>La respuesta no cambia la verificación ciudadana ni cierra la disputa. Sólo la ciudadanía puede actualizar su resultado.</p>
           </div>
+          {dataSource === "core" ? (
+            <p className="permission-note">
+              En modo núcleo, la evidencia de seguimiento se envía a la API. El texto de respuesta
+              se conserva de forma local y etiquetada: el núcleo aún no expone un endpoint de respuesta a disputas.
+            </p>
+          ) : null}
           {error ? <p className="form-error">{error}</p> : null}
           <div className="form-actions">
             <button type="button" className="button button--primary button--small" onClick={() => void submit()} disabled={busy}>
@@ -749,12 +764,12 @@ function ChevronRightIcon() {
 }
 
 export function OperatorAssignmentPanel({ item }: { item: GovernmentCase }) {
-  const { demoUsers, can, permissionReason, assignOperator } = useGovernment();
+  const { operatorRoster, can, permissionReason, assignOperator, dataSource } = useGovernment();
   const [operatorId, setOperatorId] = useState(item.assignedOperatorId ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const canAssign = can("case:assign", item);
-  const options = demoUsers.filter(
+  const options = operatorRoster.filter(
     (user) => user.role === "department_operator" && user.departmentId === item.departmentId,
   );
 
@@ -780,6 +795,15 @@ export function OperatorAssignmentPanel({ item }: { item: GovernmentCase }) {
         </div>
         <UserCheck size={18} />
       </div>
+      {dataSource === "core" ? (
+        <div className="dispatch-source-note" role="note">
+          <LockKeyhole size={14} />
+          <span>
+            Roster simulado: el núcleo no expone operadores. Esta lista son cuentas de
+            demostración y la asignación de operador se guarda local y etiquetada.
+          </span>
+        </div>
+      ) : null}
       <div className="operator-panel__current">
         <span className="operator-panel__avatar">
           {(item.assignedOperatorName ?? "Sin asignar").split(" ").slice(0, 2).map((part) => part[0]).join("").toUpperCase()}

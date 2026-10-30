@@ -106,6 +106,7 @@ function recommendationOrder(category: GovernmentCase["category"]): string[] {
     parques: ["sp-5", "sp-2", "sp-3", "sp-4", "sp-6", "sp-1"],
     residuos: ["sp-6", "sp-5", "sp-3", "sp-2", "sp-1", "sp-4"],
     seguridad: ["sp-3", "sp-1", "sp-5", "sp-2", "sp-4", "sp-6"],
+    otros: ["sp-3", "sp-2", "sp-1", "sp-5", "sp-6", "sp-4"],
   };
   return byCategory[category];
 }

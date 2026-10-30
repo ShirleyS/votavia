@@ -21,7 +21,6 @@ import {
   Sparkles,
   TrendingUp,
 } from "lucide-react";
-import { governmentService } from "@/lib/government/mock-service";
 import type { CaseCategory, RiskSignal, RiskStrength } from "@/lib/government/types";
 import {
   CATEGORY_COLORS,
@@ -52,7 +51,7 @@ const historyRows = [
 
 export function PreventiveIntelligenceView() {
   const router = useRouter();
-  const { cases } = useGovernment();
+  const { cases, getPreventiveSignals, dataSource } = useGovernment();
   const [signals, setSignals] = useState<RiskSignal[]>([]);
   const [selectedId, setSelectedId] = useState("risk-1");
   const [strength, setStrength] = useState<RiskStrength | "all">("all");
@@ -60,7 +59,7 @@ export function PreventiveIntelligenceView() {
   const [saved, setSaved] = useState<string[]>([]);
 
   useEffect(() => {
-    void governmentService.getPreventiveSignals().then((value) => {
+    void getPreventiveSignals().then((value) => {
       setSignals(value);
       setSelectedId((current) =>
         value.some((item) => item.id === current) ? current : (value[0]?.id ?? ""),
@@ -118,6 +117,14 @@ export function PreventiveIntelligenceView() {
         </div>
         <span className="preventive-disclaimer__tag">Muestra analítica</span>
       </div>
+
+      {dataSource === "core" && signals.length === 0 ? (
+        <div className="panel permission-note" role="status">
+          <strong>Señales preventivas aún no conectadas.</strong> Session 1 todavía no expone un
+          endpoint de señales territoriales; esta vista no inventa incidencia oficial. Se conserva
+          como espacio reservado para cuando el contrato esté disponible.
+        </div>
+      ) : null}
 
       <div className="preventive-metrics">
         <div><span className="preventive-metric__icon"><Radar size={18} /></span><div><strong>{signals.length}</strong><span>Señales observadas</span></div></div>
