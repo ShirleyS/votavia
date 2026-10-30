@@ -2,6 +2,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type { Case, CreateCaseInput, ParticipantContext } from "@/shared/votavia-contract";
 import { getCaseService } from "@/server/services/container";
+import { dataDir } from "@/server/env";
 import { whatsappConfig } from "./config";
 import { createReportExtractor } from "./extract-report";
 import { handleInboundMessage } from "./conversation";
@@ -124,8 +125,7 @@ let sharedStore: DemoWhatsAppStore | null = null;
 
 export function simulatorStore(): WhatsAppStore {
   if (!sharedStore) {
-    const dir = process.env.VOTAVIA_DATA_DIR ?? path.join(process.cwd(), ".data");
-    sharedStore = new DemoWhatsAppStore(path.join(dir, "whatsapp-simulator.json"));
+    sharedStore = new DemoWhatsAppStore(path.join(dataDir(), "whatsapp-simulator.json"));
   }
   return sharedStore;
 }

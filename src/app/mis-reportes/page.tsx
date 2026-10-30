@@ -69,7 +69,7 @@ export default async function MisReportesPage({ searchParams }: { searchParams: 
 
   return (
     <div className="bg-surface">
-      <div className="border-b border-line bg-white">
+      <div className="border-b border-line">
         <div className="container-page py-8 sm:py-10">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>

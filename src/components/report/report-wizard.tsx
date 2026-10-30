@@ -9,7 +9,6 @@ import {
   Camera,
   Check,
   CheckCircle2,
-  ChevronRight,
   Crosshair,
   ImagePlus,
   Loader2,
@@ -37,6 +36,12 @@ const MAX_PHOTOS = 3;
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp"];
 const STEPS = ["Categoría", "Descripción", "Ubicación", "Fotos y contacto"] as const;
+const STEP_HINTS = [
+  "Elige la categoría del problema.",
+  "Cuéntanos qué pasa.",
+  "Marca el punto en el mapa.",
+  "Adjunta fotos y tu contacto.",
+] as const;
 
 function nearestColonia(point: { latitude: number; longitude: number }) {
   let best = COLONIAS[0] as string;
@@ -433,12 +438,12 @@ export function ReportWizard({
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="min-w-0">
-        <ol className="flex flex-wrap items-center gap-x-2 gap-y-2" aria-label="Pasos del reporte">
+        <ol className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-0" aria-label="Pasos del reporte">
           {STEPS.map((label, index) => {
             const active = index === step;
             const done = index < step;
             return (
-              <li key={label} className="flex items-center gap-2">
+              <li key={label} className="flex items-center gap-2 sm:flex-1 sm:pr-1">
                 <button
                   type="button"
                   onClick={() => {
@@ -446,27 +451,47 @@ export function ReportWizard({
                   }}
                   aria-current={active ? "step" : undefined}
                   disabled={index > step}
-                  className={cn(
-                    "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
-                    active
-                      ? "bg-navy-900 text-white"
-                      : done
-                        ? "bg-royal-50 text-royal-700 hover:bg-royal-100"
-                        : "bg-white text-navy-500 ring-1 ring-line",
-                  )}
+                  className="group flex items-start gap-2.5 text-left disabled:cursor-default"
                 >
                   <span
                     className={cn(
-                      "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold",
-                      active ? "bg-white/20" : done ? "bg-royal-600 text-white" : "bg-navy-50",
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-extrabold tabular-nums transition-colors",
+                      active
+                        ? "border-royal-600 bg-royal-600 text-white shadow-[0_10px_20px_-12px_rgba(36,84,224,.9)]"
+                        : done
+                          ? "border-royal-600 bg-white text-royal-700"
+                          : "border-line bg-white text-navy-500",
                     )}
                   >
-                    {done ? <Check className="h-3 w-3" aria-hidden /> : index + 1}
+                    {done ? <Check className="h-4 w-4" aria-hidden /> : index + 1}
                   </span>
-                  {label}
+                  <span className="pt-1">
+                    <span
+                      className={cn(
+                        "block text-[13.5px] font-bold leading-tight",
+                        active ? "text-navy-900" : done ? "text-navy-800" : "text-navy-500",
+                      )}
+                    >
+                      {label}
+                    </span>
+                    <span
+                      className={cn(
+                        "mt-0.5 hidden max-w-[19ch] text-[11px] leading-snug sm:block",
+                        active ? "text-navy-500" : "text-navy-500/70",
+                      )}
+                    >
+                      {STEP_HINTS[index]}
+                    </span>
+                  </span>
                 </button>
                 {index < STEPS.length - 1 ? (
-                  <ChevronRight className="h-3.5 w-3.5 text-navy-300" aria-hidden />
+                  <span
+                    className={cn(
+                      "hidden h-px flex-1 sm:block",
+                      done ? "bg-royal-200" : "bg-line",
+                    )}
+                    aria-hidden
+                  />
                 ) : null}
               </li>
             );
@@ -492,10 +517,10 @@ export function ReportWizard({
                       <label
                         key={value}
                         className={cn(
-                          "flex cursor-pointer items-start gap-3 rounded-2xl border p-3.5 transition-colors",
+                          "flex cursor-pointer items-start gap-3 rounded-2xl border p-3.5 transition-all",
                           selected
                             ? "border-royal-400 bg-royal-50 ring-1 ring-royal-200"
-                            : "border-line bg-white hover:border-royal-200 hover:bg-navy-50/40",
+                            : "border-line bg-white hover:-translate-y-0.5 hover:border-royal-200 hover:shadow-[var(--shadow-card)]",
                         )}
                       >
                         <input

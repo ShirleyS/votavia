@@ -58,26 +58,122 @@ const ALCALDIA_OUTLINE: [number, number][] = [
   [-99.163, 19.4],
 ];
 
-const BASE_STYLE = {
-  version: 8 as const,
-  sources: {
-    carto: {
-      type: "raster" as const,
-      tiles: [
-        "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png",
-        "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png",
-        "https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png",
-      ],
+// Why this exists: every tile host we used before now gates requests behind a
+// paid key (CARTO's basemap key landed 25 Sep 2026), which painted
+// "API KEY REQUIRED" watermarks across the map. Esri's Light Gray Canvas is
+// keyless, so it is the default; OSM standard tiles are the automatic fallback.
+// Point NEXT_PUBLIC_MAP_TILES_URL at any other {z}/{x}/{y} raster template
+// (or set NEXT_PUBLIC_CARTO_KEY to go back to CARTO) without touching code.
+interface RasterBasemap {
+  id: string;
+  tiles: string[];
+  tileSize: number;
+  maxZoom: number;
+  attribution: string;
+  paint?: Record<string, number>;
+  /** Transparent label layer drawn above the base tiles, when the host splits them. */
+  labels?: { tiles: string[]; maxZoom: number; attribution?: string };
+}
+
+const CARTO_KEY = process.env.NEXT_PUBLIC_CARTO_KEY?.trim();
+const CUSTOM_TILES = process.env.NEXT_PUBLIC_MAP_TILES_URL?.trim();
+
+const ESRI_LIGHT_GRAY: RasterBasemap = {
+  id: "esri-light-gray",
+  tiles: [
+    "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+  ],
+  tileSize: 256,
+  maxZoom: 16,
+  attribution:
+    'Tiles © <a href="https://www.esri.com/">Esri</a> — Esri, HERE, Garmin, © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  labels: {
+    tiles: [
+      "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
+    ],
+    maxZoom: 16,
+  },
+};
+
+const OSM_STANDARD: RasterBasemap = {
+  id: "osm-standard",
+  tiles: [
+    "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  ],
+  tileSize: 256,
+  maxZoom: 19,
+  attribution:
+    '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  // Muted so the community markers stay the loudest thing on the map.
+  paint: {
+    "raster-saturation": -0.82,
+    "raster-contrast": -0.06,
+    "raster-brightness-min": 0.08,
+    "raster-brightness-max": 0.96,
+  },
+};
+
+const CARTO_LIGHT: RasterBasemap | null = CARTO_KEY
+  ? {
+      id: "carto-light",
+      tiles: ["a", "b", "c"].map(
+        (subdomain) =>
+          `https://${subdomain}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png?key=${encodeURIComponent(CARTO_KEY)}`,
+      ),
       tileSize: 256,
+      maxZoom: 20,
       attribution:
         '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
+    }
+  : null;
+
+const CUSTOM_BASEMAP: RasterBasemap | null = CUSTOM_TILES
+  ? {
+      id: "custom",
+      tiles: [CUSTOM_TILES],
+      tileSize: 256,
+      maxZoom: 20,
+      attribution:
+        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }
+  : null;
+
+const PRIMARY_BASEMAP = CUSTOM_BASEMAP ?? CARTO_LIGHT ?? ESRI_LIGHT_GRAY;
+
+function basemapStyle(basemap: RasterBasemap) {
+  const sources: Record<string, unknown> = {
+    basemap: {
+      type: "raster",
+      tiles: basemap.tiles,
+      tileSize: basemap.tileSize,
+      maxzoom: basemap.maxZoom,
+      attribution: basemap.attribution,
     },
-  },
-  layers: [
-    { id: "bg", type: "background" as const, paint: { "background-color": "#eef2f8" } },
-    { id: "carto", type: "raster" as const, source: "carto", paint: { "raster-opacity": 1 } },
-  ],
-};
+  };
+  const layers: Array<Record<string, unknown>> = [
+    { id: "bg", type: "background", paint: { "background-color": "#f3efe6" } },
+    {
+      id: "basemap",
+      type: "raster",
+      source: "basemap",
+      paint: { "raster-opacity": 1, ...(basemap.paint ?? {}) },
+    },
+  ];
+
+  if (basemap.labels) {
+    sources["basemap-labels"] = {
+      type: "raster",
+      tiles: basemap.labels.tiles,
+      tileSize: basemap.tileSize,
+      maxzoom: basemap.labels.maxZoom,
+    };
+    layers.push({ id: "basemap-labels", type: "raster", source: "basemap-labels" });
+  }
+
+  return { version: 8 as const, sources, layers };
+}
 
 function popupHtml(item: MapCase) {
   const status = STATUS_META[item.status];
@@ -142,7 +238,7 @@ export function CaseMap({
 
       map = new maplibregl.Map({
         container: containerRef.current,
-        style: BASE_STYLE as never,
+        style: basemapStyle(PRIMARY_BASEMAP) as never,
         center: [center[1], center[0]],
         zoom,
         attributionControl: { compact: true },
@@ -153,16 +249,28 @@ export function CaseMap({
 
       if (interactive) map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
 
+      // If the basemap host refuses tiles, fall back to OpenStreetMap once.
+      // The overlay layers are re-installed by the "style.load" handler below.
+      let swappedToFallback = PRIMARY_BASEMAP.id === OSM_STANDARD.id;
+      let interactionsBound = false;
       map.on("error", (event) => {
         const message = String((event as { error?: Error }).error?.message ?? "");
-        if (message.toLowerCase().includes("tile") || message.toLowerCase().includes("fetch")) {
-          setFailed(true);
+        const looksLikeNetwork =
+          message.toLowerCase().includes("tile") || message.toLowerCase().includes("fetch");
+        if (!looksLikeNetwork) return;
+        if (!swappedToFallback && map) {
+          swappedToFallback = true;
+          map.setStyle(basemapStyle(OSM_STANDARD) as never);
+          return;
         }
+        setFailed(true);
       });
 
-      map.on("load", () => {
+      map.on("style.load", () => {
         if (!map || cancelled) return;
         setReady(true);
+        // A style swap (basemap fallback) wipes sources and layers; rebuild them.
+        if (map.getSource("cases")) return;
 
         map.addSource("alcaldia", {
           type: "geojson",
@@ -245,6 +353,9 @@ export function CaseMap({
             ],
           },
         });
+
+        if (interactionsBound) return;
+        interactionsBound = true;
 
         map.on("click", "cluster-count", (event) => {
           const feature = event.features?.[0];
@@ -364,13 +475,13 @@ export function CaseMap({
 
   return (
     <div
-      className={cn("vv-map relative isolate overflow-hidden rounded-2xl border border-line bg-[#eef2f8]", className)}
+      className={cn("vv-map relative isolate overflow-hidden rounded-2xl border border-line bg-[#f3efe6] shadow-[var(--shadow-card)]", className)}
       role="application"
       aria-label="Mapa interactivo de reportes en Cuauhtémoc"
     >
       <div ref={containerRef} className="h-full w-full" />
       {!ready ? (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#eef2f8]">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#f3efe6]">
           <div className="flex items-center gap-2 rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-navy-500 shadow">
             <span className="h-3 w-3 animate-spin rounded-full border-2 border-royal-600 border-t-transparent" aria-hidden />
             Cargando mapa…

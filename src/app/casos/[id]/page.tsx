@@ -11,7 +11,7 @@ import { VerificationPanel } from "@/components/issues/verification-panel";
 import { EvidenceUploader } from "@/components/issues/evidence-uploader";
 import { buttonStyles } from "@/components/ui/button";
 import { ORIGIN_META } from "@/lib/taxonomy";
-import { formatDate, formatNumber } from "@/lib/utils";
+import { formatDate, formatNumber, isUnoptimizedImage } from "@/lib/utils";
 import { getParticipant } from "@/server/auth/session";
 import { getCaseService } from "@/server/services/container";
 
@@ -55,7 +55,7 @@ export default async function IssuePage({ params }: PageProps) {
 
   return (
     <div className="bg-surface">
-      <div className="border-b border-line bg-white">
+      <div className="border-b border-line">
         <div className="container-page py-5">
           <Link
             href="/explorar"
@@ -237,7 +237,7 @@ export default async function IssuePage({ params }: PageProps) {
                         fill
                         sizes="240px"
                         className="object-cover"
-                        unoptimized={entry.url.endsWith(".svg")}
+                        unoptimized={isUnoptimizedImage(entry.url)}
                       />
                     </div>
                     <figcaption className="px-2 py-1.5 text-[10px] text-navy-600">

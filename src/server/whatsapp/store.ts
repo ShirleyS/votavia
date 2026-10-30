@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { hasSupabaseDatabase, supabaseServiceKey, supabaseUrl } from "@/server/env";
+import { dataDir, hasSupabaseDatabase, supabaseServiceKey, supabaseUrl } from "@/server/env";
 import type { WhatsAppInboundMessage, WhatsAppState, WhatsAppStore, WhatsAppThread } from "./types";
 
 const THREAD_STATES: WhatsAppState[] = [
@@ -45,8 +45,7 @@ interface DemoWhatsAppDatabase {
 }
 
 function demoFile(): string {
-  const dir = process.env.VOTAVIA_DATA_DIR ?? path.join(process.cwd(), ".data");
-  return path.join(dir, "whatsapp.json");
+  return path.join(dataDir(), "whatsapp.json");
 }
 
 /**

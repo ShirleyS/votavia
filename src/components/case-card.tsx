@@ -4,9 +4,10 @@ import { MessageSquare, ThumbsUp } from "lucide-react";
 import { CategoryChip } from "@/components/category-chip";
 import { StatusBadge } from "@/components/status-badge";
 import { CATEGORY_META } from "@/lib/taxonomy";
-import { formatNumber, relativeTime } from "@/lib/utils";
+import { formatNumber, relativeTime, isUnoptimizedImage } from "@/lib/utils";
 import type { Case } from "@/shared/votavia-contract";
 import { cn } from "@/lib/utils";
+import { fallbackPhoto } from "@/lib/stock-photos";
 
 export function CaseCard({
   item,
@@ -19,6 +20,10 @@ export function CaseCard({
 }) {
   const photo = item.photos[0];
   const meta = CATEGORY_META[item.category];
+  const imageUrl = photo?.url ?? fallbackPhoto(item.category, item.case_id);
+  const imageAlt = photo
+    ? `Fotografía del reporte: ${item.title}`
+    : `Imagen ilustrativa de ${meta.label.toLowerCase()}`;
 
   return (
     <article
@@ -29,21 +34,15 @@ export function CaseCard({
     >
       <Link href={`/reportes/${item.case_id}`} className="block focus-visible:outline-none">
         <div className="relative aspect-[16/9] w-full overflow-hidden bg-navy-50">
-          {photo ? (
-            <Image
-              src={photo.url}
-              alt={`Fotografía del reporte: ${item.title}`}
-              fill
-              sizes="(min-width: 1024px) 360px, 100vw"
-              className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-              priority={priority}
-              unoptimized={photo.url.endsWith(".svg")}
-            />
-          ) : (
-            <div className={cn("flex h-full w-full items-center justify-center", meta.chip)}>
-              <span className="text-sm font-semibold">{meta.shortLabel}</span>
-            </div>
-          )}
+          <Image
+            src={imageUrl}
+            alt={imageAlt}
+            fill
+            sizes="(min-width: 1024px) 360px, 100vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            priority={priority}
+            unoptimized={isUnoptimizedImage(imageUrl)}
+          />
           <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
             <CategoryChip category={item.category} className="bg-white/95 ring-white/60" />
             {item.is_demo ? (

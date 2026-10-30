@@ -153,8 +153,8 @@ export function ReportCasesView() {
             <span className="eyebrow">Mesa de gobierno</span>
             <SampleBadge />
           </div>
-          <h1>Bandeja de reportes</h1>
-          <p>Revisa, prioriza y canaliza los reportes ciudadanos de la ciudad.</p>
+          <h1>Reportes</h1>
+          <p>Gestiona y da seguimiento a los reportes ciudadanos de Cuauhtémoc.</p>
         </div>
         <div className="page-heading__actions">
           <button type="button" className="button button--secondary" onClick={exportCsv}>
@@ -167,7 +167,7 @@ export function ReportCasesView() {
       </div>
 
       <div className="inbox-summary">
-        <div><span>Resultados</span><strong>{filtered.length}</strong></div>
+        <div><span>Todos</span><strong>{filtered.length}</strong></div>
         <div><span>Abiertos</span><strong>{openCount}</strong></div>
         <div><span>Críticos</span><strong className="text-danger">{criticalCount}</strong></div>
         <div><span>Sin asignar</span><strong>{unassignedCount}</strong></div>

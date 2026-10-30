@@ -30,6 +30,8 @@ import type {
 } from "./rows";
 import type { CaseRepository, SupportResult } from "./repository";
 import { buildSeedCases, buildSeedEvents } from "@/server/seed";
+import { stockPhoto } from "@/lib/stock-photos";
+import { dataDir } from "@/server/env";
 
 interface DemoDatabase {
   version: number;
@@ -67,8 +69,7 @@ const daysAgoIso = (days: number) => new Date(Date.now() - days * 86400000).toIS
 export const DEMO_ORGANIZATION_ID = "11111111-1111-4111-8111-111111111111";
 
 
-export const DATA_DIR =
-  process.env.VOTAVIA_DATA_DIR ?? path.join(process.cwd(), ".data");
+export const DATA_DIR = dataDir();
 const DB_FILE = path.join(DATA_DIR, "db.json");
 const SEED_FLAG = path.join(DATA_DIR, "seeded.json");
 
@@ -1557,7 +1558,7 @@ export async function seedDemoEnvironment(user: {
         issue_id: resolved.id,
         case_id: null,
         kind: "government_intervention",
-        url: "/demo/bache-2.svg",
+        url: stockPhoto("bache-2"),
         caption: "Reparación terminada por la cuadrilla de Obras",
         uploaded_by_user_id: null,
         uploader_role: "government",
@@ -1570,7 +1571,7 @@ export async function seedDemoEnvironment(user: {
         issue_id: resolved.id,
         case_id: null,
         kind: "resolution_proof",
-        url: "/demo/bache-1.svg",
+        url: stockPhoto("bache-1"),
         caption: "Superficie nivelada y señalizada",
         uploaded_by_user_id: null,
         uploader_role: "government",

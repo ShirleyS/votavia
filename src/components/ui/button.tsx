@@ -3,12 +3,14 @@ import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 export const buttonStyles = cva(
-  "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+  "inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-60",
   {
     variants: {
       variant: {
-        primary: "bg-royal-600 text-white hover:bg-royal-700",
-        secondary: "bg-white text-navy-900 ring-1 ring-inset ring-line hover:bg-navy-50",
+        primary:
+          "bg-royal-600 text-white shadow-[0_10px_22px_-14px_rgba(36,84,224,.85)] hover:bg-royal-700 hover:shadow-[0_14px_26px_-14px_rgba(36,84,224,.9)]",
+        secondary:
+          "bg-white text-navy-900 ring-1 ring-inset ring-line shadow-[0_1px_2px_rgba(63,55,38,.05)] hover:bg-[#fffdf8] hover:ring-navy-100",
         outline: "bg-transparent text-royal-700 ring-1 ring-inset ring-royal-200 hover:bg-royal-50",
         ghost: "bg-transparent text-navy-700 hover:bg-navy-50",
         subtle: "bg-royal-50 text-royal-700 hover:bg-royal-100",

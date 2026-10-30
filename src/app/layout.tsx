@@ -3,6 +3,7 @@ import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { DemoBanner } from "@/components/demo-banner";
+import { VoiceCallWidget } from "@/components/voice/voice-call-widget";
 import { getSessionUser } from "@/server/auth/session";
 import { currentBackend } from "@/server/services/container";
 
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1453D8",
+  themeColor: "#2454E0",
   width: "device-width",
   initialScale: 1,
 };
@@ -52,6 +53,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {children}
         </main>
         <SiteFooter />
+        <VoiceCallWidget />
       </body>
     </html>
   );

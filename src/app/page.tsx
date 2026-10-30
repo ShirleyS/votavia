@@ -17,7 +17,7 @@ import { StatCard } from "@/components/stat-card";
 import { CategoryIcon } from "@/components/category-icon";
 import { buttonStyles } from "@/components/ui/button";
 import { CATEGORY_META, STATUS_META } from "@/lib/taxonomy";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, isUnoptimizedImage } from "@/lib/utils";
 import { getCaseService } from "@/server/services/container";
 
 export const dynamic = "force-dynamic";
@@ -71,81 +71,60 @@ export default async function HomePage() {
   return (
     <>
       {/* ---------------------------------------------------------------- hero */}
-      <section className="relative isolate overflow-hidden bg-navy-900">
+      <section className="relative isolate overflow-hidden border-b border-line bg-surface">
         <div
-          className={
-            heroImage
-              ? "absolute inset-0 bg-cover bg-center"
-              : "hero-photo-fallback absolute inset-0 bg-cover bg-center"
-          }
+          className={heroImage ? "absolute inset-0 bg-cover bg-center" : "hero-day absolute inset-0"}
           style={
             heroImage
               ? {
-                  backgroundImage: `linear-gradient(100deg, rgba(8,24,46,.94) 0%, rgba(11,52,120,.82) 46%, rgba(20,83,216,.42) 74%, rgba(20,83,216,.18) 100%), url(${heroImage})`,
+                  backgroundImage: `linear-gradient(90deg, #f7f4ed 0%, rgba(247,244,237,.97) 32%, rgba(247,244,237,.86) 48%, rgba(247,244,237,.32) 68%, rgba(247,244,237,.04) 86%), url(${heroImage})`,
+                  backgroundPosition: "center 58%",
                 }
               : undefined
           }
           aria-hidden
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-navy-900/85 via-navy-900/45 to-transparent" aria-hidden />
 
-        <svg
-          className="pointer-events-none absolute -right-6 top-10 hidden h-[420px] w-[420px] opacity-90 lg:block"
-          viewBox="0 0 300 300"
-          aria-hidden
-        >
-          <g>
-            <path d="M196 42c33-24 66-8 64 26-2 32-36 46-64 28-17-11-13-39 0-54Z" fill="#F2B01E" opacity=".95" />
-            <path d="M232 118c38-10 60 18 44 48-16 29-58 24-72-2-8-15 4-39 28-46Z" fill="#D63F60" opacity=".9" />
-            <path d="M188 176c30-18 60 0 52 30-8 29-46 40-66 18-12-13-2-37 14-48Z" fill="#10A88C" opacity=".9" />
-            <path d="M240 222c28-4 44 18 32 38-12 20-46 18-58-2-7-12 4-33 26-36Z" fill="#6B4BD8" opacity=".85" />
-          </g>
-        </svg>
-
-        <div className="container-page relative pb-24 pt-14 sm:pt-20 lg:pb-28">
-          <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-white/75 sm:text-xs">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#F2B01E]" aria-hidden />
+        <div className="container-page relative py-14 sm:py-16 lg:py-24">
+          <p className="flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-[0.2em] text-navy-600 sm:text-xs">
+            <span className="inline-block h-2 w-2 rounded-full bg-royal-600" aria-hidden />
             Cuauhtémoc más segura, más conectada
           </p>
 
-          <h1 className="mt-5 max-w-3xl text-[40px] font-black uppercase leading-[0.94] tracking-[-0.03em] text-white sm:text-6xl lg:text-[76px]">
+          <h1 className="mt-5 max-w-[13em] text-[33px] font-black uppercase leading-[0.92] tracking-[-0.035em] text-navy-900 sm:text-[64px] lg:text-[82px]">
             Tu colonia.
             <br />
             Tus prioridades.
             <br />
-            <span className="relative inline-block">
-              <span
-                className="absolute inset-x-0 bottom-1 -z-0 h-3.5 -skew-x-12 bg-[#F2B01E] sm:h-5"
-                aria-hidden
-              />
-              <span className="relative">Más resultados.</span>
+            <span className="mt-2 inline-block border-b-[10px] border-[#FFD84D] pb-1 sm:border-b-[14px]">
+              Más resultados.
             </span>
           </h1>
 
-          <p className="mt-6 max-w-xl text-base leading-relaxed text-white/85 sm:text-lg">
+          <p className="mt-7 max-w-xl text-base leading-relaxed text-navy-700 sm:text-lg">
             Reporta, apoya y da seguimiento a los problemas de tu comunidad en Cuauhtémoc.
             Juntos podemos construir una alcaldía más habitable.
           </p>
 
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/reportar" className={buttonStyles({ size: "lg" })}>
-              Reportar un problema <ArrowRight className="h-5 w-5" aria-hidden />
-            </Link>
-            <Link
-              href="/explorar"
-              className="inline-flex h-12 items-center gap-2 rounded-full bg-white px-6 text-base font-semibold text-navy-900 transition-colors hover:bg-navy-50"
-            >
-              Explorar reportes
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <Link href="/explorar" className={buttonStyles({ size: "lg" })}>
+              Explorar reportes <ArrowRight className="h-5 w-5" aria-hidden />
             </Link>
             <Link
               href="/#como-funciona"
-              className="inline-flex h-12 items-center gap-2 rounded-full px-4 text-base font-semibold text-white underline decoration-white/30 underline-offset-8 hover:decoration-white"
+              className={buttonStyles({ variant: "secondary", size: "lg" })}
             >
               Cómo funciona
             </Link>
+            <Link
+              href="/reportar"
+              className="inline-flex h-12 items-center gap-1.5 px-2 text-[15px] font-semibold text-navy-800 underline decoration-navy-100 decoration-2 underline-offset-[6px] hover:text-royal-700 hover:decoration-royal-400"
+            >
+              Reportar un problema
+            </Link>
           </div>
 
-          <p className="mt-8 max-w-lg text-[11px] leading-relaxed text-white/60">
+          <p className="mt-9 max-w-lg text-[11px] leading-relaxed text-navy-500">
             Plataforma ciudadana independiente. No representa un canal oficial de la Alcaldía
             Cuauhtémoc.
           </p>
@@ -153,13 +132,13 @@ export default async function HomePage() {
       </section>
 
       {/* --------------------------------------------------------------- stats */}
-      <div className="container-page relative z-10 -mt-14">
+      <div className="container-page relative z-10 -mt-9">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <StatCard
             icon={<ClipboardGlyph />}
             value={formatNumber(stats.total_cases)}
-            label="Reportes ciudadanos registrados"
-            tone="royal"
+            label="Reportes recibidos en Cuauhtémoc"
+            tone="rose"
           />
           <StatCard
             icon={<Users className="h-6 w-6" />}
@@ -174,11 +153,16 @@ export default async function HomePage() {
             tone="emerald"
           />
         </div>
-        {stats.is_demo ? (
-          <p className="mt-2 text-right text-[10px] font-semibold uppercase tracking-[0.16em] text-navy-500">
-            Demo · cifras ilustrativas calculadas con los datos de muestra
+        <div className="mt-3 flex items-center justify-between gap-4 px-1">
+          <p className="hidden text-[11px] font-medium text-navy-500 sm:block">
+            Cifras actualizadas con los reportes de este entorno.
           </p>
-        ) : null}
+          {stats.is_demo ? (
+            <p className="ml-auto text-[10px] font-bold uppercase tracking-[0.16em] text-navy-500">
+              Demo · cifras ilustrativas
+            </p>
+          ) : null}
+        </div>
       </div>
 
       {/* ---------------------------------------------------------- priorities */}
@@ -207,9 +191,9 @@ export default async function HomePage() {
                 <Link
                   key={entry.category}
                   href={`/explorar?category=${entry.category}`}
-                  className="group flex items-center gap-4 rounded-2xl border border-line bg-white p-4 shadow-[var(--shadow-card)] transition-colors hover:border-royal-200"
+                  className="group flex items-center gap-4 rounded-2xl border border-line bg-white p-4 shadow-[var(--shadow-card)] transition-all hover:-translate-y-0.5 hover:border-royal-200 hover:shadow-[var(--shadow-float)]"
                 >
-                  <span className="w-6 text-center text-sm font-black tabular-nums text-navy-500/60">
+                  <span className="w-5 text-center text-base font-black tabular-nums text-navy-900">
                     {index + 1}
                   </span>
                   <span className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ${meta.chip}`}>
@@ -231,7 +215,9 @@ export default async function HomePage() {
                       />
                     </div>
                   </div>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-navy-500/50" aria-hidden />
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-navy-50 text-navy-700 transition-colors group-hover:bg-royal-50 group-hover:text-royal-700">
+                    <ArrowRight className="h-4 w-4" aria-hidden />
+                  </span>
                 </Link>
               );
             })}
@@ -262,7 +248,7 @@ export default async function HomePage() {
       </section>
 
       {/* ------------------------------------------------------ recent reports */}
-      <section className="border-y border-line bg-white py-16 sm:py-20">
+      <section className="border-y border-line py-16 sm:py-20">
         <div className="container-page">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -315,16 +301,28 @@ export default async function HomePage() {
           ))}
         </ol>
 
-        <div className="mt-8 rounded-2xl bg-navy-900 p-6 text-white sm:p-8">
-          <div className="flex flex-wrap items-center justify-between gap-6">
+        <div className="relative mt-10 overflow-hidden rounded-2xl bg-royal-600 p-6 text-white shadow-[var(--shadow-float)] sm:p-9">
+          <span
+            className="pointer-events-none absolute -right-10 -top-12 h-48 w-48 rounded-full bg-[#FFD84D]/25 blur-2xl"
+            aria-hidden
+          />
+          <div className="relative flex flex-wrap items-center justify-between gap-6">
             <div className="max-w-2xl">
-              <h3 className="text-xl font-bold sm:text-2xl">Un reporte tarda menos de dos minutos</h3>
-              <p className="mt-2 text-sm text-white/70">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/70">
+                Menos de dos minutos
+              </p>
+              <h3 className="mt-2 text-xl font-extrabold sm:text-2xl">
+                Un reporte tarda menos de dos minutos
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-white/80">
                 No necesitas cuenta para reportar. Si quieres guardar tu reporte y recibir
                 actualizaciones, puedes usar tu correo al final.
               </p>
             </div>
-            <Link href="/reportar" className="inline-flex h-12 items-center gap-2 rounded-full bg-white px-6 text-base font-bold text-navy-900 hover:bg-navy-50">
+            <Link
+              href="/reportar"
+              className="inline-flex h-12 items-center gap-2 rounded-xl bg-white px-6 text-base font-bold text-navy-900 shadow-[0_14px_30px_-18px_rgba(0,0,0,.5)] hover:bg-[#fffdf8]"
+            >
               Reportar ahora <ArrowRight className="h-5 w-5" aria-hidden />
             </Link>
           </div>
@@ -364,7 +362,7 @@ export default async function HomePage() {
                     <div className="grid grid-cols-2 gap-px bg-line">
                       <div className="relative aspect-[4/3] bg-navy-50">
                         {before ? (
-                          <Image src={before.url} alt={`Antes: ${item.title}`} fill sizes="220px" className="object-cover" unoptimized={before.url.endsWith(".svg")} />
+                          <Image src={before.url} alt={`Antes: ${item.title}`} fill sizes="220px" className="object-cover" unoptimized={isUnoptimizedImage(before.url)} />
                         ) : (
                           <span className="absolute inset-0 flex items-center justify-center text-xs text-navy-500">Sin foto previa</span>
                         )}
@@ -372,7 +370,7 @@ export default async function HomePage() {
                       </div>
                       <div className="relative aspect-[4/3] bg-navy-50">
                         {after ? (
-                          <Image src={after.url} alt={`Después: ${item.title}`} fill sizes="220px" className="object-cover" unoptimized={after.url.endsWith(".svg")} />
+                          <Image src={after.url} alt={`Después: ${item.title}`} fill sizes="220px" className="object-cover" unoptimized={isUnoptimizedImage(after.url)} />
                         ) : (
                           <span className="absolute inset-0 flex items-center justify-center text-xs text-navy-500">Sin foto final</span>
                         )}

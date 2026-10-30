@@ -5,6 +5,7 @@ import { isLiveMode } from "@/public-api/config";
 import { ApiPlayground } from "./_components/ApiPlayground";
 import { CodeBlock } from "./_components/CodeBlock";
 import { CodeTabs } from "./_components/CodeTabs";
+import { ApiHero } from "./_components/ApiHero";
 import {
   CATEGORY_LABELS,
   EXTERNAL_STATUS_KIND_LABELS,
@@ -54,6 +55,7 @@ export const metadata: Metadata = {
 
 const BASE = (process.env.NEXT_PUBLIC_APP_URL ?? "").trim().replace(/\/$/, "") || "https://votavia.mx";
 const LIVE = isLiveMode();
+const HERO_IMAGE = process.env.NEXT_PUBLIC_API_HERO_IMAGE_URL?.trim() || undefined;
 
 const NAV_ITEMS = [
   { href: "#introduccion", label: "Introducción" },
@@ -318,122 +320,7 @@ function EndpointCard({
 export default function DeveloperPortalPage() {
   return (
     <div className="min-h-screen bg-paper">
-      <header className="relative overflow-hidden bg-forest text-white">
-        <div className="absolute inset-0 dot-grid opacity-60" aria-hidden />
-        <div
-          className="absolute -right-32 -top-40 size-[34rem] rounded-full bg-forest-2/70 blur-3xl"
-          aria-hidden
-        />
-        <div className="relative mx-auto max-w-7xl px-5 sm:px-8">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 py-5">
-            <Link href="/desarrolladores" className="group flex items-center gap-3">
-              <span className="flex size-9 items-center justify-center rounded-full bg-lime font-display text-lg font-bold text-forest">
-                V
-              </span>
-              <span>
-                <span className="block font-display text-xl leading-none tracking-tight">VotaVía</span>
-                <span className="mt-1 block text-[10px] uppercase tracking-[0.22em] text-white/50">
-                  Portal para desarrolladores
-                </span>
-              </span>
-            </Link>
-            <div className="flex items-center gap-2 text-[11.5px]">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-lime/30 bg-lime/10 px-3 py-1.5 text-lime">
-                <span className="size-1.5 rounded-full bg-lime" aria-hidden />
-                API v1 · {LIVE ? "datos en vivo" : "demostración"}
-              </span>
-              <a
-                href="/api/v1/public/openapi.json"
-                className="rounded-full border border-white/15 px-3 py-1.5 text-white/75 transition hover:border-white/40 hover:text-white"
-              >
-                OpenAPI ↗
-              </a>
-            </div>
-          </div>
-
-          <div className="grid gap-10 py-14 lg:grid-cols-[minmax(0,1.06fr)_minmax(0,0.94fr)] lg:items-center lg:py-20">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-lime">
-                Datos cívicos abiertos · Cuauhtémoc
-              </p>
-              <h1 className="mt-4 max-w-2xl font-display text-4xl leading-[1.06] tracking-tight sm:text-5xl lg:text-[3.65rem]">
-                Casos urbanos publicados, listos para construir.
-              </h1>
-              <p className="mt-5 max-w-xl text-[15.5px] leading-7 text-white/70">
-                Una API de solo lectura para consultar reportes aprobados, estadísticas agregadas y
-                señales preventivas revisadas por personas. Sin autenticación, sin datos personales
-                y con un contrato estable para tu próximo proyecto cívico.
-              </p>
-              <div className="mt-7 flex flex-wrap gap-3">
-                <a
-                  href="#endpoints"
-                  className="rounded-full bg-lime px-5 py-2.5 text-sm font-semibold text-forest transition hover:bg-[#e7ff86]"
-                >
-                  Explorar endpoints
-                </a>
-                <a
-                  href="#consola"
-                  className="rounded-full border border-white/25 px-5 py-2.5 text-sm font-medium text-white/85 transition hover:border-white/55 hover:text-white"
-                >
-                  Probar la API
-                </a>
-              </div>
-              <div className="mt-8 grid max-w-xl grid-cols-2 gap-2 text-[11.5px] text-white/60 sm:grid-cols-4">
-                {["Solo lectura", "Sin llave", "CORS abierto", "Privacidad por diseño"].map((item) => (
-                  <div key={item} className="flex items-center gap-2">
-                    <span className="size-1 rounded-full bg-lime" aria-hidden />
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="relative">
-              <div className="rounded-[1.5rem] border border-white/15 bg-white/[0.055] p-3 shadow-2xl backdrop-blur-sm">
-                <div className="rounded-[1.05rem] border border-white/10 bg-[#07130f]">
-                  <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded bg-lime/15 px-2 py-1 font-mono text-[10px] font-bold text-lime">
-                        GET
-                      </span>
-                      <code className="font-mono text-[10.5px] text-white/65">
-                        /api/v1/public/cases
-                      </code>
-                    </div>
-                    <span className="text-[10px] text-white/35">200 OK</span>
-                  </div>
-                  <pre className="overflow-hidden p-4 font-mono text-[10.5px] leading-[1.8] text-white/70">
-                    <code>{`{
-  "data": [
-    {
-      "display_id": "VOT-0001",
-      "category": "road_damage",
-      "votavia_operational_status": "in_progress",
-      "external_government_status": null,
-      "community_verification_status": "unverified",
-      "record_origin": "citizen",
-      "colonia": "Roma Norte",
-      "support_count": 42
-    }
-  ],
-  "meta": {
-    "dataset": "demo",
-    "total": 14,
-    "page": 1
-  }
-}`}</code>
-                  </pre>
-                </div>
-              </div>
-              <div className="absolute -bottom-5 -left-3 rounded-2xl border border-white/15 bg-forest px-4 py-3 shadow-xl sm:-left-6">
-                <p className="text-[9.5px] uppercase tracking-[0.18em] text-lime">Ubicación pública</p>
-                <p className="mt-1 font-display text-xl">110 / 1 100 m</p>
-                <p className="text-[10.5px] text-white/50">precisión deliberada</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <ApiHero live={LIVE} heroImage={HERO_IMAGE} />
 
       <nav className="sticky top-0 z-40 border-b border-forest/10 bg-paper/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-3 sm:px-8">

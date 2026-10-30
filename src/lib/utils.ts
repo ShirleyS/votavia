@@ -93,3 +93,12 @@ export function slugify(value: string) {
 export function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
+
+/**
+ * SVG placeholders and remote stock photos bypass the Next.js image optimizer:
+ * SVGs are already tiny vectors and remote photos are served straight from the
+ * CDN, which keeps the demo working without server-side image fetching.
+ */
+export function isUnoptimizedImage(url: string) {
+  return url.endsWith(".svg") || /^https?:\/\//.test(url);
+}

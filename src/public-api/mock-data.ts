@@ -1,5 +1,6 @@
 import { ALCALDIA, type Case, type CaseTimelineEvent, type ReportObservation } from "@/shared/votavia-contract";
 import type { ApprovedRiskSignal } from "./risk";
+import { stockPhoto } from "@/lib/stock-photos";
 
 /**
  * Deterministic demo dataset. It deliberately contains extra "private" keys at
@@ -36,7 +37,7 @@ function base(
   },
 ): MockCase {
   const case_id = `0b7f1f3e-6f2a-4a1c-9a58-1c1e8d${String(n).padStart(6, "0")}`;
-  const photos = (input.photos ?? [{ url: "/demo/bache-1.svg", kind: "report" as const }]).map(
+  const photos = (input.photos ?? [{ url: stockPhoto("bache-1"), kind: "report" as const }]).map(
     (photo, index) => ({
       photo_id: `${case_id}-photo-${index + 1}`,
       case_id,
@@ -92,8 +93,8 @@ export const demoCases: MockCase[] = [
     address_hint: "Río Pánuco 42, entre Río Tiber y Río Nilo",
     support_count: 42,
     photos: [
-      { url: "/demo/bache-1.svg", kind: "report", caption: "Bache frente al 42" },
-      { url: "/demo/bache-2.svg", kind: "report", caption: "Vista desde la banqueta" },
+      { url: stockPhoto("bache-1"), kind: "report", caption: "Bache frente al 42" },
+      { url: stockPhoto("bache-2"), kind: "report", caption: "Vista desde la banqueta" },
     ],
     safety: true,
     created_days: 24,
@@ -118,7 +119,7 @@ export const demoCases: MockCase[] = [
     longitude: -99.1703,
     address_hint: "Andador central de Parque México, cerca del foro",
     support_count: 31,
-    photos: [{ url: "/demo/luminaria-1.svg", kind: "report" }],
+    photos: [{ url: stockPhoto("luminaria-1"), kind: "report" }],
     safety: true,
     created_days: 18,
     updated_days: 18,
@@ -135,7 +136,7 @@ export const demoCases: MockCase[] = [
     longitude: -99.1611,
     address_hint: "Av. Chapultepec 118, esquina con Havre",
     support_count: 27,
-    photos: [{ url: "/demo/basura-1.svg", kind: "report" }],
+    photos: [{ url: stockPhoto("basura-1"), kind: "report" }],
     accessibility: true,
     created_days: 9,
     updated_days: 4,
@@ -151,7 +152,7 @@ export const demoCases: MockCase[] = [
     longitude: -99.1628,
     address_hint: "Av. Insurgentes Sur esquina con Roma",
     support_count: 38,
-    photos: [{ url: "/demo/semaforo-1.svg", kind: "report" }],
+    photos: [{ url: stockPhoto("semaforo-1"), kind: "report" }],
     safety: true,
     accessibility: true,
     created_days: 14,
@@ -169,8 +170,8 @@ export const demoCases: MockCase[] = [
     address_hint: "Salida sur de Metro Insurgentes",
     support_count: 22,
     photos: [
-      { url: "/demo/banqueta-1.svg", kind: "before", caption: "Paso obstruido" },
-      { url: "/demo/banqueta-2.svg", kind: "after", caption: "Paso liberado" },
+      { url: stockPhoto("banqueta-1"), kind: "before", caption: "Paso obstruido" },
+      { url: stockPhoto("banqueta-2"), kind: "after", caption: "Paso liberado" },
     ],
     accessibility: true,
     created_days: 30,
@@ -188,8 +189,8 @@ export const demoCases: MockCase[] = [
     longitude: -99.1718,
     support_count: 19,
     photos: [
-      { url: "/demo/arbol-antes.svg", kind: "before" },
-      { url: "/demo/arbol-despues.svg", kind: "after" },
+      { url: stockPhoto("arbol-antes"), kind: "before" },
+      { url: stockPhoto("arbol-despues"), kind: "after" },
     ],
     safety: true,
     created_days: 26,
@@ -207,7 +208,7 @@ export const demoCases: MockCase[] = [
     longitude: -99.1781,
     address_hint: "Área de juegos, Parque Hundido",
     support_count: 16,
-    photos: [{ url: "/demo/parque-1.svg", kind: "report" }],
+    photos: [{ url: stockPhoto("parque-1"), kind: "report" }],
     safety: true,
     accessibility: true,
     created_days: 11,
@@ -224,7 +225,7 @@ export const demoCases: MockCase[] = [
     longitude: -99.1648,
     address_hint: "Colima 210",
     support_count: 12,
-    photos: [{ url: "/demo/bache-2.svg", kind: "report" }],
+    photos: [{ url: stockPhoto("bache-2"), kind: "report" }],
     safety: true,
     created_days: 8,
     updated_days: 1,
@@ -239,7 +240,7 @@ export const demoCases: MockCase[] = [
     latitude: 19.4204,
     longitude: -99.1469,
     support_count: 7,
-    photos: [{ url: "/demo/basura-2.svg", kind: "report" }],
+    photos: [{ url: stockPhoto("basura-2"), kind: "report" }],
     accessibility: true,
     created_days: 40,
     updated_days: 20,
@@ -255,7 +256,7 @@ export const demoCases: MockCase[] = [
     latitude: 19.4269,
     longitude: -99.1348,
     support_count: 24,
-    photos: [{ url: "/demo/luminaria-2.svg", kind: "report" }],
+    photos: [{ url: stockPhoto("luminaria-2"), kind: "report" }],
     created_days: 35,
     updated_days: 15,
     resolved_days: 15,
@@ -270,7 +271,7 @@ export const demoCases: MockCase[] = [
     latitude: 19.4287,
     longitude: -99.1402,
     support_count: 9,
-    photos: [{ url: "/demo/semaforo-2.svg", kind: "report" }],
+    photos: [{ url: stockPhoto("semaforo-2"), kind: "report" }],
     safety: true,
     created_days: 5,
     updated_days: 5,
@@ -285,7 +286,7 @@ export const demoCases: MockCase[] = [
     latitude: 19.4143,
     longitude: -99.1451,
     support_count: 14,
-    photos: [{ url: "/demo/banqueta-1.svg", kind: "report" }],
+    photos: [{ url: stockPhoto("banqueta-1"), kind: "report" }],
     accessibility: true,
     created_days: 6,
     updated_days: 2,
@@ -300,7 +301,7 @@ export const demoCases: MockCase[] = [
     longitude: -99.1462,
     address_hint: "Calle secreta 1",
     support_count: 3,
-    photos: [{ url: "/demo/parque-2.svg", kind: "report" }],
+    photos: [{ url: stockPhoto("parque-2"), kind: "report" }],
     created_days: 2,
     updated_days: 2,
     published: false,

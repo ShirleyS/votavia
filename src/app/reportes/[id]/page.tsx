@@ -29,7 +29,7 @@ import { EvidenceUploader } from "@/components/issues/evidence-uploader";
 import { CategoryIcon } from "@/components/category-icon";
 import { buttonStyles } from "@/components/ui/button";
 import { CATEGORY_META, OBSERVATION_META, STATUS_META, ORIGIN_META } from "@/lib/taxonomy";
-import { cn, formatDate, formatNumber, relativeTime } from "@/lib/utils";
+import { cn, formatDate, formatNumber, relativeTime, isUnoptimizedImage } from "@/lib/utils";
 import { getParticipant } from "@/server/auth/session";
 import { getCaseService } from "@/server/services/container";
 import { hasSupabaseAuth } from "@/server/env";
@@ -73,7 +73,7 @@ function PhotoGrid({ photos, title }: { photos: CasePhotograph[]; title: string 
           sizes="(min-width: 1024px) 720px, 100vw"
           className="object-cover"
           priority
-          unoptimized={first.url.endsWith(".svg")}
+          unoptimized={isUnoptimizedImage(first.url)}
         />
         {first.kind !== "report" ? (
           <span
@@ -96,7 +96,7 @@ function PhotoGrid({ photos, title }: { photos: CasePhotograph[]; title: string 
                 fill
                 sizes="220px"
                 className="object-cover"
-                unoptimized={photo.url.endsWith(".svg")}
+                unoptimized={isUnoptimizedImage(photo.url)}
               />
               {photo.kind !== "report" ? (
                 <span
@@ -190,7 +190,7 @@ export default async function ReportePage({ params }: PageProps) {
 
   return (
     <div className="bg-surface">
-      <div className="border-b border-line bg-white">
+      <div className="border-b border-line">
         <div className="container-page py-5">
           <Link
             href="/explorar"
@@ -263,7 +263,7 @@ export default async function ReportePage({ params }: PageProps) {
                           fill
                           sizes="320px"
                           className="object-cover"
-                          unoptimized={photo.url.endsWith(".svg")}
+                          unoptimized={isUnoptimizedImage(photo.url)}
                         />
                       </div>
                       <figcaption className="px-2 py-1.5 text-[11px] font-semibold text-navy-700">
@@ -541,7 +541,7 @@ export default async function ReportePage({ params }: PageProps) {
                             fill
                             sizes="240px"
                             className="object-cover"
-                            unoptimized={entry.url.endsWith(".svg")}
+                            unoptimized={isUnoptimizedImage(entry.url)}
                           />
                         </div>
                         <figcaption className="px-2 py-1.5 text-[10px] leading-snug text-navy-600">

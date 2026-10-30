@@ -58,7 +58,7 @@ export default async function MiCuentaPage() {
 
   return (
     <div className="bg-surface">
-      <div className="border-b border-line bg-white">
+      <div className="border-b border-line">
         <div className="container-page py-8 sm:py-10">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-royal-700">Tu cuenta</p>
           <h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">Mi cuenta</h1>

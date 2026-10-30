@@ -9,14 +9,14 @@ import { DemoSeedButton } from "@/components/demo-seed-button";
 import { buttonStyles } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-  { href: "/", label: "Inicio" },
+const NAV: { href: string; label: string; wideOnly?: boolean }[] = [
   { href: "/explorar", label: "Explorar" },
+  { href: "/#prioridades", label: "Prioridades" },
   { href: "/reportar", label: "Reportar" },
   { href: "/resultados", label: "Resultados" },
-  { href: "/#como-funciona", label: "Cómo funciona" },
+  { href: "/#como-funciona", label: "Cómo funciona", wideOnly: true },
   { href: "/gobierno", label: "Para gobierno" },
-  { href: "/desarrolladores", label: "API" },
+  { href: "/desarrolladores", label: "API", wideOnly: true },
 ];
 
 export function SiteHeader({
@@ -40,8 +40,10 @@ export function SiteHeader({
     setMenu(false);
   }
 
-  const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href.split("#")[0]) && href !== "/#como-funciona";
+  const isActive = (href: string) => {
+    if (href.includes("#")) return false;
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-white/90 backdrop-blur-md">
@@ -57,7 +59,8 @@ export function SiteHeader({
               href={item.href}
               aria-current={isActive(item.href) ? "page" : undefined}
               className={cn(
-                "rounded-lg px-3 py-2 text-[13.5px] font-semibold transition-colors",
+                "rounded-lg px-2.5 py-2 text-[13px] font-semibold transition-colors xl:px-3 xl:text-[13.5px]",
+                item.wideOnly && "hidden xl:inline-flex",
                 isActive(item.href)
                   ? "text-royal-700 underline decoration-[2.5px] underline-offset-[10px]"
                   : "text-navy-700 hover:bg-navy-50 hover:text-navy-900",

@@ -9,10 +9,11 @@ import type {
   RiskSignal,
   Specialist,
 } from "./types";
+import { stockPhoto, type StockPhotoName } from "@/lib/stock-photos";
 
-const photo = (name: string, alt: string, caption: string, tone: GovernmentCase["photos"][number]["tone"]) => ({
+const photo = (name: StockPhotoName, alt: string, caption: string, tone: GovernmentCase["photos"][number]["tone"]) => ({
   id: name,
-  url: `/report-photos/${name}.svg`,
+  url: stockPhoto(name),
   alt,
   caption,
   tone,
@@ -1168,7 +1169,7 @@ export const mockDispatchOrders: DispatchOrder[] = [
       {
         id: "ev-0832-1",
         title: "Antes · borde del hundimiento",
-        url: "/report-photos/bache-1.svg",
+        url: stockPhoto("bache-1"),
         alt: "Hundimiento antes de la intervención",
         submittedAt: "2026-10-27T08:25:00-06:00",
         note: "Se observa profundidad aproximada de 90 cm y grietas radiales.",
@@ -1177,7 +1178,7 @@ export const mockDispatchOrders: DispatchOrder[] = [
       {
         id: "ev-0832-2",
         title: "Después · reposición asfáltica",
-        url: "/report-photos/bache-3.svg",
+        url: stockPhoto("bache-3"),
         alt: "Área reparada con asfalto nuevo",
         submittedAt: "2026-10-29T17:55:00-06:00",
         note: "Relleno compactado en capas y carpeta asfáltica nueva.",
@@ -1186,7 +1187,7 @@ export const mockDispatchOrders: DispatchOrder[] = [
       {
         id: "ev-0832-3",
         title: "Detalle · fisura superficial",
-        url: "/report-photos/bache-2.svg",
+        url: stockPhoto("bache-2"),
         alt: "Fisura superficial en el área reparada",
         submittedAt: "2026-10-29T18:02:00-06:00",
         note: "Fisura visible de aproximadamente 1.2 m; el especialista la reporta como superficial.",
@@ -1195,7 +1196,7 @@ export const mockDispatchOrders: DispatchOrder[] = [
       {
         id: "ev-0832-4",
         title: "Acta de trabajo",
-        url: "/report-photos/acta.svg",
+        url: stockPhoto("acta"),
         alt: "Documento de acta de trabajo",
         submittedAt: "2026-10-29T18:08:00-06:00",
         note: "Orden firmada con material utilizado y responsable de la brigada.",
@@ -1233,7 +1234,7 @@ export const mockDispatchOrders: DispatchOrder[] = [
       {
         id: "ev-0843-1",
         title: "Antes · tramo sin luz",
-        url: "/report-photos/luz-1.svg",
+        url: stockPhoto("luz-1"),
         alt: "Tramo de calle sin iluminación",
         submittedAt: "2026-10-30T08:12:00-06:00",
         note: "Registro nocturno del tramo entre Nuevo León y Sonora.",
@@ -1271,7 +1272,7 @@ export const mockDispatchOrders: DispatchOrder[] = [
       {
         id: "ev-0844-1",
         title: "Antes · coladera saturada",
-        url: "/report-photos/drenaje-2.svg",
+        url: stockPhoto("drenaje-2"),
         alt: "Coladera con residuos antes de la limpieza",
         submittedAt: "2026-10-29T08:15:00-06:00",
         note: "Sedimento y hojas bloqueaban el 70% de la rejilla.",
@@ -1280,7 +1281,7 @@ export const mockDispatchOrders: DispatchOrder[] = [
       {
         id: "ev-0844-2",
         title: "Después · coladera limpia",
-        url: "/report-photos/drenaje-1.svg",
+        url: stockPhoto("drenaje-1"),
         alt: "Coladera después de la limpieza",
         submittedAt: "2026-10-30T09:02:00-06:00",
         note: "Se retiraron dos costales de sedimento y se verificó el flujo.",
@@ -1328,7 +1329,7 @@ export const mockDispatchOrders: DispatchOrder[] = [
       {
         id: "ev-0825-1",
         title: "Después · banqueta restituida",
-        url: "/report-photos/agua-2.svg",
+        url: stockPhoto("agua-2"),
         alt: "Banqueta restituida después de la reparación",
         submittedAt: "2026-10-27T16:50:00-06:00",
         note: "Tubería sustituida y concreto colado; sin escurrimiento visible.",
@@ -1844,7 +1845,7 @@ Object.assign(mockCases.find((item) => item.id === "case-0832")!, {
       kind: "before",
       title: "Hundimiento antes del bacheo",
       note: "Se delimitó el área y se retiró material suelto antes de la reparación.",
-      url: "/report-photos/bache-2.svg",
+      url: stockPhoto("bache-2"),
       performedAt: "2026-10-27T08:10:00-06:00",
       submittedAt: "2026-10-27T08:45:00-06:00",
       departmentId: "obras",
@@ -1856,7 +1857,7 @@ Object.assign(mockCases.find((item) => item.id === "case-0832")!, {
       kind: "after",
       title: "Bacheo profundo terminado",
       note: "Colado de concreto y compactación. La fisura superficial quedó registrada para revisión.",
-      url: "/report-photos/bache-3.svg",
+      url: stockPhoto("bache-3"),
       performedAt: "2026-10-29T16:20:00-06:00",
       submittedAt: "2026-10-29T18:05:00-06:00",
       departmentId: "obras",
@@ -1868,7 +1869,7 @@ Object.assign(mockCases.find((item) => item.id === "case-0832")!, {
       kind: "document",
       title: "Acta de intervención",
       note: "Registro interno con alcance, cuadrilla y materiales utilizados.",
-      url: "/report-photos/acta.svg",
+      url: stockPhoto("acta"),
       fileName: "acta-intervencion-0832.pdf",
       performedAt: "2026-10-29T17:00:00-06:00",
       submittedAt: "2026-10-29T18:06:00-06:00",
@@ -1899,7 +1900,7 @@ Object.assign(mockCases.find((item) => item.id === "case-0832")!, {
     detail:
       "El asfalto nuevo quedó más alto que la banqueta y tiene una fisura al centro. Los camiones vuelven a pasar sobre el borde. La comunidad considera que el hundimiento no está resuelto.",
     evidence: {
-      url: "/report-photos/bache-1.svg",
+      url: stockPhoto("bache-1"),
       caption: "Foto ciudadana del 30 de octubre: fisura y desnivel sobre el área reparada.",
     },
     status: "open",
@@ -1966,7 +1967,7 @@ Object.assign(mockCases.find((item) => item.id === "case-0844")!, {
       kind: "before",
       title: "Brote activo antes de la reparación",
       note: "Se localizó una fisura en el colector y se acordonó el paso peatonal.",
-      url: "/report-photos/drenaje-1.svg",
+      url: stockPhoto("drenaje-1"),
       performedAt: "2026-10-29T07:30:00-06:00",
       submittedAt: "2026-10-29T08:00:00-06:00",
       departmentId: "agua",
@@ -1978,7 +1979,7 @@ Object.assign(mockCases.find((item) => item.id === "case-0844")!, {
       kind: "after",
       title: "Colector sellado y banqueta limpia",
       note: "Se sustituyó un tramo de tubo y se sanitizó el área. Queda pendiente la validación vecinal.",
-      url: "/report-photos/drenaje-2.svg",
+      url: stockPhoto("drenaje-2"),
       performedAt: "2026-10-30T06:40:00-06:00",
       submittedAt: "2026-10-30T07:15:00-06:00",
       departmentId: "agua",

@@ -18,7 +18,7 @@ export default async function ReportarPage() {
 
   return (
     <div className="bg-surface">
-      <div className="border-b border-line bg-white">
+      <div className="border-b border-line">
         <div className="container-page py-8 sm:py-10">
           <Link
             href="/explorar"
@@ -26,7 +26,7 @@ export default async function ReportarPage() {
           >
             <ArrowLeft className="h-4 w-4" aria-hidden /> Volver a explorar
           </Link>
-          <h1 className="mt-4 text-3xl font-extrabold sm:text-4xl">Reporta un problema</h1>
+          <h1 className="mt-4 text-[30px] font-extrabold leading-tight tracking-[-0.03em] text-royal-700 sm:text-[38px]">Reporta un problema</h1>
           <p className="mt-2 max-w-2xl text-sm text-navy-500 sm:text-base">
             Cuéntanos qué pasa y dónde. Antes de enviar, revisamos si alguien ya lo reportó para
             sumar tu apoyo en lugar de duplicar el caso.

@@ -4,29 +4,55 @@
   --font-sans: "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI",
     "Helvetica Neue", Arial, sans-serif;
 
-  --color-navy-50: #f4f7fc;
-  --color-navy-100: #e3eaf6;
-  --color-navy-500: #33507a;
-  --color-navy-700: #16324f;
-  --color-navy-900: #0b1f3a;
+  /* Ink: a warm near-black scale. Secondary copy reads as stone, not blue. */
+  --color-navy-50: #f4f1e9;
+  --color-navy-100: #eae4d8;
+  --color-navy-400: #8a8271;
+  --color-navy-500: #6f6859;
+  --color-navy-600: #575144;
+  --color-navy-700: #3e3930;
+  --color-navy-800: #26221c;
+  --color-navy-900: #14120f;
+  --color-navy-950: #0b0a08;
 
-  --color-royal-50: #eef3ff;
-  --color-royal-100: #dbe5ff;
-  --color-royal-200: #b9ccff;
-  --color-royal-300: #8fb0ff;
-  --color-royal-400: #5f86f7;
-  --color-royal-500: #2f63e6;
-  --color-royal-600: #1453d8;
-  --color-royal-700: #0f45b4;
-  --color-royal-800: #103a91;
+  /* Primary: civic blue sampled from the reference. */
+  --color-royal-50: #eef2fe;
+  --color-royal-100: #dde5fd;
+  --color-royal-200: #c2d0fb;
+  --color-royal-300: #9bb2f7;
+  --color-royal-400: #6a8ef0;
+  --color-royal-500: #3f6ae6;
+  --color-royal-600: #2454e0;
+  --color-royal-700: #1b43bd;
+  --color-royal-800: #1a3a96;
+  --color-royal-900: #16307a;
 
-  --color-surface: #f6f8fc;
-  --color-line: #e4e9f2;
+  /* Warm paper surface + hairline borders. */
+  --color-surface: #f7f4ed;
+  --color-paper: #fbf9f4;
+  --color-line: #e8e1d3;
 
-  --shadow-card: 0 1px 2px rgba(11, 31, 58, 0.04), 0 12px 28px -18px rgba(11, 31, 58, 0.35);
-  --shadow-float: 0 18px 40px -24px rgba(11, 31, 58, 0.45);
+  --shadow-card: 0 1px 2px rgba(63, 55, 38, 0.04), 0 10px 24px -20px rgba(63, 55, 38, 0.28);
+  --shadow-float: 0 18px 40px -26px rgba(63, 55, 38, 0.42);
 
   --radius-xl2: 1.25rem;
+
+  /*
+   * Developer portal palette (the API docs were authored against these names).
+   * Mapped onto the civic system so the docs share the site's ink, paper and
+   * accent instead of falling back to unstyled colours.
+   */
+  --color-forest: #0b1a2f;
+  --color-forest-2: #14305a;
+  --color-ink: #14120f;
+  --color-lime: #f5be2a;
+  --color-clay: #e8506b;
+  --color-mist: #e8e1d3;
+  --color-paper-2: #f2ede2;
+  --color-slate-soft: #6f6859;
+
+  --font-display: "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Helvetica Neue", Arial, sans-serif;
 }
 
 @layer base {
@@ -37,10 +63,21 @@
 
   body {
     background-color: var(--color-surface);
+    background-image:
+      radial-gradient(closest-side at 12% 0%, rgba(245, 196, 74, 0.07), transparent 55%),
+      radial-gradient(closest-side at 88% 4%, rgba(36, 84, 224, 0.06), transparent 60%);
+    background-repeat: no-repeat;
+    background-size: 1100px 620px, 900px 520px;
+    background-position: left -120px top -140px, right -160px top -180px;
     color: var(--color-navy-900);
     font-family: var(--font-sans);
     font-feature-settings: "cv02", "cv03", "cv04", "ss01";
     -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: #ffd84d;
+    color: #14120f;
   }
 
   :focus-visible {
@@ -52,7 +89,12 @@
   h1,
   h2,
   h3 {
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+
+  h1 {
+    font-weight: 850;
   }
 }
 
@@ -77,12 +119,56 @@
     radial-gradient(closest-side at 70% 84%, rgba(214, 63, 96, 0.14), transparent 70%);
 }
 
-.hero-photo-fallback {
+/* Daylight hero: warm paper fade keeps black display type legible over the art. */
+.hero-day {
+  background-color: #dbe9f5;
   background-image:
-    linear-gradient(115deg, rgba(11, 31, 58, 0.92) 0%, rgba(20, 83, 216, 0.78) 52%, rgba(15, 69, 180, 0.65) 100%),
-    url("/demo/hero-fallback.svg");
-  background-size: cover;
-  background-position: center;
+    linear-gradient(
+      90deg,
+      #f7f4ed 0%,
+      rgba(247, 244, 237, 0.97) 30%,
+      rgba(247, 244, 237, 0.82) 47%,
+      rgba(247, 244, 237, 0.28) 66%,
+      rgba(247, 244, 237, 0) 82%
+    ),
+    url("/hero-reforma-day.svg");
+  background-size: cover, auto 100%;
+  background-position: center, right 62%;
+  background-repeat: no-repeat, no-repeat;
+}
+
+@media (max-width: 767px) {
+  .hero-day {
+    background-image:
+      linear-gradient(
+        180deg,
+        rgba(247, 244, 237, 0.98) 0%,
+        rgba(247, 244, 237, 0.94) 58%,
+        rgba(247, 244, 237, 0.8) 100%
+      ),
+      url("/hero-reforma-day.svg");
+    background-size: cover;
+    background-position: center top;
+  }
+}
+
+/* Developer portal hero: same Reforma artwork, read as a dark night skyline. */
+.api-hero-photo {
+  background-image:
+    linear-gradient(105deg, rgba(7, 14, 30, 0.97) 0%, rgba(11, 26, 47, 0.9) 46%, rgba(20, 48, 90, 0.62) 100%),
+    url("/hero-reforma-day.svg");
+  background-size: cover, cover;
+  background-position: center, right 58%;
+  background-repeat: no-repeat, no-repeat;
+}
+
+@media (max-width: 767px) {
+  .api-hero-photo {
+    background-image:
+      linear-gradient(180deg, rgba(7, 14, 30, 0.94) 0%, rgba(11, 26, 47, 0.9) 60%, rgba(20, 48, 90, 0.86) 100%),
+      url("/hero-reforma-day.svg");
+    background-position: center, center top;
+  }
 }
 
 .maplibregl-popup-content {

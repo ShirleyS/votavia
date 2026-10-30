@@ -9,7 +9,8 @@ import { Pagination } from "@/components/pagination";
 import { buttonStyles } from "@/components/ui/button";
 import { inputStyles } from "@/components/ui/field";
 import { CATEGORY_META, COLONIAS, STATUS_META, ORIGIN_META } from "@/lib/taxonomy";
-import { cn, formatNumber, relativeTime } from "@/lib/utils";
+import { cn, formatNumber, relativeTime, isUnoptimizedImage } from "@/lib/utils";
+import { fallbackPhoto } from "@/lib/stock-photos";
 import { CASE_CATEGORIES, CASE_STATUSES, type Case, type CaseCategory, type CaseStatus } from "@/shared/votavia-contract";
 import { getCaseService } from "@/server/services/container";
 import { getParticipant } from "@/server/auth/session";
@@ -112,24 +113,24 @@ export default async function ExplorarPage({ searchParams }: { searchParams: Sea
 
   return (
     <div className="bg-surface">
-      <div className="border-b border-line bg-white">
+      <div className="border-b border-line">
         <div className="container-page py-8 sm:py-10">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-royal-700">Explorar</p>
-              <h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">Prioridades de la comunidad</h1>
+              <h1 className="mt-2 text-[30px] font-extrabold leading-tight tracking-[-0.03em] text-royal-700 sm:text-[38px]">Prioridades de la comunidad</h1>
               <p className="mt-2 max-w-2xl text-sm text-navy-500 sm:text-base">
                 Conoce los problemas más importantes para las vecinas y vecinos de Cuauhtémoc.
                 Explora, apoya y da seguimiento a lo que nuestra comunidad necesita.
               </p>
             </div>
-            <div className="flex items-center gap-1 rounded-full border border-line bg-surface p-1">
+            <div className="flex items-center gap-1 rounded-full border border-line bg-white p-1 shadow-[var(--shadow-card)]">
               <Link
                 href={buildHref(params, { vista: "mapa" })}
                 aria-current={vista !== "lista" ? "page" : undefined}
                 className={cn(
                   "inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-semibold",
-                  vista !== "lista" ? "bg-white text-navy-900 shadow-sm" : "text-navy-500 hover:text-navy-900",
+                  vista !== "lista" ? "bg-royal-600 text-white shadow-[0_8px_16px_-10px_rgba(36,84,224,.9)]" : "text-navy-600 hover:text-navy-900",
                 )}
               >
                 <MapIcon className="h-4 w-4" aria-hidden /> Mapa
@@ -139,7 +140,7 @@ export default async function ExplorarPage({ searchParams }: { searchParams: Sea
                 aria-current={vista === "lista" ? "page" : undefined}
                 className={cn(
                   "inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-semibold",
-                  vista === "lista" ? "bg-white text-navy-900 shadow-sm" : "text-navy-500 hover:text-navy-900",
+                  vista === "lista" ? "bg-royal-600 text-white shadow-[0_8px_16px_-10px_rgba(36,84,224,.9)]" : "text-navy-600 hover:text-navy-900",
                 )}
               >
                 <List className="h-4 w-4" aria-hidden /> Lista
@@ -147,7 +148,7 @@ export default async function ExplorarPage({ searchParams }: { searchParams: Sea
             </div>
           </div>
 
-          <form id="buscar" action="/explorar" method="get" className="mt-6 rounded-2xl border border-line bg-surface p-3 sm:p-4">
+          <form id="buscar" action="/explorar" method="get" className="mt-6 rounded-2xl border border-line bg-white p-3 shadow-[var(--shadow-card)] sm:p-4">
             <input type="hidden" name="vista" value={vista} />
             <div className="grid gap-2.5 md:grid-cols-[1.6fr_1fr_1fr_1fr_auto]">
               <div className="relative">
@@ -272,8 +273,12 @@ export default async function ExplorarPage({ searchParams }: { searchParams: Sea
         ) : (
           <div className="grid gap-5 lg:grid-cols-[1.05fr_1fr] xl:grid-cols-[1.1fr_1fr]">
             <div className="space-y-2.5">
-              {result.items.map((item) => (
-                <RowCard key={item.case_id} item={item} />
+              {result.items.map((item, index) => (
+                <RowCard
+                  key={item.case_id}
+                  item={item}
+                  rank={(result.page - 1) * result.pageSize + index + 1}
+                />
               ))}
               <div className="pt-3">
                 <Pagination page={result.page} pageSize={result.pageSize} total={result.total} basePath="/explorar" params={flatten(params)} />
@@ -363,25 +368,26 @@ function SortLink({
   );
 }
 
-function RowCard({ item }: { item: Case }) {
+function RowCard({ item, rank }: { item: Case; rank: number }) {
   const photo = item.photos[0];
+  const imageUrl = photo?.url ?? fallbackPhoto(item.category, item.case_id);
   return (
-    <article className="group flex items-stretch gap-3 rounded-2xl border border-line bg-white p-2.5 shadow-[var(--shadow-card)] transition-colors hover:border-royal-200 sm:p-3">
+    <article className="group flex items-stretch gap-3 rounded-2xl border border-line bg-white p-2.5 shadow-[var(--shadow-card)] transition-all hover:-translate-y-0.5 hover:border-royal-200 hover:shadow-[var(--shadow-float)] sm:p-3">
+      <span
+        className="hidden w-8 shrink-0 items-center justify-center text-lg font-extrabold tabular-nums text-navy-100 sm:flex"
+        aria-hidden
+      >
+        {rank}
+      </span>
       <Link href={`/reportes/${item.case_id}`} className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-navy-50 sm:h-28 sm:w-32">
-        {photo ? (
-          <Image
-            src={photo.url}
-            alt={`Fotografía: ${item.title}`}
-            fill
-            sizes="128px"
-            className="object-cover"
-            unoptimized={photo.url.endsWith(".svg")}
-          />
-        ) : (
-          <span className="flex h-full items-center justify-center px-2 text-center text-[10px] font-semibold text-navy-500">
-            {CATEGORY_META[item.category].shortLabel}
-          </span>
-        )}
+        <Image
+          src={imageUrl}
+          alt={photo ? `Fotografía: ${item.title}` : `Imagen ilustrativa: ${item.title}`}
+          fill
+          sizes="128px"
+          className="object-cover"
+          unoptimized={isUnoptimizedImage(imageUrl)}
+        />
         <span className="absolute left-1.5 top-1.5 rounded bg-white/90 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide text-navy-700">
           {item.display_id}
         </span>
@@ -424,19 +430,18 @@ function RowCard({ item }: { item: Case }) {
 
 function FullCard({ item }: { item: Case }) {
   const photo = item.photos[0];
+  const imageUrl = photo?.url ?? fallbackPhoto(item.category, item.case_id);
   return (
     <article className="overflow-hidden rounded-2xl border border-line bg-white shadow-[var(--shadow-card)]">
       <Link href={`/reportes/${item.case_id}`} className="relative block aspect-[16/10] bg-navy-50">
-        {photo ? (
-          <Image
-            src={photo.url}
-            alt={`Fotografía: ${item.title}`}
-            fill
-            sizes="(min-width: 1024px) 360px, 100vw"
-            className="object-cover"
-            unoptimized={photo.url.endsWith(".svg")}
-          />
-        ) : null}
+        <Image
+          src={imageUrl}
+          alt={photo ? `Fotografía: ${item.title}` : `Imagen ilustrativa: ${item.title}`}
+          fill
+          sizes="(min-width: 1024px) 360px, 100vw"
+          className="object-cover"
+          unoptimized={isUnoptimizedImage(imageUrl)}
+        />
         <span className="absolute left-3 top-3 rounded-full bg-white/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-navy-700">
           {item.display_id}
         </span>

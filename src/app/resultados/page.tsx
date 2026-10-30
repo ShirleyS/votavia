@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { buttonStyles } from "@/components/ui/button";
 import { CATEGORY_META, STATUS_META } from "@/lib/taxonomy";
-import { cn, formatDate, formatNumber } from "@/lib/utils";
+import { cn, formatDate, formatNumber, isUnoptimizedImage } from "@/lib/utils";
 import { getCaseService } from "@/server/services/container";
 
 export const dynamic = "force-dynamic";
@@ -34,12 +34,12 @@ export default async function ResultadosPage() {
 
   return (
     <div className="bg-surface">
-      <section className="border-b border-line bg-white">
+      <section className="border-b border-line">
         <div className="container-page py-10 sm:py-12">
           <div className="flex flex-wrap items-end justify-between gap-5">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-royal-700">Transparencia</p>
-              <h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">Resultados públicos</h1>
+              <h1 className="mt-2 text-[30px] font-extrabold leading-tight tracking-[-0.03em] text-royal-700 sm:text-[38px]">Resultados públicos</h1>
               <p className="mt-2 max-w-2xl text-sm text-navy-500 sm:text-base">
                 Lo que la comunidad reportó y lo que ya cambió. Cada resultado incluye evidencia
                 cuando está disponible; los datos de demostración se muestran etiquetados.
@@ -88,7 +88,7 @@ export default async function ResultadosPage() {
                     <div className="grid grid-cols-2 gap-px bg-line">
                       <div className="relative aspect-[4/3] bg-navy-50">
                         {before ? (
-                          <Image src={before.url} alt={`Antes: ${item.title}`} fill sizes="260px" className="object-cover" unoptimized={before.url.endsWith(".svg")} />
+                          <Image src={before.url} alt={`Antes: ${item.title}`} fill sizes="260px" className="object-cover" unoptimized={isUnoptimizedImage(before.url)} />
                         ) : (
                           <span className="absolute inset-0 flex items-center justify-center px-2 text-center text-[11px] text-navy-500">Sin foto previa</span>
                         )}
@@ -96,7 +96,7 @@ export default async function ResultadosPage() {
                       </div>
                       <div className="relative aspect-[4/3] bg-navy-50">
                         {after ? (
-                          <Image src={after.url} alt={`Después: ${item.title}`} fill sizes="260px" className="object-cover" unoptimized={after.url.endsWith(".svg")} />
+                          <Image src={after.url} alt={`Después: ${item.title}`} fill sizes="260px" className="object-cover" unoptimized={isUnoptimizedImage(after.url)} />
                         ) : (
                           <span className="absolute inset-0 flex items-center justify-center px-2 text-center text-[11px] text-navy-500">Sin foto final</span>
                         )}

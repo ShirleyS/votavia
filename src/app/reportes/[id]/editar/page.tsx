@@ -32,7 +32,7 @@ export default async function EditarReportePage({ params }: PageProps) {
 
   return (
     <div className="bg-surface">
-      <div className="border-b border-line bg-white">
+      <div className="border-b border-line">
         <div className="container-page py-5">
           <Link
             href={`/reportes/${item.case_id}`}

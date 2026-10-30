@@ -665,3 +665,31 @@ Before adding a predictive model:
 
 Until then, `confidence_label: "preliminary"` and the heuristic `score` are the
 only claims the module makes.
+
+---
+
+## 12. Voice channel (demo call widget)
+
+The floating "Llamar a VotaVía" button (`src/components/voice/voice-call-widget.tsx`)
+turns the WhatsApp simulator into something that feels like a phone call:
+
+1. The browser records a short clip with `MediaRecorder`.
+2. `POST /api/whatsapp/simulate` transcribes it with ElevenLabs `scribe_v1`.
+3. The same conversation engine used by WhatsApp builds the report and replies.
+4. `POST /api/voice/speak` reads the reply with ElevenLabs text-to-speech.
+
+Both directions use the single server-only `ELEVENLABS_API_KEY`, so a restricted
+key needs **Text to Speech *and* Speech to Text** access enabled. The text box
+under the microphone is the fallback when a browser blocks audio.
+
+Deployment check (spends no characters, only reads the subscription):
+
+```bash
+curl -s https://<site>/api/voice/health | jq
+# or locally, with the key exported:
+node scripts/check-elevenlabs.mjs
+```
+
+Audio is never persisted: request-scoped only, `cache-control: no-store`.
+Optional tuning: `ELEVENLABS_VOICE_ID`, `ELEVENLABS_TTS_MODEL`,
+`ELEVENLABS_TTS_FORMAT`.

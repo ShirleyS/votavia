@@ -9,6 +9,7 @@ import {
   RECORD_ORIGIN_LABELS,
 } from "@/public-api/contract-extensions";
 import type { RiskLevel, RiskSignalType } from "@/public-api/types";
+import { stockPhoto } from "@/lib/stock-photos";
 
 export const CATEGORY_LABELS: Record<CaseCategory, string> = {
   road_damage: "Baches y pavimento",
@@ -95,7 +96,7 @@ export const SAMPLE_CASE = `{
       "photos": [
         {
           "photo_id": "${CASE_ID}-photo-1",
-          "url": "/demo/semaforo-2.svg",
+          "url": ${stockPhoto("semaforo-2")},
           "kind": "report",
           "caption": null,
           "created_at": "2026-10-25T12:00:00.000Z"
@@ -155,7 +156,7 @@ export const SAMPLE_CASE_DETAIL = `{
     "photos": [
       {
         "photo_id": "${DETAIL_ID}-photo-1",
-        "url": "/demo/bache-1.svg",
+        "url": ${stockPhoto("bache-1")},
         "kind": "report",
         "caption": "Bache frente al 42",
         "created_at": "2026-10-06T12:00:00.000Z"
@@ -442,7 +443,7 @@ export const SAMPLE_OFFICIAL_REPORTS = `{
       "photos": [
         {
           "photo_id": "0b7f1f3e-6f2a-4a1c-9a58-1c1e8d000014-photo-1",
-          "url": "/demo/bache-1.svg",
+          "url": ${stockPhoto("bache-1")},
           "kind": "report",
           "caption": null,
           "created_at": "2026-10-10T12:00:00.000Z"

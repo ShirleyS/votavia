@@ -1,0 +1,245 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 760" width="1600" height="760" role="img" aria-label="Ilustración diurna del Paseo de la Reforma, la Torre Latinoamericana y el Ángel de la Independencia en Cuauhtémoc">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#bcd9ef"/>
+      <stop offset="48%" stop-color="#dcebf5"/>
+      <stop offset="82%" stop-color="#f4f2e9"/>
+      <stop offset="100%" stop-color="#f7f4ed"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#fff3cf" stop-opacity="0.95"/>
+      <stop offset="55%" stop-color="#ffe9b0" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#ffe9b0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="glassA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f4fafd"/>
+      <stop offset="60%" stop-color="#d5e6f1"/>
+      <stop offset="100%" stop-color="#b7cfe0"/>
+    </linearGradient>
+    <linearGradient id="glassB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e6eff6"/>
+      <stop offset="100%" stop-color="#c2d6e4"/>
+    </linearGradient>
+    <linearGradient id="stone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f3eee2"/>
+      <stop offset="100%" stop-color="#d9cfbc"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f0c45c"/>
+      <stop offset="100%" stop-color="#c8952f"/>
+    </linearGradient>
+    <linearGradient id="lawn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8fc27d"/>
+      <stop offset="100%" stop-color="#5f9a63"/>
+    </linearGradient>
+    <pattern id="winA" width="16" height="18" patternUnits="userSpaceOnUse">
+      <rect width="16" height="18" fill="none"/>
+      <rect x="4" y="5" width="7" height="9" rx="1" fill="#8fb4cc" opacity="0.55"/>
+    </pattern>
+    <pattern id="winB" width="20" height="22" patternUnits="userSpaceOnUse">
+      <rect width="20" height="22" fill="none"/>
+      <rect x="5" y="6" width="9" height="11" rx="1" fill="#a7c3d6" opacity="0.5"/>
+    </pattern>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+
+  <!-- sky -->
+  <rect width="1600" height="760" fill="url(#sky)"/>
+  <circle cx="1180" cy="130" r="250" fill="url(#sun)"/>
+  <circle cx="1180" cy="130" r="54" fill="#fff7df" opacity="0.75" filter="url(#soft)"/>
+
+  <!-- birds -->
+  <g stroke="#7b93a4" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.55">
+    <path d="M700 150c7-6 13-6 20 0 7-6 13-6 20 0"/>
+    <path d="M760 110c6-5 11-5 17 0 6-5 11-5 17 0"/>
+    <path d="M1320 90c6-5 11-5 17 0 6-5 11-5 17 0"/>
+  </g>
+
+  <!-- distant hills -->
+  <path d="M0 470c120-26 220-44 330-30 96 12 168 34 250 26 92-9 150-44 250-40 96 4 168 40 260 34 120-8 210-36 320-20 70 10 130 22 190 24v56H0Z" fill="#c3d5df" opacity="0.85"/>
+  <path d="M0 500c140-18 250-8 360 6 120 15 210 2 320-12 110-14 190-2 290 12 110 15 210 4 320-8 110-12 200 2 310 10v30H0Z" fill="#b0c6d4" opacity="0.55"/>
+
+  <!-- back skyline -->
+  <g fill="#c9dbe7">
+    <rect x="560" y="330" width="90" height="180"/>
+    <rect x="640" y="290" width="70" height="220"/>
+    <rect x="1390" y="300" width="90" height="210"/>
+    <rect x="1470" y="340" width="120" height="170"/>
+  </g>
+
+  <!-- mid buildings -->
+  <g>
+    <!-- Torre Latinoamericana -->
+    <g>
+      <rect x="1130" y="120" width="112" height="390" fill="url(#glassA)"/>
+      <rect x="1130" y="120" width="112" height="390" fill="url(#winA)"/>
+      <rect x="1146" y="96" width="80" height="26" fill="#e8f1f7"/>
+      <rect x="1164" y="66" width="44" height="32" fill="#dfeaf2"/>
+      <rect x="1180" y="38" width="12" height="30" fill="#cfdfe9"/>
+      <rect x="1130" y="120" width="8" height="390" fill="#ffffff" opacity="0.55"/>
+      <rect x="1234" y="120" width="8" height="390" fill="#8eb1c8" opacity="0.5"/>
+    </g>
+
+    <!-- white tower -->
+    <g>
+      <rect x="1258" y="212" width="104" height="300" fill="#f7f2e8"/>
+      <rect x="1258" y="212" width="104" height="300" fill="url(#winB)" opacity="0.7"/>
+      <rect x="1270" y="186" width="80" height="28" fill="#f2ece0"/>
+      <rect x="1258" y="212" width="10" height="300" fill="#ffffff" opacity="0.6"/>
+    </g>
+
+    <!-- glass slab -->
+    <g>
+      <rect x="1372" y="254" width="128" height="258" fill="url(#glassB)"/>
+      <rect x="1372" y="254" width="128" height="258" fill="url(#winB)" opacity="0.8"/>
+      <rect x="1372" y="254" width="128" height="14" fill="#ffffff" opacity="0.55"/>
+    </g>
+
+    <!-- right towers -->
+    <rect x="1510" y="300" width="70" height="212" fill="#eae3d5"/>
+    <rect x="1510" y="300" width="70" height="212" fill="url(#winB)" opacity="0.45"/>
+    <rect x="1580" y="332" width="20" height="180" fill="#dfe9f0"/>
+
+    <!-- left-of-monument blocks (mostly softened by the paper fade) -->
+    <g opacity="0.9">
+      <rect x="930" y="286" width="86" height="226" fill="#eef2ef"/>
+      <rect x="930" y="286" width="86" height="226" fill="url(#winB)" opacity="0.55"/>
+      <rect x="1016" y="330" width="70" height="182" fill="#e6ecf0"/>
+      <rect x="1242" y="300" width="20" height="212" fill="#d7e3ea"/>
+    </g>
+  </g>
+
+  <!-- tree line -->
+  <g>
+    <rect x="0" y="542" width="1600" height="140" fill="url(#lawn)"/>
+    <g fill="#4f8a5a">
+      <circle cx="620" cy="556" r="46"/><circle cx="686" cy="540" r="38"/>
+      <circle cx="760" cy="556" r="44"/><circle cx="834" cy="538" r="36"/>
+      <circle cx="908" cy="556" r="42"/>
+      <circle cx="1108" cy="552" r="44"/><circle cx="1180" cy="536" r="38"/>
+      <circle cx="1262" cy="552" r="46"/><circle cx="1340" cy="536" r="38"/>
+      <circle cx="1420" cy="556" r="48"/><circle cx="1500" cy="540" r="40"/>
+      <circle cx="1570" cy="556" r="44"/>
+    </g>
+    <g fill="#6aa86f">
+      <circle cx="590" cy="572" r="38"/><circle cx="726" cy="576" r="34"/>
+      <circle cx="800" cy="586" r="30"/><circle cx="950" cy="580" r="34"/>
+      <circle cx="1144" cy="578" r="32"/><circle cx="1220" cy="588" r="30"/>
+      <circle cx="1300" cy="580" r="34"/><circle cx="1380" cy="590" r="30"/>
+      <circle cx="1460" cy="582" r="34"/><circle cx="1540" cy="592" r="30"/>
+    </g>
+    <g fill="#8fc47e" opacity="0.9">
+      <circle cx="650" cy="590" r="26"/><circle cx="870" cy="598" r="24"/>
+      <circle cx="1060" cy="594" r="26"/><circle cx="1204" cy="604" r="22"/>
+      <circle cx="1348" cy="600" r="24"/><circle cx="1512" cy="604" r="26"/>
+    </g>
+    <g stroke="#8a6f4e" stroke-width="6" stroke-linecap="round">
+      <path d="M620 600v26M908 602v24M1180 596v30M1420 604v26"/>
+    </g>
+  </g>
+
+  <!-- Ángel de la Independencia -->
+  <g>
+    <ellipse cx="1030" cy="684" rx="120" ry="16" fill="#5f7d63" opacity="0.22"/>
+    <rect x="958" y="650" width="144" height="30" rx="5" fill="#e2dbcb"/>
+    <rect x="972" y="630" width="116" height="22" rx="4" fill="#ece5d6"/>
+    <rect x="988" y="610" width="84" height="22" rx="3" fill="#e5ddcc"/>
+    <rect x="1002" y="594" width="56" height="18" rx="3" fill="#f0e9da"/>
+
+    <!-- column -->
+    <rect x="1018" y="404" width="24" height="192" fill="url(#stone)"/>
+    <rect x="1018" y="404" width="7" height="192" fill="#fdf9f1" opacity="0.85"/>
+    <rect x="1036" y="404" width="6" height="192" fill="#c3b8a3" opacity="0.55"/>
+    <rect x="1012" y="390" width="36" height="16" rx="3" fill="#f4edde"/>
+    <rect x="1010" y="576" width="40" height="14" rx="3" fill="#efe7d7"/>
+
+    <!-- golden orb -->
+    <circle cx="1030" cy="381" r="9.5" fill="url(#gold)"/>
+    <circle cx="1027" cy="378" r="3.2" fill="#fceec2" opacity="0.9"/>
+
+    <!-- wings: tapered, swept upward -->
+    <g transform="translate(1030 338)">
+      <g transform="rotate(-8)"><path d="M0 0C22 -30 52 -60 88 -76 94 -79 98 -77 97 -71 94 -56 78 -38 58 -26 40 -15 18 -6 0 0Z" fill="#E2AF42"/><path d="M0 0C18 -24 42 -48 72 -63 76 -65 78 -63 77 -59 74 -46 62 -32 47 -22 31 -12 14 -4 0 0Z" fill="#F6D58C"/><g stroke="#E2AF42" stroke-width="2" stroke-linecap="round" opacity="0.55"><path d="M26 -22l-4 10"/><path d="M48 -38l-6 12"/><path d="M68 -54l-5 10"/></g></g>
+      <g transform="scale(-1 1) rotate(-8)"><path d="M0 0C22 -30 52 -60 88 -76 94 -79 98 -77 97 -71 94 -56 78 -38 58 -26 40 -15 18 -6 0 0Z" fill="#E9BB53"/><path d="M0 0C18 -24 42 -48 72 -63 76 -65 78 -63 77 -59 74 -46 62 -32 47 -22 31 -12 14 -4 0 0Z" fill="#FBE3B0"/><g stroke="#E9BB53" stroke-width="2" stroke-linecap="round" opacity="0.55"><path d="M26 -22l-4 10"/><path d="M48 -38l-6 12"/><path d="M68 -54l-5 10"/></g></g>
+    </g>
+
+    <!-- robed figure -->
+    <path d="M1030 322c-4 0-7 3-7 7v34c0 6 3 10 7 11 4-1 7-5 7-11v-34c0-4-3-7-7-7Z" fill="#F3C96C"/>
+    <path d="M1024 344c4 3.5 8 3.5 12 0" stroke="#C48F2A" stroke-width="1.1" fill="none" opacity="0.4"/>
+    <path d="M1024 354c4 3.5 8 3.5 12 0" stroke="#C48F2A" stroke-width="1.1" fill="none" opacity="0.4"/>
+    <circle cx="1030" cy="313" r="6" fill="#FADD98"/>
+    <path d="M1024 312a6 6 0 0 1 12 0c0-3.4-2.7-5.8-6-5.8s-6 2.4-6 5.8Z" fill="#D6A23A"/>
+    <!-- raised right arm -->
+    <path d="M1036 330c-4-5-6-11-6-17" stroke="#F0C25E" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+
+    <!-- laurel raised in the right hand -->
+    <path d="M1035 345c-5-4-8-10-9-16" stroke="#F0C25E" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+    <g fill="#6FAE58">
+      <ellipse cx="1022" cy="325" rx="4.2" ry="2.4" transform="rotate(40 1022 325)"/>
+      <ellipse cx="1019" cy="318" rx="3.7" ry="2.1" transform="rotate(25 1019 318)"/>
+      <ellipse cx="1017" cy="311" rx="3.3" ry="1.9" transform="rotate(8 1017 311)"/>
+    </g>
+    <path d="M1026 331c-4-5-7-11-8-17" stroke="#4F8A45" stroke-width="1.2" fill="none" opacity="0.5"/>
+  </g>
+
+  <!-- pavement & road -->
+  <rect y="646" width="1600" height="114" fill="#e6e1d6"/>
+  <rect y="676" width="1600" height="84" fill="#cfc9bc"/>
+  <rect y="690" width="1600" height="46" fill="#5d6068"/>
+  <g stroke="#f5f2e8" stroke-width="4" stroke-dasharray="26 22" opacity="0.85">
+    <path d="M0 714h1600"/>
+  </g>
+  <g stroke="#b9b2a3" stroke-width="2" opacity="0.7">
+    <path d="M0 686h1600M0 746h1600"/>
+  </g>
+
+  <!-- cars -->
+  <g>
+    <g transform="translate(1080 692)">
+      <rect width="96" height="22" rx="8" fill="#f8f6f0"/>
+      <path d="M16 0h54l14 12H2Z" fill="#e7edf1"/>
+      <rect x="24" y="2" width="18" height="8" rx="2" fill="#9fc0d4"/>
+      <rect x="48" y="2" width="18" height="8" rx="2" fill="#9fc0d4"/>
+      <circle cx="22" cy="23" r="7" fill="#3b3f46"/><circle cx="76" cy="23" r="7" fill="#3b3f46"/>
+    </g>
+    <g transform="translate(1216 700) scale(0.9)">
+      <rect width="96" height="22" rx="8" fill="#2f5fb3"/>
+      <path d="M16 0h54l14 12H2Z" fill="#4a79c9"/>
+      <rect x="24" y="2" width="18" height="8" rx="2" fill="#cfe0f2"/>
+      <rect x="48" y="2" width="18" height="8" rx="2" fill="#cfe0f2"/>
+      <circle cx="22" cy="23" r="7" fill="#2a2d33"/><circle cx="76" cy="23" r="7" fill="#2a2d33"/>
+    </g>
+    <g transform="translate(1362 692) scale(0.95)">
+      <rect width="96" height="22" rx="8" fill="#f2ede2"/>
+      <path d="M16 0h54l14 12H2Z" fill="#e3dccb"/>
+      <circle cx="22" cy="23" r="7" fill="#3b3f46"/><circle cx="76" cy="23" r="7" fill="#3b3f46"/>
+    </g>
+  </g>
+
+  <!-- confetti petals (brand motif) -->
+  <g opacity="0.95">
+    <path d="M1470 46c34-26 66-4 58 30-8 33-48 42-72 16-14-15-4-33 14-46Z" fill="#f6c945"/>
+    <path d="M1544 108c36-14 62 12 48 44-14 32-58 30-76 2-10-17 4-38 28-46Z" fill="#e35b72"/>
+    <path d="M1478 196c30-22 62-2 56 28-6 30-46 42-68 18-13-14-4-33 12-46Z" fill="#2fae9b"/>
+    <path d="M1552 250c30-8 50 14 38 34-12 20-46 18-58-2-7-12 2-27 20-32Z" fill="#7b53d8"/>
+    <path d="M1430 128c24-16 48 0 42 22-6 22-36 28-52 10-9-11-2-22 10-32Z" fill="#f08a3c" opacity="0.9"/>
+  </g>
+
+  <!-- park promenade -->
+  <rect y="626" width="1600" height="24" fill="#efe9dc"/>
+  <g stroke="#dcd4c3" stroke-width="2" opacity="0.8">
+    <path d="M0 648h1600"/>
+  </g>
+
+  <!-- foreground foliage for depth -->
+  <g opacity="0.97">
+    <circle cx="40" cy="690" r="86" fill="#3f7a52"/>
+    <circle cx="124" cy="714" r="66" fill="#4d8b5d"/>
+    <circle cx="-10" cy="736" r="78" fill="#356a48"/>
+    <circle cx="1462" cy="742" r="72" fill="#3f7a52"/>
+    <circle cx="1556" cy="716" r="84" fill="#356a48"/>
+    <circle cx="1600" cy="756" r="70" fill="#4d8b5d"/>
+  </g>
+</svg>
