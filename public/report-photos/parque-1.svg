@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Ilustración de muestra: juegos infantiles asegurados con cinta de precaución">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dbeaf5"/><stop offset="1" stop-color="#f1f8f2"/></linearGradient>
+    <linearGradient id="grass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fbe83"/><stop offset="1" stop-color="#6fa267"/></linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#sky)"/>
+  <circle cx="1010" cy="150" r="72" fill="#f7d488" opacity="0.55"/>
+  <g fill="#a9c9a3">
+    <circle cx="150" cy="330" r="120"/><circle cx="250" cy="360" r="94"/>
+    <circle cx="1040" cy="330" r="112"/><circle cx="950" cy="362" r="88"/>
+  </g>
+  <g fill="#7fa67a">
+    <rect x="140" y="330" width="22" height="220" rx="8"/><rect x="1038" y="330" width="22" height="220" rx="8"/>
+  </g>
+  <rect y="500" width="1200" height="300" fill="url(#grass)"/>
+  <path d="M0 560 C220 530 380 590 600 562 C820 534 1000 590 1200 556 L1200 800 L0 800 Z" fill="#7cae72"/>
+  <g stroke="#7c8798" stroke-width="14" stroke-linecap="round" fill="none">
+    <path d="M382 300 H760"/>
+    <path d="M382 300 V512"/><path d="M760 300 V512"/>
+    <path d="M470 300 V430"/><path d="M565 300 V430"/><path d="M660 300 V430"/>
+  </g>
+  <g stroke="#5b6678" stroke-width="8" stroke-linecap="round" fill="none">
+    <path d="M470 430 C450 470 490 482 470 510"/>
+    <path d="M565 430 C545 470 585 482 565 510"/>
+    <path d="M660 430 C640 470 680 482 660 510"/>
+  </g>
+  <g fill="#d97640"><rect x="448" y="500" width="44" height="12" rx="5"/><rect x="543" y="500" width="44" height="12" rx="5"/><rect x="638" y="500" width="44" height="12" rx="5"/></g>
+  <g fill="#c9a227" opacity="0.95">
+    <path d="M338 352 L772 402 L772 426 L338 376 Z"/>
+    <path d="M338 430 L772 480 L772 504 L338 454 Z"/>
+  </g>
+  <text x="556" y="398" font-family="system-ui, sans-serif" font-size="22" font-weight="800" letter-spacing="4" fill="#3b4250" text-anchor="middle">PRECAUCIÓN</text>
+  <g>
+    <rect x="800" y="470" width="210" height="22" rx="8" fill="#9c6b3f"/>
+    <rect x="818" y="492" width="16" height="76" fill="#5f6b7c"/><rect x="976" y="492" width="16" height="76" fill="#5f6b7c"/>
+    <rect x="800" y="446" width="210" height="18" rx="7" fill="#b07c4b"/>
+  </g>
+  <g fill="#e0b56a"><circle cx="300" cy="470" r="26"/><rect x="286" y="492" width="28" height="58" rx="12"/></g>
+  <rect x="984" y="36" width="176" height="40" rx="20" fill="#0b1f3a" opacity="0.82"/>
+  <text x="1072" y="63" font-family="system-ui, sans-serif" font-size="20" font-weight="700" letter-spacing="2" fill="#fff" text-anchor="middle">MUESTRA</text>
+  <text x="48" y="770" font-family="system-ui, sans-serif" font-size="22" fill="#f1f7ef">Ilustración de muestra · VotaVía</text>
+</svg>

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Ilustración de muestra: bolsas de basura acumuladas en una banqueta">
+  <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dbe7f7"/><stop offset="1" stop-color="#f4f8fc"/></linearGradient></defs>
+  <rect width="1200" height="800" fill="url(#sky)"/>
+  <g fill="#c0cfe2"><rect x="620" y="100" width="500" height="390" rx="8"/></g>
+  <rect x="690" y="180" width="360" height="150" rx="10" fill="#e2ebf6"/>
+  <g fill="#8fa6c2"><rect x="730" y="210" width="70" height="84" rx="4"/><rect x="830" y="210" width="70" height="84" rx="4"/><rect x="930" y="210" width="70" height="84" rx="4"/></g>
+  <rect x="660" y="360" width="420" height="130" fill="#aebfd4"/>
+  <path d="M620 430 H1200" stroke="#99aec7" stroke-width="8"/>
+  <text x="870" y="405" font-family="system-ui, sans-serif" font-size="34" font-weight="800" fill="#1453d8" text-anchor="middle">ESCUELA PRIMARIA</text>
+  <rect y="490" width="1200" height="310" fill="#d3dde9"/>
+  <rect y="590" width="1200" height="210" fill="#455367"/>
+  <rect y="570" width="1200" height="26" fill="#a9b9cc"/>
+  <g fill="#111827">
+    <path d="M120 560 C90 510 120 470 170 480 C210 440 270 470 270 520 C300 548 285 584 250 590 L140 590 C108 588 96 580 120 560 Z"/>
+    <path d="M270 574 C250 536 274 508 312 514 C342 480 396 502 392 544 C418 560 412 588 384 592 L286 592 C264 592 254 586 270 574 Z"/>
+    <path d="M400 566 C386 534 408 510 440 514 C466 492 508 510 504 544 C526 556 524 580 502 584 L420 584 C402 584 392 578 400 566 Z"/>
+  </g>
+  <g fill="#334155" opacity="0.75"><path d="M142 530 C170 516 206 526 216 554" stroke="#64748b" stroke-width="4" fill="none"/><path d="M316 544 C340 532 366 540 374 560" stroke="#64748b" stroke-width="4" fill="none"/></g>
+  <rect x="500" y="540" width="70" height="52" rx="6" fill="#7c3aed"/>
+  <rect x="512" y="548" width="46" height="36" rx="4" fill="#a78bfa"/>
+  <g fill="#f59e0b"><rect x="575" y="566" width="12" height="22" rx="3"/><rect x="592" y="558" width="9" height="30" rx="3"/></g>
+  <path d="M720 560 H760" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+  <rect x="984" y="36" width="176" height="40" rx="20" fill="#0b1f3a" opacity="0.82"/>
+  <text x="1072" y="63" font-family="system-ui, sans-serif" font-size="20" font-weight="700" letter-spacing="2" fill="#fff" text-anchor="middle">MUESTRA</text>
+  <text x="48" y="770" font-family="system-ui, sans-serif" font-size="22" fill="#e2e8f0">Ilustración de muestra · VotaVía</text>
+</svg>

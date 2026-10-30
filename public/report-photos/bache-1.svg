@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Ilustración de muestra: hundimiento delimitado con conos">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dbe7f7"/><stop offset="1" stop-color="#f4f7fc"/></linearGradient>
+    <radialGradient id="hole" cx="0.5" cy="0.4" r="0.65"><stop offset="0" stop-color="#0b1220"/><stop offset="0.75" stop-color="#334155"/><stop offset="1" stop-color="#64748b"/></radialGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#sky)"/>
+  <g fill="#c3d0e2"><rect x="0" y="120" width="260" height="360"/><rect x="930" y="95" width="270" height="385"/><rect x="720" y="190" width="185" height="290"/></g>
+  <g fill="#a4b6ce"><rect x="36" y="170" width="66" height="70" rx="3"/><rect x="140" y="170" width="66" height="70" rx="3"/><rect x="975" y="150" width="62" height="76" rx="3"/><rect x="1075" y="150" width="62" height="76" rx="3"/></g>
+  <rect y="440" width="1200" height="90" fill="#d5dfec"/>
+  <rect y="530" width="1200" height="270" fill="#4a5568"/>
+  <g stroke="#64748b" stroke-width="4" opacity="0.5"><path d="M0 590 H1200"/><path d="M0 700 H1200"/></g>
+  <ellipse cx="670" cy="650" rx="250" ry="88" fill="#2b3545"/>
+  <ellipse cx="670" cy="634" rx="218" ry="66" fill="url(#hole)"/>
+  <g stroke="#94a3b8" stroke-width="6" fill="none" opacity="0.8">
+    <path d="M410 640 L520 610 L585 626"/><path d="M790 624 L900 596"/><path d="M520 712 L610 690"/>
+  </g>
+  <g fill="#f59e0b" stroke="#b45309" stroke-width="5">
+    <path d="M300 650 L352 548 L404 650 Z"/><path d="M930 690 L982 588 L1034 690 Z"/><path d="M230 730 L272 648 L314 730 Z"/>
+  </g>
+  <g stroke="#fff" stroke-width="9" opacity="0.9"><path d="M340 620 H365"/><path d="M966 660 H991"/></g>
+  <rect x="520" y="380" width="300" height="58" rx="10" fill="#1453d8"/>
+  <text x="670" y="419" font-family="system-ui, sans-serif" font-size="27" font-weight="700" fill="#fff" text-anchor="middle">Mercado Narvarte</text>
+  <rect x="984" y="36" width="176" height="40" rx="20" fill="#0b1f3a" opacity="0.82"/>
+  <text x="1072" y="63" font-family="system-ui, sans-serif" font-size="20" font-weight="700" letter-spacing="2" fill="#fff" text-anchor="middle">MUESTRA</text>
+  <text x="48" y="770" font-family="system-ui, sans-serif" font-size="22" fill="#e2e8f0">Ilustración de muestra · VotaVía</text>
+</svg>

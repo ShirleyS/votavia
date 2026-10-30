@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Ilustración de muestra: pavimento agrietado junto a la banqueta">
+  <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e4edf9"/><stop offset="1" stop-color="#f7fafd"/></linearGradient></defs>
+  <rect width="1200" height="800" fill="url(#sky)"/>
+  <g fill="#c9d5e5"><rect x="0" y="80" width="300" height="400"/><rect x="840" y="60" width="360" height="420"/></g>
+  <g fill="#aab9cd"><rect x="45" y="130" width="70" height="76" rx="3"/><rect x="160" y="130" width="70" height="76" rx="3"/><rect x="895" y="120" width="72" height="80" rx="3"/><rect x="1010" y="120" width="72" height="80" rx="3"/></g>
+  <rect y="430" width="1200" height="110" fill="#d9e2ee"/>
+  <rect y="540" width="1200" height="260" fill="#566275"/>
+  <g stroke="#cbd5e1" stroke-width="3" opacity="0.35"><path d="M0 610 H1200"/><path d="M0 690 H1200"/><path d="M300 540 L240 800"/><path d="M890 540 L980 800"/></g>
+  <g fill="none" stroke="#1e293b" stroke-width="9" stroke-linecap="round" opacity="0.85">
+    <path d="M560 620 C620 596 684 600 742 632 C790 658 838 654 886 628"/>
+    <path d="M618 622 L598 574"/><path d="M684 608 L690 556"/><path d="M762 640 L786 596"/><path d="M836 650 L870 618"/>
+  </g>
+  <g fill="#334155"><path d="M600 630 l36 -14 24 26 -40 18 z"/><path d="M760 646 l30 -12 20 22 -34 14 z"/></g>
+  <rect x="80" y="500" width="240" height="24" rx="6" fill="#94a3b8"/>
+  <rect x="910" y="500" width="200" height="24" rx="6" fill="#94a3b8"/>
+  <rect x="984" y="36" width="176" height="40" rx="20" fill="#0b1f3a" opacity="0.82"/>
+  <text x="1072" y="63" font-family="system-ui, sans-serif" font-size="20" font-weight="700" letter-spacing="2" fill="#fff" text-anchor="middle">MUESTRA</text>
+  <text x="48" y="770" font-family="system-ui, sans-serif" font-size="22" fill="#e2e8f0">Ilustración de muestra · VotaVía</text>
+</svg>

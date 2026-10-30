@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Ilustración de muestra: coladera abierta con residuos y sedimento">
+  <defs>
+    <linearGradient id="pav" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8b97a6"/><stop offset="1" stop-color="#616d7d"/></linearGradient>
+    <radialGradient id="pit" cx="0.5" cy="0.4" r="0.7"><stop offset="0" stop-color="#121a24"/><stop offset="0.8" stop-color="#2c3642"/><stop offset="1" stop-color="#4b5765"/></radialGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#pav)"/>
+  <g stroke="#77828f" stroke-width="5" opacity="0.6">
+    <path d="M0 120 H1200"/><path d="M0 300 H1200"/><path d="M0 620 H1200"/>
+    <path d="M210 0 V800"/><path d="M640 0 V800"/><path d="M980 0 V800"/>
+  </g>
+  <g fill="#7c8794" opacity="0.7">
+    <rect x="60" y="160" width="120" height="70" rx="6" transform="rotate(-4 120 195)"/>
+    <rect x="1010" y="360" width="150" height="80" rx="6" transform="rotate(3 1085 400)"/>
+  </g>
+  <rect x="330" y="250" width="540" height="330" rx="12" fill="#4d5866"/>
+  <rect x="356" y="276" width="488" height="278" rx="8" fill="url(#pit)"/>
+  <g stroke="#6b7787" stroke-width="16" stroke-linecap="round">
+    <path d="M430 300 V530"/><path d="M520 300 V530"/><path d="M610 300 V530"/><path d="M700 300 V530"/><path d="M790 300 V530"/>
+  </g>
+  <g stroke="#9aa6b4" stroke-width="10" stroke-linecap="round" opacity="0.6">
+    <path d="M380 330 H830"/><path d="M380 470 H830"/>
+  </g>
+  <g fill="#a58b6a">
+    <path d="M400 470 C450 430 520 440 560 470 C600 500 540 534 480 526 C430 520 380 502 400 470 Z"/>
+    <ellipse cx="700" cy="440" rx="90" ry="34" opacity="0.9"/>
+  </g>
+  <g fill="#8f9a8a">
+    <ellipse cx="470" cy="486" rx="34" ry="16" transform="rotate(-12 470 486)"/>
+    <ellipse cx="690" cy="452" rx="42" ry="18" transform="rotate(8 690 452)" fill="#7b8778"/>
+  </g>
+  <g fill="#c3ccd6">
+    <rect x="560" y="356" width="70" height="16" rx="7" transform="rotate(-16 595 364)"/>
+    <rect x="640" y="494" width="92" height="14" rx="7" transform="rotate(10 686 501)"/>
+    <circle cx="530" cy="408" r="9"/><circle cx="760" cy="392" r="7"/>
+  </g>
+  <g fill="#e2b13c" opacity="0.85">
+    <path d="M556 402 L584 388 L606 404 L582 420 Z"/>
+  </g>
+  <g fill="#f59e0b" stroke="#b45309" stroke-width="5">
+    <path d="M200 520 L250 424 L300 520 Z"/><path d="M880 560 L930 464 L980 560 Z"/>
+  </g>
+  <rect x="925" y="330" width="160" height="34" rx="8" fill="#b32020"/>
+  <text x="1005" y="354" font-family="system-ui, sans-serif" font-size="18" font-weight="700" fill="#fff" text-anchor="middle">PRECAUCIÓN</text>
+  <rect x="984" y="36" width="176" height="40" rx="20" fill="#0b1f3a" opacity="0.82"/>
+  <text x="1072" y="63" font-family="system-ui, sans-serif" font-size="20" font-weight="700" letter-spacing="2" fill="#fff" text-anchor="middle">MUESTRA</text>
+  <text x="48" y="770" font-family="system-ui, sans-serif" font-size="22" fill="#e2e8f0">Ilustración de muestra · VotaVía</text>
+</svg>

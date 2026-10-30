@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Ilustración de muestra: documento de acta de trabajo sobre un escritorio">
+  <defs>
+    <linearGradient id="desk" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9c3a5"/><stop offset="1" stop-color="#bfa585"/></linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f3f5f9"/></linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#desk)"/>
+  <g opacity="0.35" stroke="#a98f70" stroke-width="3">
+    <path d="M0 120 C300 100 600 150 900 120 C1050 105 1150 130 1200 120"/>
+    <path d="M0 660 C280 640 620 690 960 660 C1060 650 1140 670 1200 662"/>
+  </g>
+  <g transform="rotate(-3 600 430)">
+    <rect x="300" y="118" width="620" height="600" rx="8" fill="#c9b394" opacity="0.5" transform="translate(14 18)"/>
+    <rect x="300" y="118" width="620" height="600" rx="8" fill="url(#paper)"/>
+    <g fill="#1453d8">
+      <rect x="340" y="158" width="34" height="34" rx="7"/>
+      <rect x="382" y="158" width="34" height="34" rx="7" opacity="0.55"/>
+      <rect x="424" y="158" width="34" height="34" rx="7" opacity="0.3"/>
+    </g>
+    <text x="600" y="214" font-family="system-ui, sans-serif" font-size="34" font-weight="800" fill="#12213a" text-anchor="middle">ACTA DE TRABAJO</text>
+    <text x="600" y="248" font-family="system-ui, sans-serif" font-size="19" fill="#64748b" text-anchor="middle">VotaVía · Servicios urbanos</text>
+    <rect x="340" y="278" width="540" height="4" rx="2" fill="#dbe2ec"/>
+    <g font-family="system-ui, sans-serif" font-size="19" fill="#3d4b60">
+      <text x="340" y="330">Folio:</text><text x="430" y="330" font-weight="700" fill="#12213a">VT-2026-0832</text>
+      <text x="340" y="372">Colonia:</text><text x="430" y="372" font-weight="700" fill="#12213a">Del Valle Centro</text>
+      <text x="340" y="414">Servicio:</text><text x="430" y="414" font-weight="700" fill="#12213a">Bache en arroyo vial</text>
+    </g>
+    <g fill="#e4e9f1">
+      <rect x="340" y="448" width="540" height="12" rx="6"/>
+      <rect x="340" y="482" width="500" height="12" rx="6"/>
+      <rect x="340" y="516" width="520" height="12" rx="6"/>
+      <rect x="340" y="550" width="420" height="12" rx="6"/>
+    </g>
+    <g>
+      <rect x="340" y="596" width="210" height="66" rx="8" fill="#eef2f8" stroke="#cfd8e5" stroke-width="2"/>
+      <path d="M370 648 C386 620 404 626 418 640 C432 618 458 620 470 648" stroke="#1453d8" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <text x="545" y="636" font-family="system-ui, sans-serif" font-size="15" fill="#64748b">Firma responsable</text>
+      <path d="M545 652 H820" stroke="#c3cddb" stroke-width="3"/>
+    </g>
+    <g>
+      <path d="M700 596 L760 560 L780 640 L720 676 Z" fill="#1453d8" opacity="0.9"/>
+      <circle cx="742" cy="612" r="14" fill="#ffffff" opacity="0.7"/>
+    </g>
+  </g>
+  <g transform="rotate(14 940 620)">
+    <rect x="880" y="520" width="40" height="220" rx="10" fill="#26313f"/>
+    <rect x="872" y="500" width="56" height="70" rx="10" fill="#3a4757"/>
+    <path d="M900 500 L882 470 L918 470 Z" fill="#c9a26b"/>
+  </g>
+  <rect x="984" y="36" width="176" height="40" rx="20" fill="#0b1f3a" opacity="0.82"/>
+  <text x="1072" y="63" font-family="system-ui, sans-serif" font-size="20" font-weight="700" letter-spacing="2" fill="#fff" text-anchor="middle">MUESTRA</text>
+  <text x="48" y="770" font-family="system-ui, sans-serif" font-size="22" fill="#5b4a36">Ilustración de muestra · VotaVía</text>
+</svg>
