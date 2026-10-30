@@ -370,7 +370,7 @@ function SortLink({
 
 function RowCard({ item, rank }: { item: Case; rank: number }) {
   const photo = item.photos[0];
-  const imageUrl = photo?.url ?? fallbackPhoto(item.category, item.case_id);
+  const imageUrl = photo?.url ?? fallbackPhoto(item.category, item.display_id);
   return (
     <article className="group flex items-stretch gap-3 rounded-2xl border border-line bg-white p-2.5 shadow-[var(--shadow-card)] transition-all hover:-translate-y-0.5 hover:border-royal-200 hover:shadow-[var(--shadow-float)] sm:p-3">
       <span
@@ -430,7 +430,7 @@ function RowCard({ item, rank }: { item: Case; rank: number }) {
 
 function FullCard({ item }: { item: Case }) {
   const photo = item.photos[0];
-  const imageUrl = photo?.url ?? fallbackPhoto(item.category, item.case_id);
+  const imageUrl = photo?.url ?? fallbackPhoto(item.category, item.display_id);
   return (
     <article className="overflow-hidden rounded-2xl border border-line bg-white shadow-[var(--shadow-card)]">
       <Link href={`/reportes/${item.case_id}`} className="relative block aspect-[16/10] bg-navy-50">

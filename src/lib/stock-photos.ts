@@ -66,7 +66,7 @@ export function stockPhoto(name: StockPhotoName, width = 1200) {
  * photograph. The pick is stable for a given key (e.g. the case id).
  */
 const CATEGORY_GALLERY = {
-  road_damage: ["bache-1", "bache-2", "bache-3", "bache-4", "bache-5", "bache-6"],
+  road_damage: ["bache-1", "bache-2", "bache-3", "bache-4", "bache-5", "bache-6", "bache-antes"],
   street_lighting: ["luminaria-1", "luminaria-2", "luz-1", "luz-2"],
   traffic_signals: ["semaforo-1", "semaforo-2", "semaforo-antes", "movilidad-2"],
   sidewalk_accessibility: ["banqueta-1", "banqueta-2", "arbol-antes", "movilidad-1"],
@@ -83,7 +83,11 @@ function stableIndex(key: string, size: number) {
   return hash % size;
 }
 
-/** Deterministic fallback photo for a report without its own upload. */
+/**
+ * Deterministic fallback photo for a report without its own upload. The key is
+ * usually the folio (`VOT-0018`), whose trailing digits differ by one between
+ * neighbouring cards, so consecutive cards get consecutive gallery entries.
+ */
 export function fallbackPhoto(category: string, key: string, width = 1200) {
   const gallery = CATEGORY_GALLERY[category as keyof typeof CATEGORY_GALLERY] ?? CATEGORY_GALLERY.other;
   const name = gallery[stableIndex(`${category}:${key}`, gallery.length)];

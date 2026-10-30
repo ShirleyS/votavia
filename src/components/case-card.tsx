@@ -20,7 +20,7 @@ export function CaseCard({
 }) {
   const photo = item.photos[0];
   const meta = CATEGORY_META[item.category];
-  const imageUrl = photo?.url ?? fallbackPhoto(item.category, item.case_id);
+  const imageUrl = photo?.url ?? fallbackPhoto(item.category, item.display_id);
   const imageAlt = photo
     ? `Fotografía del reporte: ${item.title}`
     : `Imagen ilustrativa de ${meta.label.toLowerCase()}`;

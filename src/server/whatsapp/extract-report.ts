@@ -82,10 +82,42 @@ export function matchColonia(value: string | null | undefined): string | null {
   return contained ?? null;
 }
 
+/**
+ * A voice note often opens with a greeting and a self-introduction ("Hola, me
+ * llamo Ana López."). It says nothing about the problem, so titles start after
+ * it instead of repeating it on every card.
+ */
+const GREETING_ONLY_SENTENCE =
+  /^(?:hola|holi|buen[oa]s?\s+(?:d[ií]as?|tardes?|noches?)|qu[eé]\s+tal|hey|saludos)[\s,.;:!¡-]*$/i;
+const INTRO_SENTENCE =
+  /\b(?:me\s+llamo|mi\s+nombre\s+es|soy|les\s+habla|aqu[ií]\s+habla|le\s+escribe)\b/i;
+const LEADING_INTRO_CLAUSE =
+  /^(?:hola|holi|buen[oa]s?\s+(?:d[ií]as?|tardes?|noches?)|qu[eé]\s+tal|hey|saludos)?[\s,.;:!¡-]*(?:me\s+llamo|mi\s+nombre\s+es|soy|les\s+habla|aqu[ií]\s+habla|le\s+escribe)\s+(?:\S+\s*){1,4}?[,.;:!?]\s*/i;
+
+export function stripIntro(text: string): string {
+  const sentences = text.split(/(?<=[.!?])\s+/).filter((part) => part.trim());
+  let start = 0;
+  while (
+    start < sentences.length - 1 &&
+    (GREETING_ONLY_SENTENCE.test(sentences[start].trim()) ||
+      (start === 0 && INTRO_SENTENCE.test(sentences[start])))
+  ) {
+    start += 1;
+  }
+  let rest = sentences.slice(start).join(" ").trim();
+  if (start === 0) {
+    const intro = rest.match(LEADING_INTRO_CLAUSE);
+    if (intro) rest = rest.slice(intro[0].length).trim();
+  }
+  return rest.length >= 12 ? rest : text.trim();
+}
+
 function makeTitle(text: string): string {
-  const first = text.split(/[\n.!?]/).map((part) => part.trim()).find(Boolean) ?? text;
+  const body = stripIntro(text);
+  const first = body.split(/[\n.!?]/).map((part) => part.trim()).find(Boolean) ?? body;
   const title = first.slice(0, 120).trim();
-  return title.length >= 6 ? title : `Reporte: ${title}`.slice(0, 120);
+  const capitalized = title.charAt(0).toUpperCase() + title.slice(1);
+  return title.length >= 6 ? capitalized : `Reporte: ${capitalized}`.slice(0, 120);
 }
 
 const GREETING_WORDS = new Set([

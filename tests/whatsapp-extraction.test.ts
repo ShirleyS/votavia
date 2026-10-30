@@ -16,6 +16,17 @@ describe("WhatsApp report extraction", () => {
     expect(result.description).toContain("bache");
   });
 
+  it("drops the greeting and self-introduction from the title", async () => {
+    const extract = createReportExtractor(createMockClient({ configured: false }));
+    const result = await extract({
+      text: "Hola, me llamo Ana López. Hay un bache muy grave entre Colima y Álvaro Obregón, en Roma Norte. Casi se cae una moto.",
+      usedVoice: true,
+    });
+    expect(result.title).toMatch(/^Hay un bache/i);
+    expect(result.title).not.toMatch(/me llamo/i);
+    expect(result.reporter_name).toBe("Ana López");
+  });
+
   it("does not treat a greeting as a report", async () => {
     const extract = createReportExtractor(createMockClient({ configured: false }));
     const result = await extract({ text: "Hola, buenas tardes", usedVoice: false });
