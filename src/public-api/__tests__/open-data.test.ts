@@ -62,7 +62,39 @@ describe("public provenance and licensing", () => {
     expect(record.external_government_status?.kind).toBe("closed");
     expect(record.votavia_operational_status).toBe("pending_verification");
     expect(record.votavia_operational_status).not.toBe("resolved");
-    expect(record.community_verification_status).toBe("not_applicable");
+    expect(record.community_verification_status).toBe("unreviewed");
+  });
+
+  it("exposes only the allowlisted official_record on imported cases", async () => {
+    const service = serviceFor(new DemoCaseSource());
+    const imported = (
+      await service.listCases(new URLSearchParams({ origin: "government_import" }), "req")
+    ).data[0];
+    expect(imported.official_record).not.toBeNull();
+    expect(imported.official_record?.responsible_agency).toBe(
+      "Servicios Urbanos (demostración)",
+    );
+    expect(Object.keys(imported.official_record ?? {}).sort()).toEqual(
+      [
+        "collected_at",
+        "data_quality_flags",
+        "extraction_method",
+        "is_infrastructure_related",
+        "original_category",
+        "original_status",
+        "original_subcategory",
+        "responsible_agency",
+        "source_closed_at",
+        "source_dataset",
+        "source_updated_at",
+      ].sort(),
+    );
+    expect(imported.provenance?.license_verified_from).toBe("dataset_page");
+
+    const citizen = (
+      await service.listCases(new URLSearchParams({ page_size: "50" }), "req")
+    ).data.find((item) => item.record_origin === "citizen");
+    expect(citizen?.official_record).toBeNull();
   });
 
   it("hides the unlicensed import from lists, detail, statistics and GeoJSON", async () => {
@@ -181,7 +213,7 @@ describe("pagination and privacy at the query layer", () => {
     }
 
     const community = await service.listCases(
-      new URLSearchParams({ origin: "community", verification: "community_confirmed" }),
+      new URLSearchParams({ origin: "community", verification: "confirmed" }),
       "req",
     );
     expect(community.data).toHaveLength(1);

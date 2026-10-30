@@ -75,9 +75,9 @@ export const SAMPLE_CASE = `{
       "votavia_operational_status": "reported",
       "status": "reported",
       "external_government_status": null,
-      "community_verification_status": "unverified",
+      "community_verification_status": "unreviewed",
       "community_verification": {
-        "status": "unverified",
+        "status": "unreviewed",
         "summary": null,
         "verified_at": null
       },
@@ -135,9 +135,9 @@ export const SAMPLE_CASE_DETAIL = `{
     "votavia_operational_status": "in_progress",
     "status": "in_progress",
     "external_government_status": null,
-    "community_verification_status": "unverified",
+    "community_verification_status": "unreviewed",
     "community_verification": {
-      "status": "unverified",
+      "status": "unreviewed",
       "summary": null,
       "verified_at": null
     },
@@ -235,9 +235,9 @@ export const SAMPLE_STATISTICS = `{
       { "record_origin": "community", "count": 1 }
     ],
     "by_community_verification": [
-      { "community_verification_status": "unverified", "count": 12 },
-      { "community_verification_status": "not_applicable", "count": 1 },
-      { "community_verification_status": "community_confirmed", "count": 1 }
+      { "community_verification_status": "unreviewed", "count": 12 },
+      { "community_verification_status": "unreviewed", "count": 1 },
+      { "community_verification_status": "confirmed", "count": 1 }
     ],
     "recent_resolved": [
       {
@@ -247,7 +247,7 @@ export const SAMPLE_STATISTICS = `{
         "votavia_operational_status": "resolved",
         "status": "resolved",
         "external_government_status": null,
-        "community_verification_status": "unverified",
+        "community_verification_status": "unreviewed",
         "record_origin": "citizen",
         "title": "Rampa obstruida en Metro Insurgentes",
         "colonia": "Juárez",
@@ -284,7 +284,7 @@ export const SAMPLE_GEOJSON = `{
         "votavia_operational_status": "under_review",
         "external_government_status_label": null,
         "external_government_status_kind": null,
-        "community_verification_status": "unverified",
+        "community_verification_status": "unreviewed",
         "record_origin": "citizen",
         "title": "Banqueta rota en Avenida Obrera",
         "colonia": "Obrera",
@@ -311,7 +311,7 @@ export const SAMPLE_GEOJSON = `{
         "display_id": "VOT-0011",
         "category": "traffic_signals",
         "votavia_operational_status": "reported",
-        "community_verification_status": "unverified",
+        "community_verification_status": "unreviewed",
         "record_origin": "citizen",
         "title": "Señal de alto caída en Calle López",
         "colonia": "Centro",
@@ -396,9 +396,9 @@ export const SAMPLE_OFFICIAL_REPORTS = `{
         "kind": "closed",
         "reported_at": "2026-10-27T12:00:00.000Z"
       },
-      "community_verification_status": "not_applicable",
+      "community_verification_status": "unreviewed",
       "community_verification": {
-        "status": "not_applicable",
+        "status": "unreviewed",
         "summary": null,
         "verified_at": null
       },
@@ -417,6 +417,7 @@ export const SAMPLE_OFFICIAL_REPORTS = `{
           "url": "https://creativecommons.org/licenses/by/4.0/",
           "redistributable": true
         },
+        "license_verified_from": "dataset_page",
         "permission": {
           "verified": true,
           "verified_at": "2026-09-30T12:00:00.000Z",
@@ -429,6 +430,19 @@ export const SAMPLE_OFFICIAL_REPORTS = `{
           "checked_at": "2026-10-30T18:00:00.000Z"
         },
         "is_demo": true
+      },
+      "official_record": {
+        "source_dataset": "0311-demo",
+        "original_status": "Cerrado",
+        "original_category": "Residuos sólidos",
+        "original_subcategory": "Recolección",
+        "responsible_agency": "Servicios Urbanos (demostración)",
+        "is_infrastructure_related": false,
+        "data_quality_flags": ["demo_fixture"],
+        "source_updated_at": "2026-10-27T12:00:00.000Z",
+        "source_closed_at": "2026-10-27T12:00:00.000Z",
+        "extraction_method": "dashboard_api",
+        "collected_at": "2026-10-29T12:00:00.000Z"
       },
       "title": "Reporte oficial: residuos en vía pública (folio CDMX-311-8871)",
       "description": "Registro importado del tablero público. El reporte original menciona un contacto en [correo protegido] y el teléfono [teléfono protegido]. Requiere verificación de campo.",

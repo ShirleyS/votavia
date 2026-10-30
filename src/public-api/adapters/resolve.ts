@@ -11,6 +11,12 @@ import { DemoCaseSource } from "./demo-source";
 import { DemoRiskSignalProvider } from "./demo-risk";
 import { HttpCaseSource } from "./http-case-source";
 import { HttpRiskSignalProvider } from "./http-risk-signals";
+import { CompositeCaseSource } from "./composite-source";
+import {
+  Session6OfficialCaseSource,
+  officialManifestPath,
+  officialRecordsPath,
+} from "./session6-official-source";
 
 let caseSource: PublicCaseSource | null = null;
 let riskProvider: RiskSignalProvider | null | undefined;
@@ -26,11 +32,25 @@ let riskProvider: RiskSignalProvider | null | undefined;
 export function getPublicCaseSource(): PublicCaseSource {
   if (caseSource) return caseSource;
 
+  caseSource = createBaseSource();
+  const officialPath = officialRecordsPath();
+  if (officialPath) {
+    // Session 6 output is layered on top; it never replaces Session 1.
+    caseSource = new CompositeCaseSource(
+      caseSource,
+      new Session6OfficialCaseSource(officialPath, officialManifestPath()),
+    );
+  }
+  return caseSource;
+}
+
+function createBaseSource(): PublicCaseSource {
   const base = internalApiBaseUrl();
   if (base) {
-    caseSource = new HttpCaseSource({ baseUrl: base, token: internalApiToken() });
-  } else if (isLiveMode()) {
-    caseSource = {
+    return new HttpCaseSource({ baseUrl: base, token: internalApiToken() });
+  }
+  if (isLiveMode()) {
+    return {
       kind: "live",
       async listPublished() {
         throw upstreamUnavailable(
@@ -48,10 +68,8 @@ export function getPublicCaseSource(): PublicCaseSource {
         );
       },
     };
-  } else {
-    caseSource = new DemoCaseSource();
   }
-  return caseSource;
+  return new DemoCaseSource();
 }
 
 /**

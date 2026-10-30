@@ -136,6 +136,7 @@ const caseFields = [
   ["community_verification", "objeto", "El mismo resultado con resumen y fecha de verificación."],
   ["record_origin", "enum", "citizen, community o government_import. Distingue quién produjo el registro."],
   ["provenance", "objeto o null", "Fuente, folio, URL, licencia, permiso y frescura de los registros importados."],
+  ["official_record", "objeto o null", "Subconjunto depurado del registro original: estado, categoría y agencia de la fuente. Nunca incluye filas crudas ni contactos."],
   ["title", "texto", "Título depurado de datos personales, hasta 160 caracteres."],
   ["description", "texto", "Descripción depurada de correos, teléfonos y enlaces mágicos."],
   ["location", "objeto", "Colonia, alcaldía y coordenadas redondeadas; 110 m normal y 1 100 m si hay riesgo de seguridad."],
@@ -410,7 +411,7 @@ export default function DeveloperPortalPage() {
       "category": "road_damage",
       "votavia_operational_status": "in_progress",
       "external_government_status": null,
-      "community_verification_status": "unverified",
+      "community_verification_status": "unreviewed",
       "record_origin": "citizen",
       "colonia": "Roma Norte",
       "support_count": 42
@@ -571,7 +572,7 @@ export default function DeveloperPortalPage() {
                 params={[
                   { name: "category", type: "texto CSV", description: "Una o más categorías separadas por coma." },
                   { name: "status", type: "texto CSV", description: "Estado operativo de VotaVía. Nunca infiere resolución por un cierre externo." },
-                  { name: "verification", type: "texto CSV", description: "unverified, community_confirmed, community_disputed o not_applicable." },
+                  { name: "verification", type: "texto CSV", description: "unreviewed, confirmed, disputed o verified_resolved (los mismos valores que el contrato canónico)." },
                   { name: "origin", type: "texto CSV", description: "citizen, community o government_import." },
                   { name: "alcaldia", type: "texto", description: "Coincidencia por alcaldía, hasta 80 caracteres." },
                   { name: "colonia", type: "texto", description: "Coincidencia por colonia, hasta 80 caracteres." },
@@ -1053,6 +1054,7 @@ export default function DeveloperPortalPage() {
                       ["source_reported_at", "Fecha reportada por la fuente."],
                       ["last_synced_at", "Última sincronización con la fuente."],
                       ["license", "id, name, url y redistributable."],
+                      ["license_verified_from", "ckan_metadata, dataset_page, unverified o unknown. Unverified bloquea la publicación."],
                       ["permission", "verified, verified_at y reference del permiso."],
                       ["attribution", "Texto de atribución que debes mostrar."],
                       ["freshness", "status, age_hours y checked_at."],
@@ -1064,8 +1066,40 @@ export default function DeveloperPortalPage() {
                       </div>
                     ))}
                   </dl>
+                  <h4 className="mt-5 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-soft">
+                    Campos de official_record
+                  </h4>
+                  <dl className="mt-2 divide-y divide-forest/8 text-[12px]">
+                    {[
+                      ["source_dataset", "Nombre del conjunto de origen, tal como lo declara la fuente."],
+                      ["original_status", "Estado textual de la fuente. No es un estado de VotaVía."],
+                      ["original_category / original_subcategory", "Clasificación original antes de normalizar."],
+                      ["responsible_agency", "Agencia responsable reportada por la fuente."],
+                      ["is_infrastructure_related", "Marca de la fuente sobre infraestructura urbana."],
+                      ["data_quality_flags", "Señales de calidad del proceso de normalización."],
+                      ["source_updated_at / source_closed_at", "Fechas reportadas por la fuente. Un cierre no equivale a resolución verificada."],
+                      ["extraction_method / collected_at", "Cómo y cuándo se obtuvo el registro normalizado."],
+                    ].map(([name, description]) => (
+                      <div key={name} className="flex flex-col gap-0.5 py-1.5 sm:flex-row sm:gap-3">
+                        <dt className="w-48 shrink-0 font-mono text-[10.5px] text-forest">{name}</dt>
+                        <dd className="leading-5 text-slate-soft">{description}</dd>
+                      </div>
+                    ))}
+                  </dl>
                 </div>
                 <div className="space-y-3">
+                  <div className="rounded-xl border border-forest/10 bg-paper p-4">
+                    <h4 className="font-display text-lg text-forest">Gobierno no es verificación</h4>
+                    <p className="mt-1.5 text-[12px] leading-6 text-slate-soft">
+                      La ingesta oficial (Session 6) entrega un estado normalizado. La API lo publica
+                      solo como <code className="font-mono">external_government_status</code>: nunca lo
+                      copia a <code className="font-mono">votavia_operational_status</code>, nunca llena{" "}
+                      <code className="font-mono">resolved_at</code> y nunca marca{" "}
+                      <code className="font-mono">verified_resolved</code>. Un registro importado
+                      cerrado por la autoridad sigue siendo <code className="font-mono">reported</code>{" "}
+                      en el flujo de VotaVía hasta que la comunidad o el equipo lo verifiquen.
+                    </p>
+                  </div>
                   <div className="rounded-xl border border-forest/10 bg-paper p-4">
                     <h4 className="font-display text-lg text-forest">Cómo citar</h4>
                     <p className="mt-1.5 text-[12px] leading-6 text-slate-soft">
@@ -1271,6 +1305,8 @@ export function getPublicCaseSource() {
                       ["VOTAVIA_OFFICIAL_SOURCE_LICENSE", "Licencia del conjunto importado"],
                       ["VOTAVIA_OFFICIAL_SOURCE_ATTRIBUTION", "Atribución obligatoria de la fuente"],
                       ["VOTAVIA_OFFICIAL_LAST_SYNCED_AT", "Última sincronización conocida"],
+                      ["VOTAVIA_OFFICIAL_RECORDS_PATH", "JSONL normalizado de Session 6 (solo lectura)"],
+                      ["VOTAVIA_OFFICIAL_MANIFEST_PATH", "Manifiesto de la corrida de ingesta (licencia y conteos)"],
                       ["VOTAVIA_PUBLIC_RATE_LIMIT", "Solicitudes por minuto por IP; predeterminado 120"],
                       ["VOTAVIA_CASE_PERMALINK_PATH", "Ruta pública del caso, /casos"],
                       ["NEXT_PUBLIC_APP_URL", "Dominio público para permalinks"],

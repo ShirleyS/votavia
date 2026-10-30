@@ -43,19 +43,25 @@ export const RECORD_ORIGIN_LABELS: Record<RecordOrigin, string> = {
   government_import: "Registro gubernamental importado",
 };
 
+/**
+ * Mirrors the canonical values in `src/shared/votavia-contract.ts` exactly.
+ * Older revisions of this module used `unverified`/`community_confirmed`/
+ * `community_disputed`/`not_applicable`; those are gone so the public API
+ * cannot drift from Session 1.
+ */
 export const COMMUNITY_VERIFICATION_STATUSES = [
-  "unverified",
-  "community_confirmed",
-  "community_disputed",
-  "not_applicable",
+  "unreviewed",
+  "confirmed",
+  "disputed",
+  "verified_resolved",
 ] as const;
 export type CommunityVerificationStatus = (typeof COMMUNITY_VERIFICATION_STATUSES)[number];
 
 export const COMMUNITY_VERIFICATION_LABELS: Record<CommunityVerificationStatus, string> = {
-  unverified: "Sin verificación comunitaria",
-  community_confirmed: "Confirmado por la comunidad",
-  community_disputed: "En disputa comunitaria",
-  not_applicable: "No aplica",
+  unreviewed: "Sin verificación comunitaria",
+  confirmed: "Confirmado por la comunidad",
+  disputed: "En disputa comunitaria",
+  verified_resolved: "Resolución verificada por la comunidad",
 };
 
 export const EXTERNAL_STATUS_KINDS = ["open", "in_progress", "closed", "unknown"] as const;
@@ -82,6 +88,21 @@ export interface SourceLicense {
   redistributable: boolean;
 }
 
+/**
+ * Where the licence statement came from, per Session 6's normalized contract.
+ * `unverified` means nobody has confirmed the terms: such a record must never
+ * be republished, even when the global official feed flag is on.
+ * `unknown` is used for older/local records that predate this field; it does
+ * not by itself grant publication (the licence + permission flags still gate).
+ */
+export const LICENSE_VERIFICATION_SOURCES = [
+  "ckan_metadata",
+  "dataset_page",
+  "unverified",
+  "unknown",
+] as const;
+export type LicenseVerificationSource = (typeof LICENSE_VERIFICATION_SOURCES)[number];
+
 export interface ProvenancePermission {
   /** A human confirmed that publishing and redistribution are permitted. */
   verified: boolean;
@@ -100,6 +121,8 @@ export interface CaseProvenance {
   source_reported_at: string | null;
   last_synced_at: string | null;
   license: SourceLicense;
+  /** Session 6 `source_license_verified_from`, normalized. */
+  license_verified_from: LicenseVerificationSource;
   permission: ProvenancePermission;
   attribution: string | null;
 }
@@ -124,9 +147,29 @@ export interface NormalizedPublicMetadata {
   provenance: CaseProvenance | null;
 }
 
+/**
+ * Allowlisted subset of Session 6's `NormalizedOfficialRecord` that may be
+ * republished for imported records. Everything else — raw rows, row numbers,
+ * hashes, source contact columns — stays out of the public API.
+ */
+export interface OfficialRecordMetadata {
+  source_dataset: string | null;
+  original_status: string | null;
+  original_category: string | null;
+  original_subcategory: string | null;
+  responsible_agency: string | null;
+  is_infrastructure_related: boolean | null;
+  data_quality_flags: string[];
+  source_updated_at: string | null;
+  source_closed_at: string | null;
+  extraction_method: string | null;
+  collected_at: string | null;
+}
+
 const ORIGIN_SET = new Set<string>(RECORD_ORIGINS);
 const VERIFICATION_SET = new Set<string>(COMMUNITY_VERIFICATION_STATUSES);
 const EXTERNAL_KIND_SET = new Set<string>(EXTERNAL_STATUS_KINDS);
+const LICENSE_VERIFICATION_SET = new Set<string>(LICENSE_VERIFICATION_SOURCES);
 
 function asRecordOrigin(value: unknown): RecordOrigin {
   return typeof value === "string" && ORIGIN_SET.has(value) ? (value as RecordOrigin) : "citizen";
@@ -135,7 +178,13 @@ function asRecordOrigin(value: unknown): RecordOrigin {
 function asVerification(value: unknown): CommunityVerificationStatus {
   return typeof value === "string" && VERIFICATION_SET.has(value)
     ? (value as CommunityVerificationStatus)
-    : "unverified";
+    : "unreviewed";
+}
+
+function asLicenseVerification(value: unknown): LicenseVerificationSource {
+  return typeof value === "string" && LICENSE_VERIFICATION_SET.has(value)
+    ? (value as LicenseVerificationSource)
+    : "unknown";
 }
 
 function asExternalStatus(value: unknown): ExternalGovernmentStatus | null {
@@ -178,6 +227,7 @@ function asProvenance(value: unknown): CaseProvenance | null {
       url: safeSourceUrl(licenseRaw.url),
       redistributable: licenseRaw.redistributable === true,
     },
+    license_verified_from: asLicenseVerification(raw.license_verified_from),
     permission: {
       verified: permissionRaw.verified === true,
       verified_at: isoOrNull(permissionRaw.verified_at),
@@ -212,6 +262,40 @@ export function isoOrNull(value: unknown): string | null {
   }
   if (value instanceof Date && Number.isFinite(value.getTime())) return value.toISOString();
   return null;
+}
+
+const QUALITY_FLAG = /^[a-z0-9_]{1,40}$/;
+
+function shortText(value: unknown, max: number): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.slice(0, max) : null;
+}
+
+export function readOfficialRecordMetadata(value: unknown): OfficialRecordMetadata | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+  const flags = Array.isArray(raw.data_quality_flags)
+    ? raw.data_quality_flags
+        .filter((flag): flag is string => typeof flag === "string" && QUALITY_FLAG.test(flag))
+        .slice(0, 20)
+    : [];
+  return {
+    source_dataset: shortText(raw.source_dataset, 40),
+    original_status: shortText(raw.original_status, 80),
+    original_category: shortText(raw.original_category, 120),
+    original_subcategory: shortText(raw.original_subcategory, 120),
+    responsible_agency: shortText(raw.responsible_agency, 120),
+    is_infrastructure_related:
+      typeof raw.is_infrastructure_related === "boolean"
+        ? raw.is_infrastructure_related
+        : null,
+    data_quality_flags: flags,
+    source_updated_at: isoOrNull(raw.source_updated_at),
+    source_closed_at: isoOrNull(raw.source_closed_at),
+    extraction_method: shortText(raw.extraction_method, 40),
+    collected_at: isoOrNull(raw.collected_at),
+  };
 }
 
 export function readPublicMetadata(item: CaseWithPublicMetadata): NormalizedPublicMetadata {

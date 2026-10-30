@@ -80,7 +80,7 @@ no existe, la API aplica un valor conservador; `null` significa desconocido, nun
 | `votavia_operational_status` | `Case.status` (`CaseStatus`) | Canónico. Es el único campo que expresa el flujo de VotaVía. |
 | `status` | Espejo de `Case.status` | Compatibilidad con consumidores anteriores; quedará obsoleto. |
 | `external_government_status` | Campo aditivo del mismo nombre | Lo que reporta una autoridad externa. `kind: "closed"` **no** implica resolución. |
-| `community_verification_status` | Campo aditivo del mismo nombre | `unverified`, `community_confirmed`, `community_disputed` o `not_applicable`. |
+| `community_verification_status` | Campo aditivo del mismo nombre | Valores canónicos del contrato compartido: `unreviewed`, `confirmed`, `disputed` o `verified_resolved`. |
 | `community_verification_summary` | Campo aditivo | Texto público y depurado; opcional. |
 | `community_verified_at` | Campo aditivo | Fecha ISO 8601; opcional. |
 | `record_origin` | Campo aditivo | `citizen`, `community` o `government_import`. Predeterminado `citizen`. |
@@ -99,10 +99,10 @@ export interface CasePublicMetadata {
     reported_at: string | null;
   } | null;
   community_verification_status?:
-    | "unverified"
-    | "community_confirmed"
-    | "community_disputed"
-    | "not_applicable";
+    | "unreviewed"
+    | "confirmed"
+    | "disputed"
+    | "verified_resolved";
   community_verification_summary?: string | null;
   community_verified_at?: string | null;
   provenance?: CaseProvenance | null;
@@ -111,13 +111,15 @@ export interface CasePublicMetadata {
 
 `CaseProvenance` incluye `dataset`, `source_name`, `source_url`, `official_folio`,
 `source_reported_at`, `last_synced_at`, `license` (`id`, `name`, `url`,
-`redistributable`) y `permission` (`verified`, `verified_at`, `reference`). Solo se
-publican URLs `https` sin query string ni fragmento, para que un enlace firmado o un token
-no se filtre por procedencia.
+`redistributable`), `license_verified_from` (`ckan_metadata`, `dataset_page`,
+`unverified` o `unknown`) y `permission` (`verified`, `verified_at`, `reference`). Solo
+se publican URLs `https` sin query string ni fragmento, para que un enlace firmado o un
+token no se filtre por procedencia.
 
 Un registro importado se publica únicamente si cumple **todas** estas condiciones:
-`is_published`, `record_origin === "government_import"`, licencia redistribuible, permiso
-verificado, URL de fuente, folio oficial, `last_synced_at` y `dataset` distinto de
+`is_published`, `record_origin === "government_import"`, `license_verified_from` distinto
+de `unverified`, licencia redistribuible, permiso verificado, URL de fuente, folio
+oficial, `last_synced_at` y `dataset` distinto de
 `unknown`. La comprobación ocurre en la capa de consulta y proyección (`provenance.ts`),
 nunca solo en la interfaz. El adaptador en proceso y los fixtures la aplican antes de
 contar, ordenar o paginar; en el puente HTTP, el origen debe respetar los filtros para que
@@ -276,6 +278,8 @@ Copia `.env.example` y define:
 | `VOTAVIA_OFFICIAL_SOURCE_LICENSE` | Sí, si el feed está activo | Identificador de licencia, p. ej. `cc-by-4.0`. Sin ella el feed queda en `awaiting_permission`. |
 | `VOTAVIA_OFFICIAL_SOURCE_ATTRIBUTION` | Recomendada, si el feed está activo | Texto de atribución que se publica con los registros importados. |
 | `VOTAVIA_OFFICIAL_LAST_SYNCED_AT` | Recomendada, si el feed está activo | Fecha ISO de la última sincronización; alimenta la frescura. |
+| `VOTAVIA_OFFICIAL_RECORDS_PATH` | No | JSONL normalizado de Session 6. Se abre en solo lectura; nunca se escribe ni se modifica. |
+| `VOTAVIA_OFFICIAL_MANIFEST_PATH` | No | Manifiesto de la corrida que declara licencia, conteos y fechas. |
 | `NEXT_PUBLIC_APP_URL` | Recomendada | Dominio para permalinks y ejemplos. |
 
 No se requieren credenciales de Supabase para la API pública. No se requieren variables
@@ -318,7 +322,60 @@ VotaVía **no ofrece ni representa una API oficial del Gobierno de la Ciudad de 
 También es válido operar sin ningún feed gubernamental: la API funciona con reportes
 ciudadanos y comunitarios publicados por VotaVía.
 
-### 4.3 Reutilización por otros municipios
+### 4.3 Contrato de ingesta con Session 6
+
+Session 6 publica una salida **normalizada** (un `NormalizedOfficialRecord` por línea en
+JSONL) y un manifiesto por corrida. Este módulo la consume en **solo lectura** a través de
+`src/public-api/adapters/session6-official-source.ts`; no descarga, raspa, normaliza ni
+escribe registros. El adaptador se compone con la fuente de Session 1 mediante
+`CompositeCaseSource`, de modo que los casos ciudadanos y comunitarios siguen viniendo
+del servicio canónico.
+
+Variables:
+
+```bash
+VOTAVIA_OFFICIAL_RECORDS_PATH=/ruta/a/records.jsonl
+VOTAVIA_OFFICIAL_MANIFEST_PATH=/ruta/a/manifest.json
+VOTAVIA_OFFICIAL_FEED_ENABLED=true
+VOTAVIA_OFFICIAL_SOURCE_LICENSE=cc-by-4.0
+VOTAVIA_OFFICIAL_SOURCE_ATTRIBUTION="Fuente: …"
+```
+
+Si `VOTAVIA_OFFICIAL_RECORDS_PATH` está vacío, no se lee ningún archivo y solo se usa la
+fuente base. Si el archivo declara registros sin coordenadas utilizables, se omiten: el
+contrato canónico exige un punto.
+
+#### Mapeo de campos
+
+| Session 6 | API pública | Regla |
+|---|---|---|
+| `dedupe_key` | `case_id` | UUID determinista (SHA-1) para que el mismo registro conserve identidad entre corridas. |
+| `source_record_id` | `display_id` | Prefijo `CDMX-0311-`; el folio externo nunca se usa como `case_id`. |
+| `normalized_category` | `category` | Debe ser una categoría del contrato compartido. |
+| `normalized_status` | `external_government_status` | **Solo** estado externo. `closed` se publica como `kind: closed` con la etiqueta “… no verificado por VotaVía”. |
+| — | `votavia_operational_status` | Siempre `reported`. Un cierre oficial no lo cambia. |
+| — | `resolved_at` | Siempre `null`. |
+| — | `community_verification_status` | Siempre `unreviewed`. |
+| `source_license`, `source_license_verified_from` | `provenance.license`, `provenance.license_verified_from` | `unverified` bloquea el registro aunque el feed esté activo. |
+| `collected_at`, `reported_at`, `closed_at`, `updated_at` | `provenance.last_synced_at`, `source_reported_at`, `official_record.source_closed_at`, `source_updated_at` | Se publican como fechas de la fuente, no como resolución. |
+| `data_quality_flags`, `responsible_agency`, `original_*`, `extraction_method` | `official_record.*` | Allowlist. Filas crudas, `raw_reference`, hashes y columnas de contacto nunca se publican. |
+
+#### Controles aplicados en la capa de datos
+
+- El manifiesto con `license_status: "unverified"` bloquea **todos** los registros de la
+  corrida.
+- Un registro con `source_license_verified_from: "unverified"` se excluye aunque el
+  manifiesto esté verificado.
+- La política global (`is_demo`, `VOTAVIA_OFFICIAL_FEED_ENABLED`) se evalúa después de la
+  comprobación por registro; los fixtures solo se publican con `is_demo: true`.
+- Los registros importados se excluyen de `resolved_at`, de estadísticas de resolución y
+  de cualquier agregado que los presente como verificados por VotaVía.
+- `official_record` es `null` para todo registro que no sea `government_import`.
+
+Session 6 no debe publicar datos personales en su salida normalizada. Aun así, este módulo
+aplica una segunda barrera: solo lee los campos de la allowlist y descarta el resto.
+
+### 4.4 Reutilización por otros municipios
 
 Las convenciones son deliberadamente portables:
 
@@ -389,6 +446,10 @@ Pruebas cubiertas:
 - Señales aprobadas únicamente.
 - CORS, ETag/304, envelope de error, OpenAPI y rate limit.
 - Delegación del adaptador en proceso.
+- Ingesta Session 6: mapeo de `normalized_status` solo a estado externo, bloqueo por
+  `license_verified_from: "unverified"`, bloqueo por manifiesto no verificado, omisión de
+  registros sin coordenadas, allowlist de `official_record` y ausencia de PII en la
+  proyección pública.
 
 ---
 
@@ -403,6 +464,13 @@ Pruebas cubiertas:
 - [ ] Los campos de extensión (`record_origin`, `provenance`, estados externo y comunitario) existen o se aceptan como opcionales.
 - [ ] El feed oficial sigue desactivado salvo que exista licencia y permiso verificados.
 - [ ] La ingesta oficial está conectada por Ismael, no por este módulo.
+- [ ] `VOTAVIA_OFFICIAL_RECORDS_PATH` apunta a la salida JSONL de Session 6 y
+  `VOTAVIA_OFFICIAL_MANIFEST_PATH` al manifiesto de la misma corrida.
+- [ ] Cada registro importado declara `source_license_verified_from`; ningún registro
+  importado se publica con `unverified`.
+- [ ] Los registros importados conservan `votavia_operational_status: reported`,
+  `resolved_at: null` y `community_verification_status: unreviewed`.
+- [ ] `official_record` no contiene filas crudas, hashes ni columnas de contacto.
 - [ ] El feed de Session 3 entrega solo señales aprobadas y públicas.
 - [ ] `NEXT_PUBLIC_APP_URL` apunta al dominio correcto para permalinks.
 - [ ] Se revisó el límite de solicitudes para el entorno de producción.
@@ -420,6 +488,11 @@ Pruebas cubiertas:
 - El feed de registros oficiales está desactivado por omisión. Habilitarlo exige una
   fuente con licencia y permiso de redistribución verificados; la ingesta pertenece a
   Ismael y no se implementa aquí.
+- Los registros importados requieren coordenadas utilizables. La ingesta debe publicar
+  latitud y longitud; de lo contrario el registro se omite del conjunto público.
+- El feed lee el JSONL completo de Session 6 en cada arranque en frío (con caché por
+  proceso). Para volúmenes grandes, Session 6 debería emitir solo los registros vigentes
+  o este adaptador necesitaría un índice persistente.
 - No se verificó una API pública documentada del tablero 311 de CDMX. VotaVía no afirma
   ser una API oficial ni redistribuye registros sin permiso.
 - La consola del portal llama a la API desde el navegador; en un despliegue con CSP
@@ -430,5 +503,5 @@ Pruebas cubiertas:
   presentarse como información real.
 - No se implementó autenticación porque la API es pública y de solo lectura. Si en el
   futuro se añaden cuotas por cliente, el punto de extensión es `http.ts` / `rate-limit.ts`.
-- La rama `feature/public-api` se entrega **sin commit y sin fusión**. La integración
+- La rama `feature/public-api` se entrega **sin fusión ni despliegue**. La integración
   requiere revisión humana.

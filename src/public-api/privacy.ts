@@ -7,6 +7,7 @@ import {
 } from "@/shared/votavia-contract";
 import {
   readPublicMetadata,
+  readOfficialRecordMetadata,
   type CaseWithPublicMetadata,
   type CommunityVerificationStatus,
   type RecordOrigin,
@@ -148,6 +149,14 @@ export function toPublicCase(
     provenance: metadata.provenance
       ? toPublicProvenance(metadata.provenance, item, ctx.now)
       : null,
+    // Only imported records carry a source record, and only the allowlisted
+    // fields parsed by `readOfficialRecordMetadata` are ever emitted.
+    official_record:
+      metadata.record_origin === "government_import"
+        ? readOfficialRecordMetadata(
+            (item as CaseWithPublicMetadata & Record<string, unknown>).official_record,
+          )
+        : null,
     title: redactPersonalData(item.title).slice(0, 160),
     description: redactPersonalData(item.description).slice(0, 4_000),
     location: publicLocation(item),

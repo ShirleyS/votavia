@@ -3,6 +3,7 @@ import { categories as categoryCatalog } from "./catalog";
 import {
   COMMUNITY_VERIFICATION_STATUSES,
   EXTERNAL_STATUS_KINDS,
+  LICENSE_VERIFICATION_SOURCES,
   RECORD_ORIGINS,
 } from "./contract-extensions";
 import {
@@ -62,6 +63,7 @@ export function openApiDocument() {
       description: [
         "API pública, de solo lectura y sin autenticación. Expone únicamente registros aprobados para publicación.",
         "Distingue tres estados independientes: `votavia_operational_status` (flujo de VotaVía), `external_government_status` (lo que reporta una autoridad externa) y `community_verification_status` (verificación comunitaria). Un cierre gubernamental NUNCA equivale a una resolución verificada.",
+        "Los registros importados provienen del contrato normalizado de ingesta (Session 6). Su `normalized_status` se publica únicamente como `external_government_status`; nunca se copia a `votavia_operational_status` ni produce `resolved_at` o `verified_resolved` por sí solo.",
         "Los registros importados solo se publican con licencia redistribuible y permiso verificado. VotaVía no ofrece ni representa una API oficial del Gobierno de la Ciudad de México.",
         "Nunca se publican correos, teléfonos, enlaces mágicos, notas internas, asignaciones internas ni metadatos de evidencia.",
       ].join("\n\n"),
@@ -171,6 +173,7 @@ export function openApiDocument() {
           summary: "Registros gubernamentales importados con permiso de redistribución",
           description: [
             "Los registros solo aparecen si su licencia permite redistribuir y el permiso está verificado.",
+            "Además del permiso global, cada registro debe declarar `license_verified_from` distinto de `unverified`; si la licencia de un registro no está confirmada, ese registro se excluye aunque el feed esté habilitado.",
             "El feed de producción está desactivado por omisión. Cuando está desactivado, la respuesta es una lista vacía con `meta.official_feed.enabled = false`.",
             "Esto NO es una API oficial del Gobierno de la Ciudad de México ni de ningún otro gobierno.",
           ].join(" "),
@@ -435,6 +438,12 @@ export function openApiDocument() {
                 redistributable: { type: "boolean" },
               },
             },
+            license_verified_from: {
+              type: "string",
+              enum: [...LICENSE_VERIFICATION_SOURCES],
+              description:
+                "Origen de la verificación de licencia. `unverified` bloquea la publicación del registro aunque el feed esté activo. `unknown` no concede publicación por sí solo: siguen aplicando `license.redistributable` y `permission.verified`.",
+            },
             permission: {
               type: "object",
               properties: {
@@ -453,6 +462,31 @@ export function openApiDocument() {
               },
             },
             is_demo: { type: "boolean" },
+          },
+        },
+        OfficialRecord: {
+          type: ["object", "null"],
+          description:
+            "Subconjunto depurado y autorizado para republicación de un registro importado. Solo aparece en `record_origin: government_import`. No incluye filas crudas, números de fila, hashes, columnas de contacto ni datos personales de la fuente.",
+          properties: {
+            source_dataset: { type: ["string", "null"] },
+            original_status: {
+              type: ["string", "null"],
+              description: "Estado textual tal como lo reportó la fuente; no es un estado de VotaVía.",
+            },
+            original_category: { type: ["string", "null"] },
+            original_subcategory: { type: ["string", "null"] },
+            responsible_agency: { type: ["string", "null"] },
+            is_infrastructure_related: { type: ["boolean", "null"] },
+            data_quality_flags: { type: "array", items: { type: "string" } },
+            source_updated_at: { type: ["string", "null"], format: "date-time" },
+            source_closed_at: {
+              type: ["string", "null"],
+              format: "date-time",
+              description: "Cierre reportado por la fuente. No implica resolución verificada.",
+            },
+            extraction_method: { type: ["string", "null"] },
+            collected_at: { type: ["string", "null"], format: "date-time" },
           },
         },
         Case: {
@@ -496,6 +530,14 @@ export function openApiDocument() {
                 { $ref: "#/components/schemas/Provenance" },
                 { type: "null" },
               ],
+            },
+            official_record: {
+              oneOf: [
+                { $ref: "#/components/schemas/OfficialRecord" },
+                { type: "null" },
+              ],
+              description:
+                "Metadatos aprobados del registro importado. `null` en registros ciudadanos o comunitarios.",
             },
             title: { type: "string" },
             description: { type: "string" },

@@ -39,6 +39,11 @@ habilita con `VOTAVIA_OFFICIAL_FEED_ENABLED=true` y una licencia de fuente decla
 ingesta no vive en este módulo; la construye Ismael. VotaVía no ofrece ni representa una
 API oficial del Gobierno de la Ciudad de México.
 
+La salida normalizada de la ingesta (Session 6) se consume en **solo lectura** desde
+`VOTAVIA_OFFICIAL_RECORDS_PATH` (JSONL) y `VOTAVIA_OFFICIAL_MANIFEST_PATH`. Este módulo
+nunca descarga, raspa ni escribe registros: compone la fuente de Session 1 con los
+registros importados aprobados y aplica la licencia por registro.
+
 ## Verificación
 
 ```bash
@@ -56,6 +61,7 @@ Consulta [`INTEGRATION.md`](./INTEGRATION.md) para:
 - campos y métodos requeridos de Session 1;
 - sustitución del adaptador en `src/public-api/adapters/resolve.ts`;
 - contrato del feed aprobado de Session 3;
+- contrato de ingesta de Session 6, variables de entorno y mapeo de estados;
 - extensión local de metadatos públicos y su mapeo al contrato de Session 1;
 - variables de entorno, política del feed oficial, privacidad, límites y lista de
   verificación;
