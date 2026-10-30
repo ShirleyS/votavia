@@ -21,6 +21,12 @@ export interface WhatsAppDraft {
   longitude: number | null;
   location_precision: "exact" | "colonia" | null;
   address_hint: string | null;
+  /** "entre X y Y" reference used when there is no exact address. */
+  between_streets: string | null;
+  /** Name the citizen gave; never inferred from the phone number. */
+  reporter_name: string | null;
+  /** Citizen-reported severity. */
+  severity: ReportedSeverity | null;
   has_safety_concern: boolean;
   has_accessibility_concern: boolean;
   /** True when at least one message in this draft arrived as a voice note. */
@@ -109,13 +115,24 @@ export interface TranscribeAudio {
   (input: { bytes: Uint8Array; mimeType: string; filename: string }): Promise<TranscriptionResult>;
 }
 
+/** Citizen-reported severity, matching the web form vocabulary. */
+export const REPORTED_SEVERITIES = ["baja", "media", "alta", "critica"] as const;
+export type ReportedSeverity = (typeof REPORTED_SEVERITIES)[number];
+
 export interface ReportExtraction {
   is_civic_report: boolean;
   category: CaseCategory | null;
   title: string | null;
   description: string;
   colonia: string | null;
+  /** Street, number, or landmark when one is given. */
   address_hint: string | null;
+  /** "Entre X y Y" — used when no exact location is available. */
+  between_streets: string | null;
+  /** Name the person gives for the report. Optional; never guessed. */
+  reporter_name: string | null;
+  /** baja | media | alta | critica, or null when the message does not say. */
+  severity: ReportedSeverity | null;
   has_safety_concern: boolean;
   has_accessibility_concern: boolean;
   clarifying_question: string | null;

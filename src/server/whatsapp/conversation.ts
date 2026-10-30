@@ -7,6 +7,7 @@ import type {
   WhatsAppInboundMessage,
   WhatsAppSendResult,
   WhatsAppThread,
+  ReportExtraction,
 } from "./types";
 import { participantKeyForWhatsApp } from "./graph-client";
 import { matchColonia } from "./extract-report";
@@ -26,6 +27,9 @@ function emptyDraft(): WhatsAppDraft {
     longitude: null,
     location_precision: null,
     address_hint: null,
+    between_streets: null,
+    reporter_name: null,
+    severity: null,
     has_safety_concern: false,
     has_accessibility_concern: false,
     used_voice: false,
@@ -93,10 +97,19 @@ function summary(draft: WhatsAppDraft): string {
     `• Categoría: ${categoryLabel(draft.category)}`,
     `• Colonia: ${draft.colonia ?? "sin colonia"}`,
   ];
+  if (draft.between_streets) {
+    lines.push(`• Referencia: ${draft.between_streets}`);
+  }
   if (draft.location_precision === "colonia") {
     lines.push("• Ubicación: aproximada al centro de la colonia");
   } else {
     lines.push("• Ubicación: pin compartido");
+  }
+  if (draft.severity) {
+    lines.push(`• Gravedad: ${draft.severity}`);
+  }
+  if (draft.reporter_name) {
+    lines.push(`• A tu nombre: ${draft.reporter_name}`);
   }
   lines.push("");
   lines.push("¿Envío el reporte a VotaVía? Aún no se envía a ninguna autoridad.");
@@ -131,6 +144,9 @@ function mergeExtraction(
     description: string;
     colonia: string | null;
     address_hint: string | null;
+    between_streets?: string | null;
+    reporter_name?: string | null;
+    severity?: ReportExtraction["severity"];
     has_safety_concern: boolean;
     has_accessibility_concern: boolean;
     clarifying_question: string | null;
@@ -154,6 +170,10 @@ function mergeExtraction(
     description,
     colonia: extraction.colonia ?? draft.colonia,
     address_hint: extraction.address_hint ?? draft.address_hint,
+    // Between-streets is the fallback reference when no exact address exists.
+    between_streets: extraction.between_streets ?? draft.between_streets ?? null,
+    reporter_name: extraction.reporter_name ?? draft.reporter_name ?? null,
+    severity: extraction.severity ?? draft.severity ?? null,
     has_safety_concern: draft.has_safety_concern || extraction.has_safety_concern,
     has_accessibility_concern:
       draft.has_accessibility_concern || extraction.has_accessibility_concern,
@@ -287,7 +307,11 @@ async function createConfirmedCase(
     role: "anonymous",
   };
 
-  const addressParts = [draft.address_hint, draft.colonia].filter(Boolean) as string[];
+  const addressParts = [
+    draft.address_hint,
+    draft.between_streets,
+    draft.colonia,
+  ].filter(Boolean) as string[];
   if (draft.location_precision === "colonia") {
     addressParts.push("Ubicación aproximada al centro de la colonia");
   }
@@ -313,6 +337,10 @@ async function createConfirmedCase(
       location_precision: draft.location_precision,
       used_voice: draft.used_voice,
       transcript: draft.transcript,
+      // Fields the citizen stated, mirroring the web report form.
+      reporter_name: draft.reporter_name ?? null,
+      between_streets: draft.between_streets ?? null,
+      reported_severity: draft.severity ?? null,
     },
   };
 

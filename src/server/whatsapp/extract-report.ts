@@ -24,6 +24,11 @@ const AI_SCHEMA = z.object({
   description: z.string().trim().max(2000),
   colonia: z.string().trim().max(80).nullable(),
   address_hint: z.string().trim().max(160).nullable(),
+  // Nullish: a model that omits these must still parse, falling back to the
+  // deterministic extractor instead of discarding the whole refinement.
+  between_streets: z.string().trim().max(120).nullish(),
+  reporter_name: z.string().trim().max(80).nullish(),
+  severity: z.enum(["baja", "media", "alta", "critica"]).nullish(),
   has_safety_concern: z.boolean(),
   has_accessibility_concern: z.boolean(),
   clarifying_question: z.string().trim().max(240).nullable(),
@@ -42,10 +47,16 @@ Reglas:
 - is_civic_report=false para saludos, preguntas generales o mensajes sin un problema concreto.
 - has_safety_concern=true solo si hay riesgo para personas.
 - has_accessibility_concern=true si afecta a sillas de ruedas, personas ciegas, rampas o cruces.
+- address_hint: calle y número si los mencionan. between_streets: SOLO el cruce, con el
+  formato "entre <calle A> y <calle B>", cuando den referencias en vez de una dirección exacta.
+- reporter_name: el nombre que la persona da de sí misma ("me llamo…", "soy…"). Si no lo dice, null.
+  Nunca lo deduzcas del número ni del relato.
+- severity: "baja" | "media" | "alta" | "critica" según el daño y el riesgo descritos.
+  Si el mensaje no permite juzgarlo, usa null. No la infles: una banqueta rota sin heridos no es "critica".
 - clarifying_question: una sola pregunta breve si falta información esencial; si no, null.
 
 Esquema exacto:
-{"is_civic_report":boolean,"category":"road_damage|street_lighting|traffic_signals|sidewalk_accessibility|trees_vegetation|waste_sanitation|parks_public_spaces|other"|null,"title":string|null,"description":string,"colonia":string|null,"address_hint":string|null,"has_safety_concern":boolean,"has_accessibility_concern":boolean,"clarifying_question":string|null}`;
+{"is_civic_report":boolean,"category":"road_damage|street_lighting|traffic_signals|sidewalk_accessibility|trees_vegetation|waste_sanitation|parks_public_spaces|other"|null,"title":string|null,"description":string,"colonia":string|null,"address_hint":string|null,"between_streets":string|null,"reporter_name":string|null,"severity":"baja|media|alta|critica"|null,"has_safety_concern":boolean,"has_accessibility_concern":boolean,"clarifying_question":string|null}`;
 
 const ACCESSIBILITY = /(silla de ruedas|rampa|invidente|cieg[oa]|bast[oó]n|accesibilidad|banqueta rota|crucero peligroso)/i;
 const SAFETY = /(peligro|riesgo|accidente|atropell|ca[ií]do|derrumbe|fuga|incendio|explosi[oó]n|ni[nñ]os|escuela|hospital|cable)/i;
@@ -103,6 +114,96 @@ function isGreetingOnly(text: string): boolean {
   return words.length > 0 && words.length <= 5 && words.every((word) => GREETING_WORDS.has(word));
 }
 
+/**
+ * Between-streets phrase: "entre X y Y", "entre la calle X y Y", "casi esquina Y".
+ * Returned verbatim (trimmed) so the operator reads the citizen's own reference.
+ */
+const BETWEEN_STREETS =
+  /\bentre\s+(?:la\s+|el\s+|calle\s+|avenida\s+|av\.?\s+)?([^,.;\n]{2,60}?)\s+y\s+(?:la\s+|el\s+|calle\s+|avenida\s+|av\.?\s+)?([^,.;\n]{2,60})/i;
+
+/**
+ * "me llamo Ana", "soy Ana López", "mi nombre es Ana".
+ * Case-insensitive on the verb ("Me llamo" at the start of a sentence); the
+ * capitalized-name requirement is enforced in code so "soy vecina" is rejected.
+ */
+const REPORTER_NAME =
+  /\b(?:me\s+llamo|mi\s+nombre\s+es|soy)\s+([\p{L}]+(?:\s+[\p{L}]+){0,2})/iu;
+
+/** Severity words, most severe first so "muy grave" beats "grave". */
+const SEVERITY_PATTERNS: Array<{ severity: ReportExtraction["severity"]; re: RegExp }> = [
+  {
+    severity: "critica",
+    re: /\b(criti[ck]o|extremadamente grave|hay heridos|hubo heridos|atropell|explosi[oó]n|derrumbe|fuga de gas|incendio|riesgo de muerte)\b/i,
+  },
+  {
+    severity: "alta",
+    re: /\b(grave|urgente|peligroso|mucho riesgo|accidente|se cay[oó]|bloquea(?:do)? el paso|ni[nñ]os|escuela|hospital)\b/i,
+  },
+  {
+    severity: "media",
+    re: /\b(moderado|regular|molesto|dif[ií]cil de pasar|obst[aá]culo)\b/i,
+  },
+  {
+    severity: "baja",
+    re: /\b(leve|menor|poco|no es grave|sin riesgo)\b/i,
+  },
+];
+
+function extractBetweenStreets(text: string): string | null {
+  const match = BETWEEN_STREETS.exec(text);
+  if (!match) return null;
+  const phrase = match[0].replace(/\s+/g, " ").trim();
+  return phrase.slice(0, 120);
+}
+
+const ROLE_WORDS = new Set([
+  "vecina",
+  "vecino",
+  "ciudadana",
+  "ciudadano",
+  "residente",
+  "comerciante",
+  "presidenta",
+  "presidente",
+  "la",
+  "el",
+  "de",
+  "del",
+]);
+
+function extractReporterName(text: string): string | null {
+  const match = REPORTER_NAME.exec(text);
+  if (!match) return null;
+  const value = match[1].trim();
+  const words = value.split(/\s+/);
+
+  // A name starts with a capital letter: "Ana", not "ana".
+  if (value[0] !== value[0].toUpperCase()) return null;
+  // Stop at the first non-capitalised word so "Ana y hay un bache" -> "Ana".
+  const kept: string[] = [];
+  for (const word of words) {
+    if (word[0] !== word[0].toUpperCase()) break;
+    if (ROLE_WORDS.has(word.toLowerCase())) break;
+    kept.push(word);
+    if (kept.length === 3) break;
+  }
+  if (kept.length === 0) return null;
+  const name = kept.join(" ");
+  if (ROLE_WORDS.has(name.toLowerCase())) return null;
+  return name.slice(0, 80);
+}
+
+/** Explicit "it is not serious" phrasing must win over the bare word "grave". */
+const SEVERITY_NEGATED = /\b(no es grave|no es tan grave|sin riesgo|no hay riesgo|no reviste gravedad)\b/i;
+
+function extractSeverity(text: string): ReportExtraction["severity"] {
+  if (SEVERITY_NEGATED.test(text)) return "baja";
+  for (const { severity, re } of SEVERITY_PATTERNS) {
+    if (re.test(text)) return severity;
+  }
+  return null;
+}
+
 function deterministicExtraction(text: string, usedVoice: boolean): ReportExtraction {
   const cleaned = usedVoice ? cleanTranscription(text).text : text;
   const safe = cleaned.trim().slice(0, 2000);
@@ -117,6 +218,9 @@ function deterministicExtraction(text: string, usedVoice: boolean): ReportExtrac
     description: safe,
     colonia,
     address_hint: null,
+    between_streets: extractBetweenStreets(safe),
+    reporter_name: extractReporterName(safe),
+    severity: extractSeverity(safe),
     has_safety_concern: SAFETY.test(safe),
     has_accessibility_concern: ACCESSIBILITY.test(safe),
     clarifying_question: null,
@@ -136,6 +240,11 @@ function mergeExtraction(
     description,
     colonia: matchColonia(ai.colonia) ?? fallback.colonia,
     address_hint: ai.address_hint ?? fallback.address_hint,
+    // Prefer whatever the model read; fall back to the deterministic phrase so
+    // a missing model field never discards a between-streets reference.
+    between_streets: ai.between_streets ?? fallback.between_streets,
+    reporter_name: ai.reporter_name ?? fallback.reporter_name,
+    severity: ai.severity ?? fallback.severity,
     has_safety_concern: ai.has_safety_concern || fallback.has_safety_concern,
     has_accessibility_concern:
       ai.has_accessibility_concern || fallback.has_accessibility_concern,
