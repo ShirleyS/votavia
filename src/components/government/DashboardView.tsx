@@ -107,7 +107,7 @@ export function DashboardView() {
             <span className="eyebrow">Viernes, 30 de octubre</span>
             <SampleBadge />
           </div>
-          <h1>Buenos días, {currentUser.name.split(" ")[0]}</h1>
+          <h1>Buenos días, {currentUser.name.replace(/\s*\([^)]*\)\s*$/, "").split(" ").slice(0, 2).join(" ")}</h1>
           <p>Esta es la operación de la Ciudad de México en este momento.</p>
         </div>
         <div className="page-heading__actions">

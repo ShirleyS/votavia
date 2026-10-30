@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { ParticipantContext, UserRole } from "@/shared/votavia-contract";
 import { decodeDemoUser } from "@/server/auth/demo-auth";
 import { createSupabaseServerClient } from "@/server/auth/supabase-server";
-import { hasSupabaseAuth } from "@/server/env";
+import { hasSupabaseDatabase } from "@/server/env";
 
 export const PARTICIPANT_COOKIE = "vv_pid";
 export const DEMO_USER_COOKIE = "vv_demo_user";
@@ -26,9 +26,16 @@ export async function getParticipantKey(): Promise<string> {
   return `anon-${randomUUID()}`;
 }
 
-/** Reads the demo session cookie (only meaningful when Supabase Auth is absent). */
+/**
+ * Reads the demo session cookie.
+ *
+ * A demo session is meaningful whenever the server writes to the local demo
+ * store (no service-role key). Supabase Auth may still be configured for magic
+ * links in that setup, but there is no profiles table to resolve a real role
+ * from, so the signed demo cookie is the session.
+ */
 export async function getDemoUser(): Promise<SessionUser | null> {
-  if (hasSupabaseAuth()) return null;
+  if (hasSupabaseDatabase()) return null;
   const store = await cookies();
   const raw = store.get(DEMO_USER_COOKIE)?.value;
   if (!raw) return null;

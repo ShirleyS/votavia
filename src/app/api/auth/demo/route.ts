@@ -4,13 +4,13 @@ import { createHash } from "node:crypto";
 import { DEMO_USER_COOKIE } from "@/server/auth/session";
 import { encodeDemoUser } from "@/server/auth/demo-auth";
 import { jsonOk } from "@/server/http";
-import { hasSupabaseAuth } from "@/server/env";
+import { hasSupabaseDatabase } from "@/server/env";
 
 export const dynamic = "force-dynamic";
 
 /** Signs in a local demo account when Supabase Auth is not configured. */
 export async function POST(request: NextRequest) {
-  if (hasSupabaseAuth()) {
+  if (hasSupabaseDatabase()) {
     return jsonOk({ error: "La autenticación real está disponible; usa el enlace de correo." }, { status: 400 });
   }
   const body = await request.json().catch(() => ({}));

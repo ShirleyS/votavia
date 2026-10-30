@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { createHash, randomUUID } from "node:crypto";
 import { DEMO_USER_COOKIE, PARTICIPANT_COOKIE } from "@/server/auth/session";
 import { encodeDemoUser } from "@/server/auth/demo-auth";
-import { hasSupabaseAuth, hasSupabaseDatabase } from "@/server/env";
+import { hasSupabaseDatabase } from "@/server/env";
 import { seedDemoEnvironment } from "@/server/repositories/demo-store";
 import { handleError, jsonError, jsonOk } from "@/server/http";
 
@@ -20,7 +20,7 @@ const DEMO_EMAIL = "demo@votavia.mx";
  */
 export async function POST(request: NextRequest) {
   try {
-    if (hasSupabaseDatabase() || hasSupabaseAuth()) {
+    if (hasSupabaseDatabase()) {
       return jsonError(
         409,
         "demo_unavailable",

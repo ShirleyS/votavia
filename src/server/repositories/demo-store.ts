@@ -73,6 +73,7 @@ const DB_FILE = path.join(DATA_DIR, "db.json");
 const SEED_FLAG = path.join(DATA_DIR, "seeded.json");
 
 let cache: DemoDatabase | null = null;
+let cacheMtimeMs = 0;
 let writeChain: Promise<unknown> = Promise.resolve();
 
 function displayId(sequence: number) {
@@ -204,7 +205,7 @@ function buildDatabase(): DemoDatabase {
     {
       id: DEMO_ORGANIZATION_ID,
       slug: "alcaldia-cuauhtemoc",
-      name: "Alcaldía Cuauhtémoc",
+      name: "Alcaldía Cuauhtémoc (demostración)",
       kind: "alcaldia",
       areas: ["Cuauhtémoc"],
       is_active: true,
@@ -461,11 +462,23 @@ function upgradeDatabase(db: DemoDatabase): DemoDatabase {
 }
 
 async function readDatabase(): Promise<DemoDatabase> {
-  if (cache) return cache;
   await ensureDir();
+
+  // Next.js runs route handlers in separate workers. A seed written by the
+  // demo endpoint must be visible to every other worker, so the cache is
+  // invalidated whenever the file changes on disk.
+  let mtimeMs = 0;
+  try {
+    mtimeMs = (await fs.stat(DB_FILE)).mtimeMs;
+  } catch {
+    // Missing file: fall through and build a fresh database.
+  }
+  if (cache && mtimeMs === cacheMtimeMs) return cache;
+
   try {
     const raw = await fs.readFile(DB_FILE, "utf8");
     cache = upgradeDatabase(JSON.parse(raw) as DemoDatabase);
+    cacheMtimeMs = mtimeMs;
     return cache;
   } catch {
     const fresh = buildDatabase();
@@ -480,6 +493,7 @@ async function persist(db: DemoDatabase) {
   const tmp = `${DB_FILE}.${process.pid}.tmp`;
   await fs.writeFile(tmp, JSON.stringify(db, null, 2), "utf8");
   await fs.rename(tmp, DB_FILE);
+  cacheMtimeMs = (await fs.stat(DB_FILE)).mtimeMs;
 }
 
 /** Serializes mutations so concurrent requests cannot clobber the JSON file. */
@@ -1454,6 +1468,20 @@ export async function seedDemoEnvironment(user: {
 
   // Fresh neighbour activity on the newest report.
   const freshest = db.cases[0];
+
+  // Neighbouring reports the demo account already supports, so "Reportes que
+  // apoyas" is not an empty tab during the walkthrough.
+  const participantKey = `demo-participant-${user.id.slice(-16)}`;
+  for (const row of db.cases.slice(1, 4)) {
+    db.supports.push({
+      id: randomUUID(),
+      case_id: row.id,
+      participant_key: participantKey,
+      user_id: user.id,
+      created_at: hoursAgo(20),
+    });
+  }
+
   if (freshest) {
     db.observations.push(
       {

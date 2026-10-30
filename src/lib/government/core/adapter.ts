@@ -161,6 +161,9 @@ const STATUS_TO_OPERATIONAL: Record<
 
 const ORG_NAMES: Record<string, string> = {
   "org-demo-cuauhtemoc": "Alcaldía Cuauhtémoc (demostración)",
+  // Seeded demo organization (see DEMO_ORGANIZATION_ID). Without this the
+  // console greets the operator with the raw UUID.
+  "11111111-1111-4111-8111-111111111111": "Alcaldía Cuauhtémoc (demostración)",
 };
 
 const OPERATOR_ROLE_PERMISSIONS: Record<
