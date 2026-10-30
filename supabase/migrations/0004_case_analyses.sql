@@ -61,7 +61,7 @@ create policy case_analyses_select_public on public.case_analyses
 
 -- No client writes: only the server (service role) persists analysis.
 
--- Reporter-initiated events (edit / withdraw) get their own аудит vocabulary so
+-- Reporter-initiated events (edit / withdraw) get their own audit vocabulary so
 -- a citizen edit is never mislabeled as a government update.
 alter type case_event_type add value if not exists 'report_updated';
 alter type case_event_type add value if not exists 'report_withdrawn';
