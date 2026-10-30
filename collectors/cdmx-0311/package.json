@@ -15,10 +15,14 @@
     "import:0311": "node dist/cli.js import",
     "collect:0311": "node dist/cli.js collect",
     "validate:0311": "node dist/cli.js validate",
+    "export:0311": "node dist/cli.js export",
+    "sync:0311": "node dist/cli.js sync",
     "dev:discover": "node --experimental-strip-types src/cli.ts discover",
     "dev:import": "node --experimental-strip-types src/cli.ts import",
     "dev:collect": "node --experimental-strip-types src/cli.ts collect",
-    "dev:validate": "node --experimental-strip-types src/cli.ts validate"
+    "dev:validate": "node --experimental-strip-types src/cli.ts validate",
+    "dev:export": "node --experimental-strip-types src/cli.ts export",
+    "dev:sync": "node --experimental-strip-types src/cli.ts sync"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",

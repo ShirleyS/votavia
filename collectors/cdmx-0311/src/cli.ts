@@ -8,6 +8,14 @@ import { runDiscover, formatDiscoveryTable } from "./commands/discover.js";
 import { runImport, summarizeImport, type CsvFixture } from "./commands/import.js";
 import { runValidate, formatValidationSummary } from "./commands/validate.js";
 import { runCollect, formatCollectSummary } from "./commands/collect.js";
+import { runExport, formatExportSummary } from "./commands/export.js";
+import {
+  describeApprovalGate,
+  formatSyncResult,
+  formatSyncStatus,
+  readSyncStatus,
+  runSync,
+} from "./commands/sync.js";
 
 const HELP = `VotaVía CDMX *0311 official-data collector
 
@@ -16,12 +24,16 @@ Usage:
   node dist/cli.js import   [options]
   node dist/cli.js collect  [options]
   node dist/cli.js validate [options]
+  node dist/cli.js export   [options]
+  node dist/cli.js sync     [options]
 
 Commands:
   discover   Read CKAN metadata, select historical resources and optionally inspect the dashboard.
   import     Download/ingest historical CSV or CKAN DataStore resources and normalize Cuauhtémoc records.
   collect    Run a guarded Playwright dashboard collection (disabled by default).
   validate   Validate normalized JSONL records and write a validation report.
+  export     Emit an ingestion batch for Session 1's official-record contract.
+  sync       Run due scheduled synchronization (live access disabled by default).
 
 Common options:
   --data-dir <path>            Data root (default ./data/official-0311)
@@ -57,7 +69,19 @@ collect options:
 validate options:
   --input <path>               Normalized JSONL file (defaults to latest import)
 
+export options:
+  --input <path>               Normalized JSONL file (defaults to latest import)
+  --out-dir <path>             Batch output directory (default <data-dir>/ingest/0311/<run>)
+
+sync options:
+  --policy <path>              Schedule policy JSON (default <data-dir>/schedule.policy.json)
+  --force                      Run even when not due or when policy.enabled is false
+  --dry-run                    Evaluate due state without importing
+  --status                     Print schedule health and exit (read-only)
+  --strict                     Treat blocked/stale states as failures (exit 3)
+
 Browser collection also requires VOTAVIA_0311_BROWSER_APPROVED=1 after terms are verified.
+Scheduled live collection requires VOTAVIA_0311_LIVE=1 and VOTAVIA_0311_SCHEDULE_APPROVED=1.
 `;
 
 async function main(): Promise<void> {
@@ -88,6 +112,10 @@ async function main(): Promise<void> {
       "allow-export": { type: "boolean" },
       config: { type: "string" },
       input: { type: "string" },
+      "out-dir": { type: "string" },
+      policy: { type: "string" },
+      status: { type: "boolean" },
+      strict: { type: "boolean" },
     },
   });
   if (values.help || positionals.length === 0) {
@@ -157,6 +185,35 @@ async function main(): Promise<void> {
     const result = await runValidate({ config, logger, input: values.input ? path.resolve(values.input) : undefined });
     process.stdout.write(values.json ? `${JSON.stringify(result, null, 2)}\n` : `${formatValidationSummary(result)}\n`);
     if (!result.passed) process.exitCode = 1;
+    return;
+  }
+  if (command === "export") {
+    const result = await runExport({
+      config,
+      logger,
+      input: values.input ? path.resolve(values.input) : undefined,
+      outDir: values["out-dir"] ? path.resolve(values["out-dir"]) : undefined,
+    });
+    process.stdout.write(values.json ? `${JSON.stringify(result, null, 2)}\n` : `${formatExportSummary(result)}\n`);
+    return;
+  }
+  if (command === "sync") {
+    const policyPath = values.policy ? path.resolve(values.policy) : undefined;
+    if (values.status) {
+      const report = await readSyncStatus(config, { policyPath });
+      process.stdout.write(values.json ? `${JSON.stringify(report, null, 2)}\n` : `${formatSyncStatus(report)}\n`);
+      return;
+    }
+    const result = await runSync({
+      config,
+      logger,
+      policyPath,
+      force: Boolean(values.force),
+      dryRun: Boolean(values["dry-run"]),
+      strict: Boolean(values.strict),
+    });
+    process.stdout.write(values.json ? `${JSON.stringify(result, null, 2)}\n` : `${formatSyncResult(result)}\n${describeApprovalGate()}\n`);
+    process.exitCode = result.exit_code;
     return;
   }
   throw new CollectorError("CONFIG_INVALID", `Unknown command: ${command}`);

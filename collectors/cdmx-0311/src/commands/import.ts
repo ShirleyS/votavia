@@ -287,6 +287,14 @@ export async function runImport(options: ImportOptions): Promise<ImportResult> {
     await index.compact();
   }
 
+  // Records absent from this batch are never deleted. Report that explicitly so
+  // a downstream reader does not infer a tombstone from a partial download.
+  if (manifest.resources.some((resource) => resource.skipped)) {
+    manifest.warnings.push(
+      "One or more resources were skipped. Records absent from this batch are NOT deletions; absence may reflect a partial download, a filter, a publisher rollback or a transient failure.",
+    );
+  }
+
   const status: RunManifest["status"] = manifest.status === "failed"
     ? completedRecordFiles.length > 0 ? "partial" : "failed"
     : manifest.errors.length > 0 ? "partial" : "completed";

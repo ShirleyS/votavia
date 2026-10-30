@@ -17,6 +17,8 @@ It owns no Supabase tables. See [`docs/handoff.md`](docs/handoff.md).
 | Cuauhtémoc filtering | Working |
 | Provenance, checksums, checkpoints | Working |
 | Duplicate and status-change detection | Working |
+| Ingestion adapter (Session 1 contract) | Working; emits `OfficialRecordIngestInput` + status history |
+| Scheduled synchronization | Implemented; **disabled by default**, gated on two approvals |
 | Playwright dashboard discovery | Implemented; disabled by default |
 | Dashboard API/export | **Not verified** (CDMX hosts unreachable from this build environment) |
 | Dashboard reuse terms | **Unverified** |
@@ -43,7 +45,10 @@ npm run import:0311 -- \
 # 3. Validate the normalized snapshot
 npm run validate:0311
 
-# 4. Run the test suite
+# 4. Emit the ingestion batch for Session 1
+npm run export:0311
+
+# 5. Run the test suite
 npm test
 ```
 
@@ -57,8 +62,14 @@ data/official-0311/
   normalized/0311/<run-id>/rejected.jsonl
   manifests/0311/<run-id>.json
   manifests/0311/latest.json
+  ingest/0311/<batch-id>/records.jsonl
+  ingest/0311/<batch-id>/status-history.jsonl
+  ingest/0311/<batch-id>/manifest.json
   state/0311/checkpoint.json
   state/0311/records-index.jsonl
+  state/0311/ingest-index.jsonl
+  state/0311/schedule.json
+  state/0311/sync-log.jsonl
 ```
 
 Change the root with `--data-dir /path/to/data`.
@@ -142,6 +153,8 @@ the stop condition and exits.
 | `npm run import:0311` | Historical CSV/DataStore ingestion and normalization |
 | `npm run collect:0311` | Guarded Playwright collection using a reviewed config |
 | `npm run validate:0311` | Validate normalized JSONL and write a report |
+| `npm run export:0311` | Emit the `OfficialRecordIngestInput` batch + status history |
+| `npm run sync:0311` | Run due scheduled sync (live access disabled by default) |
 | `npm test` | Unit and fixture integration tests; no live government site required |
 | `npm run typecheck` | TypeScript check |
 
@@ -150,9 +163,12 @@ Add CLI arguments after `--`, for example `npm run import:0311 -- --year 2024`.
 For machine-readable JSON without npm’s banner, call the compiled CLI directly:
 `node dist/cli.js discover --json`.
 
-Generated sample outputs: [`examples/sample-records.jsonl`](../../examples/sample-records.jsonl)
-and [`examples/sample-manifest.json`](../../examples/sample-manifest.json). They
-come from fixtures, not a live government download.
+Generated sample outputs:
+[`examples/ingest-records.jsonl`](../../examples/ingest-records.jsonl),
+[`examples/ingest-manifest.json`](../../examples/ingest-manifest.json),
+[`examples/status-history.jsonl`](../../examples/status-history.jsonl) and the
+collector-normalized [`examples/sample-records.jsonl`](../../examples/sample-records.jsonl).
+They come from fixtures, not a live government download.
 
 ## Tests
 
@@ -176,6 +192,13 @@ The suite covers:
   `--limit`, `--dry-run`, missing-alcaldía-column failure and validation.
 - Browser safety gates: default-off discovery, missing approval, unverified
   terms and config version checks.
+- Ingestion adapter mapping to `OfficialRecordIngestInput`, license verdicts,
+  status observations, byte-identical repeat exports and unchanged-record
+  idempotency.
+- Scheduler due calculation, jitter, staleness, backoff, approval gates, retry
+  limits and failure-ledger behaviour.
+
+Current count: **129 tests across 18 files**.
 
 ```bash
 npm test
@@ -183,6 +206,35 @@ npm test
 
 The live government site is never required. Network access is only used by
 explicit live commands.
+
+## Scheduling
+
+Synchronization is implemented but **off by default**. It requires all three of:
+`enabled: true` in the policy, `VOTAVIA_0311_LIVE=1`, and
+`VOTAVIA_0311_SCHEDULE_APPROVED=1`.
+
+```bash
+npm run sync:0311 -- --status    # read-only health snapshot
+npm run sync:0311                # run only if due
+npm run sync:0311 -- --force     # bypass the due check, still gated
+```
+
+Defaults: daily metadata check, monthly full refresh, max 2 run attempts,
+exponential backoff capped at 24 h, 1 request / 1.5 s. See
+[`docs/scheduling.md`](docs/scheduling.md) for cron/systemd/launchd examples and
+the failure-reporting model.
+
+## Documentation
+
+| Document | Contents |
+| --- | --- |
+| [`docs/0311-dashboard-discovery.md`](docs/0311-dashboard-discovery.md) | Dashboard investigation and its conclusive negative result |
+| [`docs/coverage-and-access.md`](docs/coverage-and-access.md) | Years, freshness, missing fields, access conditions, reuse status |
+| [`docs/field-mapping.md`](docs/field-mapping.md) | Source columns and normalization rules |
+| [`docs/handoff.md`](docs/handoff.md) | Session 1 ingestion contract and upsert algorithm |
+| [`docs/session4-public-schema.md`](docs/session4-public-schema.md) | Approved public fields for Session 4 |
+| [`docs/scheduling.md`](docs/scheduling.md) | Scheduler policy, exit codes, failure reporting |
+| [`docs/access-request-email.md`](docs/access-request-email.md) | Draft reuse clarification (not sent) |
 
 ## Verified official sources
 

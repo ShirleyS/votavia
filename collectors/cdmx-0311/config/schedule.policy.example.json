@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "enabled": false,
+  "check_interval_hours": 24,
+  "full_import_interval_days": 30,
+  "stale_after_hours": 36,
+  "jitter_minutes": 30,
+  "max_run_attempts": 2,
+  "retry_backoff_ms": [60000, 300000, 900000],
+  "max_runtime_minutes": 180,
+  "request_interval_ms": 1500,
+  "max_download_bytes": 2000000000,
+  "years": []
+}

@@ -1,6 +1,6 @@
 # *0311 dashboard and CKAN discovery
 
-Status as of **2026-10-30**. This document separates what was directly observed
+Status as of **2026-10-30** (second pass). This document separates what was directly observed
 from what still needs a live, human-reviewed browser session. It does **not**
 grant permission to scrape, redistribute or automate access.
 
@@ -69,15 +69,32 @@ detected schema in the manifest instead of assuming a fixed column order.
 - Those counts are aggregates. They do **not** establish that individual
   records, coordinates, identifiers or statuses are exposed.
 
+- The dashboard is **built and operated by CentroGeo** for ADIP. The search
+  index description of the landing page reads: *“Habilitado por CentroGeo,
+  muestra toda la información de las solicitudes de la ciudadanía y permite
+  darles seguimiento.”* CentroGeo is a CONAHCYT public research center; its
+  institutional program document also cites the *0311-LOCATEL board as a
+  deployed product with more than 11,000 visits.
+
+  This is useful for a human follow-up (CentroGeo may publish a technical
+  report or accept a direct data request), but it does **not** establish a
+  public API. No CentroGeo developer documentation, API reference, export
+  guide, GeoServer/ArcGIS endpoint or bulk-download page was found in repeated
+  searches.
+
 ### What could not be verified
 
 Live rendering and scraping of `tablero311.cdmx.gob.mx` failed from this
-environment on 2026-10-30:
+environment on 2026-10-30, on two independent attempts:
 
 - Direct navigation reported `ERR_TUNNEL_CONNECTION_FAILED`.
 - A text-rendering proxy timed out while waiting for `networkidle`.
 - Sandbox DNS resolution blocked ordinary `curl` access.
 - Browser control was unavailable.
+- The same failure occurred against `datos.cdmx.gob.mx`, `archivo.datos.cdmx.gob.mx`
+  and `sig.cdmx.gob.mx`, through direct fetch, a text-rendering proxy and a
+  stealth browser engine. This is a network-path failure, not a site-specific
+  rejection.
 
 Therefore the following remain **unverified**, not “absent”:
 
@@ -94,6 +111,25 @@ Therefore the following remain **unverified**, not “absent”:
 
 Do not claim a dashboard API or export exists until `discover:0311
 --allow-browser` has captured and a human has reviewed the requests.
+
+### Current conclusion
+
+**CKAN is the only verified structured access path.** For the dashboard, the
+evidence supports “no publicly documented API or export”, not “there is none”:
+the page could not be inspected at all. Until a human runs the guarded
+discovery from a normal network, the dashboard must be treated as:
+
+| Question | Answer |
+| --- | --- |
+| Documented API | None found |
+| Documented export | None found |
+| Record-level data confirmed | No — only alcaldía aggregates observed |
+| Automated access permitted | Unverified |
+| Data reuse / redistribution permitted | Unverified |
+| Suitable for scheduled collection | **No** — blocked pending verification |
+
+The collector therefore defaults to CKAN-only ingestion and keeps every
+dashboard path behind three explicit gates.
 
 ## 3. How to complete dashboard discovery
 
