@@ -33,6 +33,19 @@ function markerColor(category: CaseCategory, origin?: IssueOrigin) {
   return DOT_COLOR[category] ?? "#64748b";
 }
 
+/**
+ * MapLibre hands back a GeoJSON `Geometry` union, which includes collections
+ * that have no `coordinates`. Narrow to a point instead of casting blindly.
+ */
+function pointCoordinates(geometry: unknown): [number, number] | null {
+  if (!geometry || typeof geometry !== "object") return null;
+  const candidate = geometry as { type?: unknown; coordinates?: unknown };
+  if (candidate.type !== "Point" || !Array.isArray(candidate.coordinates)) return null;
+  const [lng, lat] = candidate.coordinates;
+  if (typeof lng !== "number" || typeof lat !== "number") return null;
+  return [lng, lat];
+}
+
 const DOT_COLOR: Record<CaseCategory, string> = {
   road_damage: "#e11d48",
   street_lighting: "#f59e0b",
@@ -360,14 +373,15 @@ export function CaseMap({
         map.on("click", "cluster-count", (event) => {
           const feature = event.features?.[0];
           if (!feature) return;
+          const center = pointCoordinates(feature.geometry);
+          if (!center) return;
           const source = map!.getSource("cases") as unknown as {
             getClusterExpansionZoom: (id: number) => Promise<number>;
           };
           source
             .getClusterExpansionZoom(feature.properties?.cluster_id as number)
             .then((nextZoom) => {
-              const [lng, lat] = (feature.geometry as { coordinates: [number, number] }).coordinates;
-              map!.easeTo({ center: [lng, lat], zoom: nextZoom });
+              map!.easeTo({ center, zoom: nextZoom });
             })
             .catch(() => undefined);
         });
@@ -378,10 +392,11 @@ export function CaseMap({
           const caseId = String(feature.properties?.case_id ?? "");
           const item = casesRef.current.find((entry) => entry.case_id === caseId);
           if (!item) return;
-          const [lng, lat] = (feature.geometry as { coordinates: [number, number] }).coordinates;
+          const position = pointCoordinates(feature.geometry);
+          if (!position) return;
           popupRef.current?.remove();
           popupRef.current = new maplibregl.Popup({ closeButton: true, offset: 14, maxWidth: "280px" })
-            .setLngLat([lng, lat])
+            .setLngLat(position)
             .setHTML(popupHtml(item))
             .addTo(map!);
           onSelect?.(caseId);

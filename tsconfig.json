@@ -37,6 +37,7 @@
   ],
   "exclude": [
     "node_modules",
+    "playwright.config.ts",
     "collectors",
     "tests/integration",
     "tests/e2e",
