@@ -1,7 +1,16 @@
 # Handoff — Fases 1 y 2 (núcleo ciudadano y contratos compartidos)
 
-Estado: **funcional, verificado**. Este documento es la referencia de integración para las
-sesiones 2–6 y para la ingesta oficial (Ismael). No modifica el trabajo de otras sesiones.
+Estado: **funcional, verificado y comprometido**.
+
+| | |
+| --- | --- |
+| Rama | `feature/session1-citizen-core` |
+| Commit | `3f6ac51b47852cc2abe3cb501a28990068294ceb` (`3f6ac51`) |
+| Base | `main` @ `d9b2bfd` |
+| Worktree | `/Users/shirley/Documents/code/votavia` |
+
+Este documento es la referencia de integración para las sesiones 2–6 y para la ingesta oficial
+(Ismael). No modifica el trabajo de otras sesiones. **No se ha fusionado ni desplegado nada.**
 
 ---
 
@@ -163,11 +172,82 @@ reporte y deja rastro en `case_events`; **no borra** datos.
 1. `0001_votavia_phase1.sql`
 2. `0002_case_sequence.sql`
 3. `0003_shared_civic_model.sql`
-4. `0004_case_analyses.sql` ← nueva
+4. `0004_case_analyses.sql` ← nueva en este commit
+
+### Prerrequisitos de `0004_case_analyses.sql`
+
+La migración es **aditiva** y no borra ni renombra nada. Requiere:
+
+| Dependencia | Por qué |
+| --- | --- |
+| `0001_votavia_phase1.sql` aplicada | La tabla referencia `public.cases(id)` |
+| `0003_shared_civic_model.sql` aplicada | Usa `public.issues(id)` y la función `public.touch_updated_at()` |
+| Extensión `pgcrypto` | Ya la crea `0001`; sólo si aplicas 0004 aislada, verifícala |
+| Rol `service_role` activo | Sólo el servidor escribe análisis; las políticas RLS no permiten escritura cliente |
+
+Crea:
+
+- `public.case_analyses` — una fila por caso (`case_id` como PK), con `analysis_version`, `model`,
+  `summary`, `suggested_category`, `severity`, `confidence`, `priority`, `duplicate_candidates`,
+  `report_source`, `is_fallback` y `payload` (jsonb, completo, servidor).
+- Trigger `case_analyses_touch` (`updated_at`).
+- Política RLS `case_analyses_select_public`: lectura sólo si el caso está publicado o es del
+  autor. **Sin políticas de escritura**: el cliente nunca persiste análisis.
+- Dos valores nuevos del enum `case_event_type`: `report_updated`, `report_withdrawn`.
+  Se añaden con `add value if not exists`, que **no puede ejecutarse dentro de una transacción
+  explícita** en Postgres < 12; en PG 12+ funciona, pero si tu runner envuelve migraciones en
+  `BEGIN…COMMIT` aplica esos dos `alter type` fuera de la transacción.
+
+La tabla es opcional en el sentido operativo: si el despliegue no aplica 0004, el reporte se crea
+igual y `getCaseAnalysis` devuelve `null`; sólo se pierde la persistencia del análisis.
+
+**No ejecutes `supabase db push` contra producción desde este worktree.**
 
 ---
 
-## 9. Verificación
+## 9. Cambios de respuesta que los consumidores deben adoptar
+
+Aditivos, sin romper campos existentes. Cada uno requiere acción sólo si el consumidor valida
+respuestas de forma estricta.
+
+| Endpoint | Antes | Ahora |
+| --- | --- | --- |
+| `POST /api/cases` | `{ case }` | `{ case, analysis }` — `analysis` puede ser `null` |
+| `GET /api/cases/[id]` | `{ case, timeline, observations }` | `{ case, timeline, observations, analysis }` |
+| `GET /api/cases` | sin cambios | sin cambios |
+| `PATCH /api/cases/[id]` | — | **nuevo**, `{ case }`; 403 ajeno, 409 fuera de ventana |
+| `POST /api/cases/[id]/withdraw` | — | **nuevo**, `{ case }` con `status: "closed"` |
+| `POST /api/cases/duplicates` | — | **nuevo**, `{ analysis }`; 200 siempre que la entrada sea válida |
+
+Notas para consumidores:
+
+- `analysis` es **advisory**. Nunca interpretes `analysis.duplicate_candidates` como casos
+  fusionados, ni `severity`/`priority` como estado del caso.
+- `analysis.extras.is_fallback = true` significa que no había modelo disponible y el resultado es
+  determinista. No lo presentes como inferencia del modelo.
+- Los enums de `CaseEventType` crecieron con `report_updated` y `report_withdrawn`. Si haces un
+  `switch` exhaustivo sobre `CaseEventType`, añade ambos casos o un `default`.
+- `GET /api/cases/[id]` ahora hace una consulta extra de análisis; el campo es opcional y
+  tolerante a fallos (devuelve `null` si la tabla no existe todavía).
+
+## 10. Variables de entorno
+
+| Variable | Obligatoria | Efecto si falta |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Para producción | Modo demostración en memoria/disco |
+| `SUPABASE_SERVICE_ROLE_KEY` | Para producción | Sin persistencia Supabase; sólo demo |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Para Auth real | Magic link se sustituye por sesión demo local |
+| `DEEPSEEK_API_KEY` | **No** | El análisis IA cae a determinista (`is_fallback: true`) |
+| `DEEPSEEK_MODEL` | No | Usa `deepseek-flash` por defecto |
+| `DEEPSEEK_TIMEOUT_MS` | No | 20 s por defecto; el flujo interactivo usa 8 s |
+| `NEXT_PUBLIC_APP_URL` | Recomendada | Enlaces mágicos y metadatos apuntan a localhost |
+| `SUPABASE_STORAGE_BUCKET` | No | `case-photos` |
+| `VOTAVIA_DATA_DIR` | No | `.data` (sólo modo demostración) |
+
+El flujo ciudadano **funciona completo sin `DEEPSEEK_API_KEY`**. Configurar la clave mejora la
+calidad del análisis, no la disponibilidad del reporte.
+
+## 11. Verificación
 
 ```
 npx tsc --noEmit                     # limpio
@@ -176,13 +256,15 @@ npm run build                        # compila (37 rutas)
 npx eslint <archivos tocados>        # limpio
 ```
 
+Ejecutado sobre el commit `3f6ac51`, en la rama `feature/session1-citizen-core`.
+
 Cobertura nueva en `tests/case-analysis.test.ts`: análisis sin modelo, IA no altera estado,
 edición/retiro por autor, 403 para extraños y anónimos, 409 fuera de ventana, admin, y
 separación de registros oficiales.
 
 ---
 
-## 10. Bloqueos conocidos
+## 12. Limitaciones de verificación pendientes
 
 - **No se pudo hacer smoke test HTTP real:** el sandbox bloquea `listen` en cualquier puerto
   (`EPERM`). La verificación es por pruebas de servicio, typecheck y build.
@@ -191,3 +273,12 @@ separación de registros oficiales.
   sesión están limpios; no se tocaron los ajenos.
 - **Sin modelo configurado** el análisis es determinista (marcado en UI y en datos). Basta con
   definir `DEEPSEEK_API_KEY` para activar el modelo.
+- **Migraciones no ejecutadas:** 0001–0004 nunca se aplicaron contra un Postgres real en este
+  entorno (el sandbox también bloquea `initdb` por memoria compartida). La validación SQL fue
+  estructural; la lógica equivalente sí está cubierta por el repositorio de demostración.
+- **Camino Supabase de `case_analyses` sin probar en vivo:** el upsert y la lectura existen pero
+  sólo se ejercieron contra el backend de demostración.
+- **No se probó el flujo real de enlace mágico con un proveedor de correo.** En demostración el
+  enlace se muestra en pantalla en vez de enviarse.
+- **Sin pruebas E2E de navegador:** el wizard, el mapa y el editor sólo están cubiertos por
+  typecheck, build y pruebas de servicio.
