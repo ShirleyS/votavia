@@ -46,7 +46,7 @@ export function SiteHeader({
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-white/90 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-line bg-white">
       <div className="container-page flex h-[76px] items-center justify-between gap-6">
         <div className="flex min-w-0 items-center gap-4 xl:gap-6">
           <Link href="/" aria-label="VotaVía, ir al inicio" className="shrink-0">
@@ -60,10 +60,10 @@ export function SiteHeader({
                 href={item.href}
                 aria-current={isActive(item.href) ? "page" : undefined}
                 className={cn(
-                  "rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors xl:px-3.5 xl:text-[14px]",
+                  "relative rounded-md px-3 py-2 text-[13px] font-semibold transition-colors xl:px-3.5 xl:text-[14px]",
                   item.wideOnly && "hidden xl:inline-flex",
                   isActive(item.href)
-                    ? "text-[#1D4FD8]"
+                    ? "text-[#1D4FD8] underline decoration-[2.5px] underline-offset-[9px]"
                     : "text-navy-700 hover:bg-navy-50 hover:text-navy-900",
                 )}
               >
