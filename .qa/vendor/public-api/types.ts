@@ -5,6 +5,13 @@ import type {
   CaseStatus,
   ObservationKind,
 } from "@/shared/votavia-contract";
+import type {
+  CommunityVerificationStatus,
+  ExternalGovernmentStatus,
+  OfficialRecordMetadata,
+  RecordOrigin,
+} from "./contract-extensions";
+import type { PublicProvenance } from "./provenance";
 
 export const PUBLIC_API_VERSION = "v1" as const;
 
@@ -34,7 +41,28 @@ export interface PublicCase {
   case_id: string;
   display_id: string;
   category: CaseCategory;
+  /**
+   * Canonical operational status (Session 1 `Case.status`).
+   * Mirrored as `status` for older consumers; prefer this field.
+   */
+  votavia_operational_status: CaseStatus;
+  /** @deprecated Use `votavia_operational_status`. Same canonical value. */
   status: CaseStatus;
+  /** Status reported by an external authority. Null when unknown. */
+  external_government_status: ExternalGovernmentStatus | null;
+  /** Independent community verification outcome. Never derived from either status above. */
+  community_verification_status: CommunityVerificationStatus;
+  community_verification: {
+    status: CommunityVerificationStatus;
+    summary: string | null;
+    verified_at: string | null;
+  };
+  /** Who produced the record, and whether VotaVía or an authority published it. */
+  record_origin: RecordOrigin;
+  /** Present only for imported records that passed the licensing gate. */
+  provenance: PublicProvenance | null;
+  /** Allowlisted Session 6 fields for imported records; null otherwise. */
+  official_record: OfficialRecordMetadata | null;
   title: string;
   description: string;
   location: PublicLocation;
@@ -54,7 +82,12 @@ export interface PublicCaseSummary {
   case_id: string;
   display_id: string;
   category: CaseCategory;
+  votavia_operational_status: CaseStatus;
+  /** @deprecated Use `votavia_operational_status`. */
   status: CaseStatus;
+  external_government_status: ExternalGovernmentStatus | null;
+  community_verification_status: CommunityVerificationStatus;
+  record_origin: RecordOrigin;
   title: string;
   colonia: string;
   support_count: number;
@@ -103,6 +136,16 @@ export interface PublicColoniaCount {
   supports: number;
 }
 
+export interface PublicOriginCount {
+  record_origin: RecordOrigin;
+  count: number;
+}
+
+export interface PublicVerificationCount {
+  community_verification_status: CommunityVerificationStatus;
+  count: number;
+}
+
 export interface PublicStatistics {
   total_cases: number;
   resolved_cases: number;
@@ -114,6 +157,9 @@ export interface PublicStatistics {
   by_category: PublicCategoryCount[];
   by_status: PublicStatusCount[];
   by_colonia: PublicColoniaCount[];
+  by_origin: PublicOriginCount[];
+  by_community_verification: PublicVerificationCount[];
+  official_records_included: number;
   recent_resolved: PublicCaseSummary[];
   generated_at: string;
 }
@@ -208,3 +254,105 @@ export type PublicErrorCode =
   | "risk_signals_unavailable"
   | "upstream_unavailable"
   | "internal_error";
+
+export interface PublicCategory {
+  category: CaseCategory;
+  label: string;
+  description: string;
+  count: number;
+  resolved: number;
+  record_origins: RecordOrigin[];
+}
+
+export interface PublicCategoryCatalog {
+  categories: PublicCategory[];
+  total_published: number;
+  generated_at: string;
+}
+
+export interface OfficialFeedMeta {
+  enabled: boolean;
+  reason: string;
+  note: string;
+  /** Dataset-level licensing statement; null when no feed is enabled. */
+  license: string | null;
+  attribution: string | null;
+  last_synced_at: string | null;
+}
+
+export interface PublicHealthCheck {
+  status: "ok" | "disabled" | "degraded" | "unknown";
+  detail: string;
+}
+
+export interface PublicHealth {
+  status: "ok" | "degraded";
+  api_version: typeof PUBLIC_API_VERSION;
+  dataset: "demo" | "live";
+  checks: {
+    data_source: PublicHealthCheck;
+    official_municipal_feed: PublicHealthCheck;
+    preventive_signals: PublicHealthCheck;
+    rate_limiting: PublicHealthCheck;
+  };
+  generated_at: string;
+}
+
+export const GEOJSON_SPATIAL_PRECISION = ["block", "coarse"] as const;
+export type GeoJsonSpatialPrecision = (typeof GEOJSON_SPATIAL_PRECISION)[number];
+
+export interface PublicGeoJsonProperties {
+  case_id: string;
+  display_id: string;
+  category: CaseCategory;
+  votavia_operational_status: CaseStatus;
+  external_government_status_label: string | null;
+  external_government_status_kind: string | null;
+  community_verification_status: CommunityVerificationStatus;
+  record_origin: RecordOrigin;
+  title: string;
+  colonia: string;
+  alcaldia: string;
+  support_count: number;
+  created_at: string;
+  updated_at: string;
+  permalink: string;
+  spatial_precision: GeoJsonSpatialPrecision;
+  coordinate_precision_meters: number;
+  source_name: string | null;
+  official_folio: string | null;
+  source_url: string | null;
+  license_id: string | null;
+  freshness: string | null;
+}
+
+export interface PublicGeoJsonFeature {
+  type: "Feature";
+  /** Stable feature identity: the canonical case_id. */
+  id: string;
+  geometry:
+    | { type: "Point"; coordinates: [number, number] }
+    | null;
+  properties: PublicGeoJsonProperties;
+}
+
+export interface PublicGeoJsonFeatureCollection {
+  type: "FeatureCollection";
+  features: PublicGeoJsonFeature[];
+  meta: ResponseMeta;
+  provenance: {
+    attribution: string;
+    generated_at: string;
+    license: string;
+    limitations: string[];
+  };
+}
+
+export interface OfficialReportsMeta extends ResponseMeta {
+  official_feed: OfficialFeedMeta;
+}
+
+export interface OfficialReportsEnvelope {
+  data: PublicCase[];
+  meta: OfficialReportsMeta;
+}

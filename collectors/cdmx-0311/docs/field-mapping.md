@@ -177,3 +177,40 @@ Common flags include: `missing_coordinates`, `incomplete_coordinates`,
 `missing_source_record_id`, `missing_alcaldia`, `unmapped_status`,
 `unmapped_category`, `not_infrastructure`, `pii_*_redacted`,
 `description_truncated` and `column_count_mismatch`.
+
+## From collector record to ingestion record
+
+`src/adapters/ingest.ts` maps a `NormalizedOfficialRecord` into Session 1's
+`OfficialRecordIngestInput`. The differences that matter:
+
+| Collector field | Ingest field | Transformation |
+| --- | --- | --- |
+| `source_record_id` | `source_record_id` | Falls back to `dedupe_key` when null |
+| — | `external_folio` | The government folio, verbatim |
+| `normalized_status` | `status_normalized` | Advisory only |
+| `closed_at` | `source_closed_at` | Direct |
+| `alcaldia = "No especificada"` | `alcaldia` | → `null` (never invent a jurisdiction) |
+| `record_hash` | `content_hash` | Direct |
+| `raw_reference` | `provenance` | Nested, plus category normalization detail |
+| — | `title` | Always `null`; not published by the source |
+| — | `address_hint` | Always `null`; not collected |
+| — | `is_active` | Always `true`; absence never deactivates |
+
+`source_license` / `source_license_verified_from` are re-derived into
+`license` / `license_verified_from` plus a `redistribution` verdict from
+`src/adapters/license-policy.ts`.
+
+## License verdicts
+
+| Published license | `redistribution` |
+| --- | --- |
+| `CC-BY-4.0-ESP` | `allowed` (attribution required) |
+| Other `CC-*` variants | `restricted` |
+| Missing / `notspecified` | `unknown` |
+| Any dashboard source | `unknown` |
+
+`unknown` blocks public exposure. See
+[`session4-public-schema.md`](session4-public-schema.md).
+
+See [`coverage-and-access.md`](coverage-and-access.md) for observed coverage and
+access conditions, and [`handoff.md`](handoff.md) for the ingestion algorithm.

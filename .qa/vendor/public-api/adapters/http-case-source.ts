@@ -69,7 +69,21 @@ export class HttpCaseSource implements PublicCaseSource {
     });
     if (query.categories?.length) search.set("category", query.categories.join(","));
     if (query.statuses?.length) search.set("status", query.statuses.join(","));
-    if (query.colonia) search.set("colonia", query.colonia);
+    if (query.origins?.length) search.set("origin", query.origins.join(","));
+    if (query.communityVerification?.length) {
+      search.set("verification", query.communityVerification.join(","));
+    }
+    if (query.alcaldias?.length) search.set("alcaldia", query.alcaldias.join(","));
+    if (query.colonias?.length) search.set("colonia", query.colonias.join(","));
+    if (query.createdFrom) search.set("created_from", query.createdFrom);
+    if (query.createdTo) search.set("created_to", query.createdTo);
+    if (query.minSupport !== undefined) search.set("min_support", String(query.minSupport));
+    if (query.bbox) {
+      search.set(
+        "bbox",
+        [query.bbox.minLon, query.bbox.minLat, query.bbox.maxLon, query.bbox.maxLat].join(","),
+      );
+    }
     if (query.query) search.set("q", query.query);
 
     const payload = await this.get<{ items: Case[]; total: number }>(`/api/cases?${search}`);
@@ -100,5 +114,14 @@ export class HttpCaseSource implements PublicCaseSource {
 
   async statistics(): Promise<PublicStats> {
     return this.get<PublicStats>("/api/stats");
+  }
+
+  async health() {
+    try {
+      await this.get<unknown>("/api/health");
+      return { status: "ok" as const, detail: "La plataforma de casos respondió." };
+    } catch {
+      return { status: "degraded" as const, detail: "La plataforma de casos no respondió." };
+    }
   }
 }

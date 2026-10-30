@@ -1,0 +1,17 @@
+{
+  "manifest_version": "1.0.0",
+  "collector": { "name": "votavia-cdmx-0311", "version": "0.1.0" },
+  "contract_version": "1.0.0",
+  "run_id": "fixture-run-2026-10-30",
+  "status": "completed",
+  "dataset": {
+    "name": "0311",
+    "title": "Solicitudes *0311",
+    "organization": "Agencia Digital de Innovación Pública (ADIP)",
+    "license_id": "CC-BY-4.0-ESP",
+    "license_title": "Creative Commons Atribución 4.0 España"
+  },
+  "attribution": "Gobierno de la Ciudad de México — Portal de Datos Abiertos CDMX, conjunto «Solicitudes *0311».",
+  "license_status": "verified",
+  "warnings": []
+}

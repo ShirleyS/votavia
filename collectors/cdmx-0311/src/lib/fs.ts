@@ -36,6 +36,12 @@ export async function atomicWriteJson(filePath: string, value: unknown, pretty =
   await atomicWriteFile(filePath, text);
 }
 
+/** Writes JSONL atomically; an empty array still produces an empty file. */
+export async function writeJsonlAtomic(filePath: string, values: readonly unknown[]): Promise<void> {
+  const text = values.length === 0 ? "" : `${values.map((value) => JSON.stringify(value)).join("\n")}\n`;
+  await atomicWriteFile(filePath, text);
+}
+
 export async function readJsonFile<T>(filePath: string): Promise<T> {
   return JSON.parse(await readFile(filePath, "utf8")) as T;
 }

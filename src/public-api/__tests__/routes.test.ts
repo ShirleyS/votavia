@@ -99,6 +99,11 @@ describe("public route handlers", () => {
       "/api/v1/public/health",
     ]);
     expect(spec.components.schemas.Case).toBeTruthy();
+    expect(spec.components.schemas.Case.properties.official_record).toBeTruthy();
+    expect(spec.components.schemas.OfficialRecord).toBeTruthy();
+    expect(
+      spec.components.schemas.Provenance.properties.license_verified_from.enum,
+    ).toContain("unverified");
   });
 
   it("serves GeoJSON with stable ids and a geo content type", async () => {

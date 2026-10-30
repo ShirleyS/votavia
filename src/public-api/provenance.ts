@@ -93,6 +93,9 @@ export function isImportedRecordPublishable(
 ): boolean {
   if (item.is_published !== true) return false;
   if (provenance.record_origin !== "government_import") return false;
+  // Session 6 rule: a record whose licence is still `unverified` must never be
+  // republished, regardless of the global feed flag or licence string.
+  if (provenance.license_verified_from === "unverified") return false;
   if (!provenance.license.redistributable) return false;
   if (!provenance.permission.verified) return false;
   if (!provenance.source_url) return false;

@@ -26,6 +26,7 @@ export interface PublicResponseOptions {
   cacheSeconds?: number;
   staleSeconds?: number;
   requestId: string;
+  contentType?: string;
 }
 
 function clientIp(request: NextRequest): string {
@@ -65,19 +66,9 @@ export function jsonPublic<T>(payload: T, options: PublicResponseOptions, reques
   const cacheSeconds = options.cacheSeconds ?? 30;
   const staleSeconds = options.staleSeconds ?? 120;
   const body = JSON.stringify(payload);
-  // ETags must not change on every request: ignore per-request metadata.
-  const etagBody = JSON.stringify(
-    payload && typeof payload === "object" && "meta" in payload
-      ? {
-          ...payload,
-          meta: {
-            ...(payload as { meta?: Record<string, unknown> }).meta,
-            request_id: "",
-            generated_at: "",
-          },
-        }
-      : payload,
-  );
+  // ETags must not change on every request: ignore per-request metadata such
+  // as request ids, generation timestamps and freshness check timestamps.
+  const etagBody = JSON.stringify(canonicalizeForEtag(payload));
   const etag = `"${createHash("sha256").update(etagBody).digest("base64url").slice(0, 24)}"`;
 
   if (request?.headers.get("if-none-match") === etag) {
@@ -93,12 +84,26 @@ export function jsonPublic<T>(payload: T, options: PublicResponseOptions, reques
   const response = new NextResponse(body, {
     status: options.status ?? 200,
     headers: {
-      "content-type": "application/json; charset=utf-8",
+      "content-type": options.contentType ?? "application/json; charset=utf-8",
       etag,
       "cache-control": `public, max-age=${cacheSeconds}, stale-while-revalidate=${staleSeconds}`,
     },
   });
   return withHeaders(response, options.requestId);
+}
+
+const VOLATILE_KEYS = new Set(["request_id", "generated_at", "checked_at"]);
+
+function canonicalizeForEtag(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalizeForEtag);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([key]) => !VOLATILE_KEYS.has(key))
+        .map(([key, nested]) => [key, canonicalizeForEtag(nested)]),
+    );
+  }
+  return value;
 }
 
 function rateLimitHeaders(limit: ReturnType<typeof consumeRateLimit>) {
@@ -113,6 +118,7 @@ type PublicGetOptions = {
   cacheSeconds?: number;
   staleSeconds?: number;
   status?: number;
+  contentType?: string;
 };
 
 /** Wraps a read-only handler with CORS, rate limiting, errors and ETags. */

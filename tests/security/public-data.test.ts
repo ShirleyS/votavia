@@ -34,6 +34,9 @@ const PUBLIC_CASE_KEYS = [
   "is_demo",
   "location",
   "observation_count",
+  // Added with the Session 4 <-> Session 6 bridge: allowlisted source metadata
+  // (dataset, original status/category, agency, timestamps). No personal data.
+  "official_record",
   "permalink",
   "photos",
   "provenance",

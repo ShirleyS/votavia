@@ -3,32 +3,27 @@ import type {
   CaseDetailSnapshot,
   PublicCaseSource,
   PublishedCaseQuery,
+  SourceHealth,
 } from "../source";
+import { readPublicMetadata } from "../contract-extensions";
+import { isCasePublishable } from "../provenance";
 import { demoCases, demoObservations, demoTimeline } from "../mock-data";
 
-const published = () => demoCases.filter((item) => item.is_published);
+import { comparePublicCases, matchesPublishedQuery } from "../filters";
 
-function matches(item: Case, query: PublishedCaseQuery): boolean {
-  if (query.categories?.length && !query.categories.includes(item.category)) return false;
-  if (query.statuses?.length && !query.statuses.includes(item.status)) return false;
-  if (query.colonia && item.colonia.toLowerCase() !== query.colonia.toLowerCase()) return false;
-  if (query.query) {
-    const needle = query.query.toLowerCase();
-    const haystack = `${item.title} ${item.description} ${item.colonia} ${item.display_id}`.toLowerCase();
-    if (!haystack.includes(needle)) return false;
-  }
-  return true;
-}
+/**
+ * Publication and provenance are applied before every other filter, so a
+ * record without a verified licence can never influence totals, ordering or
+ * pagination.
+ */
+const published = () => demoCases.filter((item) => isCasePublishable(item));
 
 export class DemoCaseSource implements PublicCaseSource {
   readonly kind = "demo" as const;
 
   async listPublished(query: PublishedCaseQuery) {
-    const rows = published().filter((item) => matches(item, query));
-    rows.sort((a, b) => {
-      if (query.sort === "supported") return b.support_count - a.support_count;
-      return Date.parse(b.created_at) - Date.parse(a.created_at);
-    });
+    const rows = published().filter((item) => matchesPublishedQuery(item, query));
+    rows.sort((a, b) => comparePublicCases(a, b, query.sort));
     const start = (query.page - 1) * query.pageSize;
     return {
       items: rows.slice(start, start + query.pageSize),
@@ -51,8 +46,13 @@ export class DemoCaseSource implements PublicCaseSource {
     const byCategory = new Map<string, { count: number; resolved: number }>();
     const byStatus = new Map<string, number>();
     const byColonia = new Map<string, { count: number; resolved: number; supports: number }>();
+    const byOrigin = new Map<string, number>();
+    const byVerification = new Map<string, number>();
+    let officialRecords = 0;
 
     for (const item of cases) {
+      const metadata = readPublicMetadata(item);
+
       const category = byCategory.get(item.category) ?? { count: 0, resolved: 0 };
       category.count += 1;
       if (item.status === "resolved") category.resolved += 1;
@@ -65,6 +65,13 @@ export class DemoCaseSource implements PublicCaseSource {
       colonia.supports += item.support_count;
       if (item.status === "resolved") colonia.resolved += 1;
       byColonia.set(item.colonia, colonia);
+
+      byOrigin.set(metadata.record_origin, (byOrigin.get(metadata.record_origin) ?? 0) + 1);
+      byVerification.set(
+        metadata.community_verification_status,
+        (byVerification.get(metadata.community_verification_status) ?? 0) + 1,
+      );
+      if (metadata.record_origin === "government_import") officialRecords += 1;
     }
 
     return {
@@ -87,9 +94,26 @@ export class DemoCaseSource implements PublicCaseSource {
         .sort(
           (a, b) =>
             Date.parse(b.resolved_at ?? b.updated_at) -
-            Date.parse(a.resolved_at ?? a.updated_at),
+              Date.parse(a.resolved_at ?? a.updated_at) || a.case_id.localeCompare(b.case_id),
         )
         .slice(0, 5),
+      ...( {
+        by_origin: [...byOrigin.entries()].map(([record_origin, count]) => ({
+          record_origin: record_origin as never,
+          count,
+        })),
+        by_community_verification: [...byVerification.entries()].map(
+          ([community_verification_status, count]) => ({
+            community_verification_status: community_verification_status as never,
+            count,
+          }),
+        ),
+        official_records_included: officialRecords,
+      } as Partial<PublicStats>),
     };
+  }
+
+  async health(): Promise<SourceHealth> {
+    return { status: "ok", detail: "Datos de demostración deterministas; no hay plataforma conectada." };
   }
 }

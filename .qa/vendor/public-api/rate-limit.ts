@@ -10,7 +10,11 @@ interface Bucket {
 
 const buckets = new Map<string, Bucket>();
 const WINDOW_MS = 60_000;
-const LIMIT = 120;
+
+function configuredLimit(): number {
+  const raw = Number(process.env.VOTAVIA_PUBLIC_RATE_LIMIT ?? "");
+  return Number.isFinite(raw) && raw >= 1 && raw <= 10_000 ? Math.floor(raw) : 120;
+}
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -27,15 +31,16 @@ export function consumeRateLimit(key: string, now = Date.now()): RateLimitResult
     }
   }
 
+  const limit = configuredLimit();
   const existing = buckets.get(key);
   const bucket = existing && existing.resetAt > now ? existing : { count: 0, resetAt: now + WINDOW_MS };
   bucket.count += 1;
   buckets.set(key, bucket);
 
   return {
-    allowed: bucket.count <= LIMIT,
-    limit: LIMIT,
-    remaining: Math.max(0, LIMIT - bucket.count),
+    allowed: bucket.count <= limit,
+    limit,
+    remaining: Math.max(0, limit - bucket.count),
     resetAt: bucket.resetAt,
     retryAfterSeconds: Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)),
   };

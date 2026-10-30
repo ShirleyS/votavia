@@ -8,6 +8,7 @@ import type {
 import type {
   CommunityVerificationStatus,
   ExternalGovernmentStatus,
+  OfficialRecordMetadata,
   RecordOrigin,
 } from "./contract-extensions";
 import type { PublicProvenance } from "./provenance";
@@ -60,6 +61,8 @@ export interface PublicCase {
   record_origin: RecordOrigin;
   /** Present only for imported records that passed the licensing gate. */
   provenance: PublicProvenance | null;
+  /** Allowlisted Session 6 fields for imported records; null otherwise. */
+  official_record: OfficialRecordMetadata | null;
   title: string;
   description: string;
   location: PublicLocation;

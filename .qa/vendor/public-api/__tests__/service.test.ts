@@ -4,6 +4,7 @@ import { demoCases } from "../mock-data";
 import { PublicApiService } from "../service";
 import { DemoCaseSource } from "../adapters/demo-source";
 import { DemoRiskSignalProvider } from "../adapters/demo-risk";
+import { isCasePublishable } from "../provenance";
 import type { RiskSignalProvider } from "../source";
 import { demoRiskSignals } from "../mock-data";
 
@@ -11,7 +12,7 @@ const NOW = new Date("2026-10-30T12:00:00.000Z");
 const service = () =>
   new PublicApiService(new DemoCaseSource(), new DemoRiskSignalProvider(), { now: () => NOW });
 
-const published = demoCases.filter((item) => item.is_published);
+const published = demoCases.filter((item) => isCasePublishable(item));
 
 async function expectApiError(promise: Promise<unknown>, status: number, code: string) {
   await expect(promise).rejects.toBeInstanceOf(PublicApiError);
@@ -29,6 +30,14 @@ describe("GET /cases", () => {
     expect(result.meta.page_size).toBe(20);
     expect(result.meta.dataset).toBe("demo");
     expect(result.data.every((item) => item.case_id !== demoCases[12].case_id)).toBe(true);
+    expect(result.data.every((item) => item.case_id !== demoCases[14].case_id)).toBe(true);
+  });
+
+  it("counts only records the public API can actually serve", async () => {
+    expect(published).toHaveLength(14);
+    const result = await service().listCases(new URLSearchParams(), "req");
+    expect(result.meta.total).toBe(14);
+    expect(result.data).toHaveLength(14);
   });
 
   it("filters by category and status", async () => {

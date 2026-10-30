@@ -332,7 +332,7 @@ export const demoCases: MockCase[] = [
         kind: "closed",
         reported_at: iso(3),
       },
-      community_verification_status: "not_applicable",
+      community_verification_status: "unreviewed",
       // Never publish the source's contact details or internal notes.
       source_contact_email: "official@cdmx.gob.mx",
       internal_notes: "No publicar: datos de contacto de la autoridad.",
@@ -350,12 +350,28 @@ export const demoCases: MockCase[] = [
           url: "https://creativecommons.org/licenses/by/4.0/",
           redistributable: true,
         },
+        license_verified_from: "dataset_page",
         permission: {
           verified: true,
           verified_at: iso(30),
           reference: "https://example.org/permissions/demo-311",
         },
         attribution: "Datos de demostración inspirados en un tablero público.",
+      },
+      // Allowlisted subset of the source record. Everything else (raw row,
+      // contact columns, internal notes) stays private.
+      official_record: {
+        source_dataset: "0311-demo",
+        original_status: "Cerrado",
+        original_category: "Residuos sólidos",
+        original_subcategory: "Recolección",
+        responsible_agency: "Servicios Urbanos (demostración)",
+        is_infrastructure_related: false,
+        data_quality_flags: ["demo_fixture"],
+        source_updated_at: iso(3),
+        source_closed_at: iso(3),
+        extraction_method: "dashboard_api",
+        collected_at: iso(1),
       },
     },
   }),
@@ -379,7 +395,7 @@ export const demoCases: MockCase[] = [
         kind: "unknown",
         reported_at: null,
       },
-      community_verification_status: "not_applicable",
+      community_verification_status: "unreviewed",
       provenance: {
         record_origin: "government_import",
         dataset: "unlicensed-demo",
@@ -394,6 +410,7 @@ export const demoCases: MockCase[] = [
           url: null,
           redistributable: false,
         },
+        license_verified_from: "unverified",
         permission: {
           verified: false,
           verified_at: null,
@@ -417,7 +434,7 @@ export const demoCases: MockCase[] = [
     updated_days: 1,
     extra: {
       record_origin: "community",
-      community_verification_status: "community_confirmed",
+      community_verification_status: "confirmed",
       community_verification_summary:
         "Tres integrantes de la red vecinal confirmaron la jornada y compartieron fotos del antes y después.",
       community_verified_at: iso(1),

@@ -309,6 +309,137 @@ export const demoCases: MockCase[] = [
       internal_notes: "Caso retirado a solicitud de la persona reportante.",
     },
   }),
+  base(14, {
+    category: "waste_sanitation",
+    // The source of this record reports it closed. VotaVía has NOT verified
+    // the fix, so the operational status stays pending verification.
+    status: "pending_verification",
+    title: "Reporte oficial: residuos en vía pública (folio CDMX-311-8871)",
+    description:
+      "Registro importado del tablero público. El reporte original menciona un contacto en official@cdmx.gob.mx y el teléfono 55 5555 1234. Requiere verificación de campo.",
+    colonia: "Centro",
+    latitude: 19.4326,
+    longitude: -99.1332,
+    address_hint: "Dirección exacta del registro de origen",
+    support_count: 5,
+    created_days: 20,
+    updated_days: 3,
+    extra: {
+      record_origin: "government_import",
+      external_government_status: {
+        code: "CLOSED_BY_AGENCY",
+        label: "Cerrado por la autoridad",
+        kind: "closed",
+        reported_at: iso(3),
+      },
+      community_verification_status: "unreviewed",
+      // Never publish the source's contact details or internal notes.
+      source_contact_email: "official@cdmx.gob.mx",
+      internal_notes: "No publicar: datos de contacto de la autoridad.",
+      provenance: {
+        record_origin: "government_import",
+        dataset: "cdmx-311-demo",
+        source_name: "Tablero 311 CDMX (demostración)",
+        source_url: "https://tablero311.cdmx.gob.mx/registro/8871?token=should-not-leak",
+        official_folio: "CDMX-311-8871",
+        source_reported_at: iso(21),
+        last_synced_at: iso(1),
+        license: {
+          id: "demo-cc-by-4.0",
+          name: "Creative Commons Atribución 4.0 (demostración)",
+          url: "https://creativecommons.org/licenses/by/4.0/",
+          redistributable: true,
+        },
+        license_verified_from: "dataset_page",
+        permission: {
+          verified: true,
+          verified_at: iso(30),
+          reference: "https://example.org/permissions/demo-311",
+        },
+        attribution: "Datos de demostración inspirados en un tablero público.",
+      },
+      // Allowlisted subset of the source record. Everything else (raw row,
+      // contact columns, internal notes) stays private.
+      official_record: {
+        source_dataset: "0311-demo",
+        original_status: "Cerrado",
+        original_category: "Residuos sólidos",
+        original_subcategory: "Recolección",
+        responsible_agency: "Servicios Urbanos (demostración)",
+        is_infrastructure_related: false,
+        data_quality_flags: ["demo_fixture"],
+        source_updated_at: iso(3),
+        source_closed_at: iso(3),
+        extraction_method: "dashboard_api",
+        collected_at: iso(1),
+      },
+    },
+  }),
+  base(15, {
+    category: "other",
+    status: "closed",
+    title: "Registro importado sin permiso de redistribución",
+    description:
+      "Este registro no debe publicarse: la licencia no permite redistribuir y el permiso no está verificado.",
+    colonia: "San Rafael",
+    latitude: 19.4097,
+    longitude: -99.1752,
+    support_count: 1,
+    created_days: 15,
+    updated_days: 4,
+    extra: {
+      record_origin: "government_import",
+      external_government_status: {
+        code: "UNKNOWN",
+        label: "Sin estado público",
+        kind: "unknown",
+        reported_at: null,
+      },
+      community_verification_status: "unreviewed",
+      provenance: {
+        record_origin: "government_import",
+        dataset: "unlicensed-demo",
+        source_name: "Fuente sin licencia",
+        source_url: "https://example.org/sin-licencia",
+        official_folio: "DEMO-0000",
+        source_reported_at: iso(15),
+        last_synced_at: iso(4),
+        license: {
+          id: "unknown",
+          name: "Sin licencia declarada",
+          url: null,
+          redistributable: false,
+        },
+        license_verified_from: "unverified",
+        permission: {
+          verified: false,
+          verified_at: null,
+          reference: null,
+        },
+        attribution: null,
+      },
+    },
+  }),
+  base(16, {
+    category: "parks_public_spaces",
+    status: "in_progress",
+    title: "Juegos reparados por la comunidad en Plaza Río de Janeiro",
+    description:
+      "Vecinas y vecinos pintaron y repararon los juegos infantiles durante una jornada comunitaria. Falta el mantenimiento oficial del piso.",
+    colonia: "Roma Norte",
+    latitude: 19.4165,
+    longitude: -99.1595,
+    support_count: 33,
+    created_days: 7,
+    updated_days: 1,
+    extra: {
+      record_origin: "community",
+      community_verification_status: "confirmed",
+      community_verification_summary:
+        "Tres integrantes de la red vecinal confirmaron la jornada y compartieron fotos del antes y después.",
+      community_verified_at: iso(1),
+    },
+  }),
 ];
 
 export const demoObservations: Record<string, ReportObservation[]> = Object.fromEntries(

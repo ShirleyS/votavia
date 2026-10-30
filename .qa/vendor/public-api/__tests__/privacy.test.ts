@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 import { demoCases, demoObservations, demoTimeline } from "../mock-data";
 import {
   COORDINATE_PRECISION_METERS,
+  SENSITIVE_COORDINATE_PRECISION_METERS,
   redactPersonalData,
   toPublicCase,
   toPublicDetail,
 } from "../privacy";
 
 const first = demoCases[0];
+const standard = demoCases[2];
 const unpublished = demoCases.find((item) => !item.is_published)!;
 
 describe("public projection", () => {
@@ -28,16 +30,30 @@ describe("public projection", () => {
   });
 
   it("coarsens coordinates and declares the precision", () => {
-    const projected = toPublicCase(first)!;
-    expect(projected.location.latitude).toBe(19.415);
-    expect(projected.location.longitude).toBe(-99.164);
+    const projected = toPublicCase(standard)!;
+    expect(projected.location.latitude).toBe(19.423);
+    expect(projected.location.longitude).toBe(-99.161);
     expect(projected.location.precision_meters).toBe(COORDINATE_PRECISION_METERS);
+  });
+
+  it("coarsens safety-sensitive reports to roughly 1.1 km", () => {
+    const projected = toPublicCase(first)!;
+    expect(projected.has_safety_concern).toBe(true);
+    expect(projected.location.latitude).toBe(19.42);
+    expect(projected.location.longitude).toBe(-99.16);
+    expect(projected.location.precision_meters).toBe(SENSITIVE_COORDINATE_PRECISION_METERS);
   });
 
   it("redacts emails and phone numbers from free text", () => {
     expect(redactPersonalData("Escribe a a@b.com o al 55 1234 5678")).toBe(
       "Escribe a [correo protegido] o al [teléfono protegido]",
     );
+  });
+
+  it("redacts magic links and signed URLs from free text", () => {
+    expect(
+      redactPersonalData("Abre https://votavia.mx/caso?token=abc123 para confirmar"),
+    ).toBe("Abre [enlace protegido] para confirmar");
   });
 
   it("excludes private timeline events and their metadata", () => {
